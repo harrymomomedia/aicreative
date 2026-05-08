@@ -7,7 +7,7 @@ End-to-end UGC ad cloning. Four halves:
 3. **Voice** TTS + cloning via ElevenLabs direct (`elevenlabs_client.py`)
 4. **Caption** burn-in TikTok-style captions (`caption.py`)
 
-> See **`SOP.md`** for the full end-to-end procedure and **`LEARNINGS.md`** for accumulated gotchas. Read both before starting a new project.
+> See **`LEARNINGS.md`** for accumulated gotchas. Read it before starting a new project.
 
 ---
 
