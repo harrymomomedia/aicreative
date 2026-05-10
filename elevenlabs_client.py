@@ -75,6 +75,48 @@ def tts(
     return out_path
 
 
+def voice_changer(
+    audio_path,
+    voice_id,
+    out_path,
+    model_id="eleven_multilingual_sts_v2",
+    stability=0.5,
+    similarity_boost=0.75,
+    style=0.0,
+    output_format="mp3_44100_128",
+    remove_background_noise=False,
+):
+    """Speech-to-speech: convert input audio to target voice while preserving timing/cadence.
+
+    Use this to normalize audio across multiple clips (each clip's voice → one consistent voice)
+    WITHOUT losing the original mouth-movement timing (so lip-sync stays intact).
+
+    model_id: 'eleven_multilingual_sts_v2' (default) | 'eleven_english_sts_v2'
+    """
+    url = f"{BASE}/v1/speech-to-speech/{voice_id}"
+    params = {"output_format": output_format}
+    voice_settings = {
+        "stability": stability,
+        "similarity_boost": similarity_boost,
+        "style": style,
+    }
+    import json as _json
+    files = {"audio": (os.path.basename(audio_path), open(audio_path, "rb"), "audio/mpeg")}
+    data = {
+        "model_id": model_id,
+        "voice_settings": _json.dumps(voice_settings),
+        "remove_background_noise": "true" if remove_background_noise else "false",
+    }
+    r = requests.post(url, headers=HEADERS, params=params, files=files, data=data)
+    if not r.ok:
+        raise RuntimeError(f"Voice changer failed ({r.status_code}): {r.text}")
+    Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(out_path, "wb") as f:
+        f.write(r.content)
+    print(f"  Saved: {out_path} ({len(r.content) // 1024}KB)", flush=True)
+    return out_path
+
+
 def clone_voice(name, sample_files, description=None):
     """Instant voice clone from one or more audio samples (mp3/wav). Returns voice_id."""
     files = []
