@@ -130,3 +130,87 @@ def clone_voice(name, sample_files, description=None):
     voice_id = r.json().get("voice_id")
     print(f"  Cloned voice '{name}' → {voice_id}", flush=True)
     return voice_id
+
+
+def scribe(audio_path, model_id="scribe_v1", biased_keywords=None,
+           language_code=None, diarize=False, timestamps_granularity="word",
+           tag_audio_events=False, num_speakers=None):
+    """ElevenLabs Speech-to-Text (Scribe). Returns dict with 'text' + per-word timing.
+
+    audio_path:        path to audio/video file (mp3/wav/m4a/mp4 etc.)
+    model_id:          'scribe_v1' (default) | 'scribe_v1_experimental'
+    biased_keywords:   list of words/phrases to bias toward, e.g. ['Chowchilla', 'Miha']
+                       — KILLER for proper-noun-heavy QA. Each can include a bias
+                       weight via 'word:N.N' (1.0 default, max ~5.0).
+    language_code:     ISO-639-1 (e.g. 'en'); None = auto-detect.
+    diarize:           identify speakers.
+    timestamps_granularity: 'word' | 'character' | 'none'.
+    tag_audio_events:  include [laughter], [music], etc.
+
+    Returns: {
+      "text": "full transcript",
+      "language_code": "en",
+      "language_probability": 0.99,
+      "words": [{"text": "...", "start": 0.12, "end": 0.34, "type": "word"}, ...]
+    }
+    """
+    url = f"{BASE}/v1/speech-to-text"
+    files = {"file": (os.path.basename(audio_path), open(audio_path, "rb"), "audio/mpeg")}
+    data = {"model_id": model_id}
+    if biased_keywords:
+        # ElevenLabs expects a JSON array string for the multipart 'biased_keywords' field
+        import json as _json
+        # If user passed plain strings, default to weight 1.5 (helpful but not overpowering)
+        normalized = []
+        for k in biased_keywords:
+            if ":" in str(k):
+                normalized.append(str(k))
+            else:
+                normalized.append(f"{k}:1.5")
+        data["biased_keywords"] = _json.dumps(normalized)
+    if language_code:
+        data["language_code"] = language_code
+    if diarize:
+        data["diarize"] = "true"
+        if num_speakers:
+            data["num_speakers"] = str(num_speakers)
+    if timestamps_granularity:
+        data["timestamps_granularity"] = timestamps_granularity
+    if tag_audio_events:
+        data["tag_audio_events"] = "true"
+
+    try:
+        r = requests.post(url, headers=HEADERS, files=files, data=data, timeout=120)
+    finally:
+        files["file"][1].close()
+    if not r.ok:
+        raise RuntimeError(f"Scribe failed ({r.status_code}): {r.text[:500]}")
+    return r.json()
+
+
+def scribe_whisper_compat(audio_path, biased_keywords=None, language_code="en"):
+    """Wrapper that returns Whisper-compatible JSON shape.
+
+    Returns {
+      "text": "...",
+      "segments": [{"words": [{"start", "end", "word"}, ...]}],
+      "language": "en",
+    }
+
+    Lets us drop-in replace whisper.transcribe() everywhere in this project
+    (trim_silence.py reads segments[].words[], so this stays compatible).
+    """
+    raw = scribe(audio_path, biased_keywords=biased_keywords,
+                 language_code=language_code, timestamps_granularity="word")
+    words = []
+    for w in raw.get("words", []):
+        # Scribe yields type="word" entries plus separator "spacing" entries; keep only words
+        if w.get("type") not in (None, "word"):
+            continue
+        words.append({"start": w.get("start"), "end": w.get("end"),
+                      "word": w.get("text", "")})
+    return {
+        "text": raw.get("text", ""),
+        "segments": [{"words": words}] if words else [],
+        "language": raw.get("language_code", language_code),
+    }

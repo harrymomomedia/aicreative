@@ -151,9 +151,13 @@ def generate_kling(prompt, duration=5, aspect_ratio="9:16", image_urls=None, sou
     return _poll_jobs(task_id, "Kling")
 
 
-def generate_veo(prompt, aspect_ratio="9:16", image_urls=None):
+def generate_veo(prompt, aspect_ratio="9:16", image_urls=None, mode=None):
     """Veo 3 Fast at 720p. Uses /api/v1/veo/generate (separate endpoint).
-    generationType inferred: TEXT_2_VIDEO if no images, else REFERENCE_2_VIDEO."""
+
+    mode: 'IMAGE_2_VIDEO' uses image_urls[0] as the literal first frame (clip-1 anchor pattern).
+          'REFERENCE_2_VIDEO' uses images as style/subject reference (Veo renders its own first frame).
+          Default: TEXT_2_VIDEO if no images, REFERENCE_2_VIDEO if images.
+    """
     payload = {
         "prompt": prompt,
         "model": "veo3_fast",
@@ -162,7 +166,7 @@ def generate_veo(prompt, aspect_ratio="9:16", image_urls=None):
     }
     if image_urls:
         payload["imageUrls"] = image_urls
-        payload["generationType"] = "REFERENCE_2_VIDEO"
+        payload["generationType"] = mode or "REFERENCE_2_VIDEO"
     else:
         payload["generationType"] = "TEXT_2_VIDEO"
     r = requests.post(VEO_CREATE, headers=HEADERS, json=payload)

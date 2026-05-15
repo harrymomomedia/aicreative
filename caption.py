@@ -154,9 +154,10 @@ def _wrap_to_lines(text, font, draw, max_w, stroke):
 
 def render_chunk(text, width, height, font_path, png_path,
                   fontsize_ratio=0.035, outline_ratio=0.0028, marginv_ratio=0.16,
-                  max_lines=2):
+                  max_lines=2, position="bottom"):
     """Render one caption chunk as a transparent PNG.
-    Adaptive font shrink: if wrap exceeds max_lines, shrink fontsize ~8% and retry."""
+    Adaptive font shrink: if wrap exceeds max_lines, shrink fontsize ~8% and retry.
+    position: "bottom" (marginv from bottom edge) or "center" (vertically centered)."""
     from PIL import Image, ImageDraw, ImageFont
 
     text = apply_substitutions(text)
@@ -193,7 +194,10 @@ def render_chunk(text, width, height, font_path, png_path,
     line_gap = int(fontsize * 0.08)
     total_h = sum(line_heights) + (len(lines) - 1) * line_gap
 
-    y0 = height - marginv - total_h
+    if position == "center":
+        y0 = (height - total_h) // 2
+    else:  # "bottom"
+        y0 = height - marginv - total_h
     cur_y = y0
     for i, line in enumerate(lines):
         x = (width - line_widths[i]) // 2

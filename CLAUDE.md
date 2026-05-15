@@ -23,7 +23,7 @@ End-to-end UGC ad cloning. Four halves:
 10. **Trim silence; chain via clip-1 anchor.** Per-clip post-QA flow:
     a. `scripts/trim_silence.py <clip.mp4> <transcript.json>` (start/end-only by default — preserves internal pacing). Outputs `<clip>_trimmed.mp4`.
     b. **For clips 2-N: use a clean frame from CLIP 1 as the `IMAGE_2_VIDEO` first-frame**, NOT the last frame of the previous clip. Last-frame chaining compounds quality degradation across N generations; clip-1 anchor keeps quality consistent throughout the ad. Small visible "reset" between clips is acceptable for short-form UGC pacing. (Last-frame chain is an alternate technique — see "Stitching multi-clip ads" — for a "fake one-take" feel where you accept the drift.)
-    c. Pick a clean clip-1 frame: eyes direct, mouth in soft neutral line, no mid-blink. Upload to KIE; reuse the same uploaded URL for all subsequent clip prompts.
+    c. **Rotate anchor frames across clips 2-N** — extract 5-7 different clean frames from clip 1 at varied timestamps (e.g., t=0.5s, 2.0s, 3.5s, 5.0s, 6.5s) and assign a different one to each subsequent clip. Optionally pull 1-2 more from clip 2 once it lands for extra variety. **Never reuse a single anchor URL for every clip** — that produces visually identical clip starts and reads as templated/unnatural on UGC playback. Pattern in `scripts/chowchilla_a2_variations.py`: `get_anchor_url()` checks `clip{N}_anchor_url.txt` per-clip first, falls back to `clip1_anchor_url.txt`. See `feedback_clip_anchor_rotation.md` memory.
 11. **Audit voice consistency** with `scripts/audio_match.py <clip1_trimmed.mp4> <clip2_trimmed.mp4> ...`. If voice loudness span > ~10dB or several clips fail tolerance, **normalize via ElevenLabs voice changer** (see "Audio normalization" section). This single step fixes Veo's biggest weakness — its TTS varies wildly between generations.
 12. Stitch with ffmpeg `concat` demuxer (lossless if codec params match).
 13. Add b-rolls via `filter_complex` (replace video segments, audio passthrough).
@@ -34,21 +34,57 @@ End-to-end UGC ad cloning. Four halves:
 
 ---
 
-## Available Models (KIE)
+## Available Models
+
+### Provider routing (per-model)
+
+User-set rule: **route each model to its cheapest reliable host**, not all through KIE.
+
+| Model | Provider | Module | Cost | Notes |
+|---|---|---|---|---|
+| **Veo 3 / 3.1 Fast** | **Poyo** | `poyo_client.generate_veo` | **$0.10/clip** flat | Cheapest verified Veo. See "Poyo gotchas" below. |
+| **Seedance 2.0 Fast** | OpenRouter | (no client built — user pref) | $0.45-0.97/clip (token-based) | KIE Seedance is actually 20% cheaper ($0.36-0.80) but user prefers OpenRouter for consolidation. |
+| **Kling 3.0** | KIE | `kie_client.generate_kling` | varies | Unchanged. |
+| **nano-banana-2** | KIE | `kie_client.generate_nano_banana` | varies | Unchanged. |
+| **gpt-image-2** (t2i / i2i) | OpenAI direct | `openai_image.generate_image` | bundled in OpenAI subscription | **NEVER use `kie_client.generate_gpt_image`** — proxy adds cost. |
+| **ElevenLabs** (TTS / clone / voice_changer) | ElevenLabs direct | `elevenlabs_client` | per-character | 5 concurrent max — throttle when batching. |
+
+Memory: `project_video_provider_routing.md` — confirm before bulk-running new models since pricing tiers shift.
+
+### KIE (for Kling / nano-banana)
 
 | Function | Model | Endpoint | Defaults |
 |---|---|---|---|
-| `generate_seedance` | `bytedance/seedance-2-fast` | `/jobs/createTask` | 480p (496×864), 9:16, audio on, **min 4s, max 15s** |
 | `generate_kling` | `kling-3.0/video` | `/jobs/createTask` | mode `std` (720p), 9:16 |
-| `generate_veo` | `veo3_fast` | `/veo/generate` (separate endpoint) | 720p (720×1280), 9:16 |
-| `generate_gpt_image` | `gpt-image-2-text-to-image` / `…-image-to-image` | `/jobs/createTask` | `aspect_ratio="9:16"`, `resolution="2K"` |
 | `generate_nano_banana` | `nano-banana-2` | `/jobs/createTask` | — |
+| `generate_seedance` | `bytedance/seedance-2-fast` | `/jobs/createTask` | 480p (496×864), 9:16, audio on, **min 4s, max 15s**. **NOT preferred — route to OpenRouter per user rule.** |
+| `generate_veo` | `veo3_fast` | `/veo/generate` | 720p (720×1280), 9:16. **NOT preferred — route to Poyo for $0.10/clip vs $0.30.** |
 
-All return `{"status": "success"|"failed", "urls": [...], "raw": {...}}`. Pipe `urls[0]` into `download(url, dest)`.
+All return `{"status": "success"|"failed", "urls": [...], "raw": {...}}`. KIE Veo polls a different endpoint (`/veo/record-info`) — handled internally.
 
-Veo polls a different endpoint (`/veo/record-info`) — handled internally.
+**KIE upload endpoint stays useful** for hosting reference images:
+```
+POST https://kieai.redpandaai.co/api/file-stream-upload  → returns {data.downloadUrl}
+```
+Use this even when Veo runs via Poyo — image hosting is a separate concern from generation.
+
+### Poyo gotchas (Veo 3.1 Fast at $0.10/clip)
+
+- **`generation_type: "frame"` requires EXACTLY 2 `image_urls`.** For clip-1 anchor pattern, pass the anchor twice (start = end). API rejects 1-image with 400. Client at `poyo_client.py`.
+- **Submit rate limit: 20 requests per 10 seconds (account-wide).** Batches >20 in parallel will 429. Use `max_workers=10` in ThreadPoolExecutor — generation takes 90-180s so sustained submit rate stays under limit.
+- **Status polling rate limit: 1 request per 2 seconds PER TASK.** The built-in `_poll(interval=5)` is safe. Don't manually curl the status endpoint while a script is polling — you'll trip the limit and confuse the script.
+- Async model: POST `/api/generate/submit` returns `task_id`, then poll `/api/generate/status/{task_id}` until `status: finished`. Files in `data.files[].file_url`, valid 24h.
+- `veo3.1-fast` is the model id (not `veo3_fast`). Quality model `veo3.1-quality` exists too — costlier.
 
 **Resolution mismatch warning:** Seedance 480p (496×864) won't concat cleanly with Veo/Kling 720p (720×1280). Pick one model per ad, or rescale.
+
+### GPT Image — OpenAI direct (NOT KIE)
+
+| Function | Module | Auth | Notes |
+|---|---|---|---|
+| `generate_image` | `openai_image.py` | `OPENAI_API_KEY` | Text-to-image and image-to-image via OpenAI's `gpt-image-1` (or successor). **Do not use `kie_client.generate_gpt_image`.** |
+
+`kie_client.generate_gpt_image` exists but is **deprecated for this project** — it routes through KIE's GPT Image proxy and adds cost/latency. Always import from `openai_image` instead.
 
 ---
 
@@ -79,23 +115,36 @@ ElevenLabs API is **synchronous** — no polling. Function blocks until audio is
 
 ---
 
-## Captions (`caption.py`)
+## Captions — two scripts, two skills
 
+**Default rule: DO NOT burn captions onto deliverables** (memory `feedback_skip_burned_captions`). The user adds captions themselves in their post-production tool. Only run the caption pipeline when explicitly asked ("caption this", "add subtitles", "Submagic style", "with the disclaimer").
+
+### `scripts/caption_styled.py` — Submagic / TikTok yellow-text style (canonical)
+
+The skill `yellow-text-sub` documents this. Per-word yellow text highlight (or yellow box), all-caps Arial Black, optional legal disclaimer overlay at bottom.
+
+```bash
+.venv/bin/python scripts/caption_styled.py <in.mp4> --out <out.mp4> --highlight-style yellow_text
 ```
-.venv/bin/python caption.py <input.mp4> --out <output.mp4>
-```
 
-Pipeline: extract audio → Whisper word-level transcribe → chunk into 3–4 word phrases (split on >0.35s pauses or word count) → render each as PIL PNG (Arial Black, white fill, black stroke, max 2 lines, **adaptive font shrink**) → ffmpeg `overlay` filter with `enable=between(t,...)`.
+| Setting | Default | Notes |
+|---|---|---|
+| `--highlight-style` | `box` | Pass `yellow_text` for yellow fill instead of yellow rect behind white. **User preference: `yellow_text`.** |
+| `--font-ratio` | `0.0336` | ~3.4% of frame height. Campaign-approved. |
+| `--vertical-pos` | **auto by aspect** | `0.72` for 9:16, `0.82` for 4:5. Caption always lands just below the chin regardless of aspect. |
+| `--disclaimer-start / --disclaimer-end` | `7.0 / 12.0` | Hard-cut window for disclaimer overlay. |
+| `--disclaimer-text` | Pulaski/Jones campaign | Skill `pulaski-jones-disclaimer` has the verbatim text. |
+| `--no-disclaimer` | — | Skip the disclaimer pass entirely. |
 
-**Why PIL+overlay instead of `subtitles=` filter:** Homebrew ffmpeg lacks libass.
+**Whisper proper-noun substitutions** live in `caption_styled.py:SUBSTITUTIONS`. Add new mistranscriptions there. Already covers `MIHA→MIJA` and the `CHOWCHILLA` variants.
 
-**Style defaults** (TikTok/Submagic look):
-- Font size: ~3.5% of frame height
-- Outline: ~8% of font size, scales with adaptive shrink
-- Position: 16% from bottom (lower-third)
-- Max 2 lines per chunk; auto-shrinks 8% per attempt up to 10× until it fits
+### `scripts/caption.py` — legacy classic captions
 
-**Whisper proper-noun substitutions** live in `caption.py` `SUBSTITUTIONS` dict at top. When Whisper mistranscribes a proper noun (e.g., "Chow-chilluh" → "Chow Chiller"), add to dict — applies before render.
+Older style — white text + black outline, no per-word highlight. Kept for ad-hoc previews. Don't use for deliverables.
+
+### Yellow-rect-positioning gotcha (lesson from this session)
+
+When rendering the yellow highlight rect behind a word, **use `draw.textbbox()` to measure where the text will actually land**, NOT `cur_y + line_h`. The latter includes line-leading and makes the rect hang below the text. Already fixed in `caption_styled.py` — preserve when refactoring.
 
 ---
 
@@ -107,10 +156,10 @@ Pipeline: extract audio → Whisper word-level transcribe → chunk into 3–4 w
 
 ---
 
-## Dissect.py
+## Dissect.py — QA gate for generated clips
 
 ```
-.venv/bin/python dissect.py <video> [--model small] [--scene-threshold 0.3] [--interval 1.5]
+.venv/bin/python dissect.py <video> [--model small] [--interval 1.5] [--no-ocr]
 ```
 
 Whisper models: `tiny|base|small|medium|large`. Start with `small`. Bigger = more accurate, slower.
@@ -121,6 +170,40 @@ Outputs in `outputs/<videoname>/`:
 - `metadata.json`, `scenes.json`, `transcript.json`
 - `frames/` — one jpg per scene boundary AND every `--interval` seconds
 - `audio.wav`
+- **`burned_text.json`** — per-frame OCR results + `{flagged: bool, reason}` summary. Flags clips where Veo hallucinated burned-in subtitle text (~10% of generations even with the NO-TEXT lock).
+
+### Burned-text OCR (step 6/6)
+
+Requires `brew install tesseract`. Skip with `--no-ocr` if not installed.
+
+A clip is flagged when:
+- A single frame has **2+ words at confidence ≥60** outside the corner watermark, OR
+- The **same word repeats across 2+ frames** (stable text = real burn-in, not noise)
+
+`scripts/scan_burned_text.py` exists for batch scanning multiple clips at once (predates the dissect integration). Either tool works.
+
+### dissect.py concurrency limit — MAX 2 PARALLEL
+
+Memory: `feedback_dissect_concurrency`. Each dissect loads the Whisper model (~1GB), extracts frames, writes many small files. Running ~10 in parallel CRASHES the host.
+
+```bash
+# RIGHT — cap at 2:
+seq 1 10 | xargs -P 2 -I {} .venv/bin/python dissect.py clips/clip{}.mp4 --interval 1.0 --model small
+
+# WRONG — for/wait spawns all 10 simultaneously:
+for n in {1..10}; do .venv/bin/python dissect.py clip${n}.mp4 & ; done; wait
+```
+
+### Tesseract on macOS — invoke via stdin
+
+The homebrew tesseract install can't read files directly from `/tmp/` due to sandbox. Always pipe via stdin:
+
+```python
+ocr = subprocess.run(["tesseract", "stdin", "-", "--psm", "11", "-l", "eng", "tsv"],
+                     input=img_bytes, capture_output=True)
+```
+
+Also: **TSV `conf` column is a FLOAT, not int**. Parse `float(parts[10])`. Filtering by `int(conf)` silently drops everything (ValueError).
 
 Synthesize the analysis from those — don't invent details that aren't visible in the frames.
 
@@ -268,6 +351,10 @@ Veo will frequently:
 2. **Double proper nouns** ("Miha, Miha")
 3. **Add a trailing word** at the end as if starting a new sentence ("And…", "I…", "So…")
 4. **Drop the first word** ("I'm" missing at clip start)
+5. **Burn hallucinated subtitle text into the frame** — even WITH the "ABSOLUTELY NO ON-SCREEN TEXT" lock, ~10% of clips have garbled text at the bottom (e.g., "sopussol maret beong neolia?", "Juist ex shm sister", "Ex't ife the wbout"). **Cannot be fixed in post — must re-roll the clip.** Use the OCR step in `dissect.py` to flag these automatically.
+6. **News-headline phrasing triggers newscaster TTS delivery** — if the dialogue reads like an article intro ("Women from the California women's prisons are finding out they may qualify…"), Veo's TTS shifts to a formal/energetic announcer voice that doesn't match the intimate UGC tone of the rest of the ad. **Fix: rewrite the line to be conversational** ("Women in California prisons may qualify for compensation. For what the guards did.") AND add a tone hint like "SAME intimate quiet tone as the rest, NOT news-anchor, NOT informational, NOT energetic — she's repeating what she just read in her own quiet voice."
+7. **Quote-framing ("And it said…", "She's like…") sometimes triggers a second, off-screen narrator voice** for the framing phrase. The framing is rendered by a DIFFERENT speaker than the main character. Fix: drop the framing entirely. Just have her say the line directly.
+8. **Doubled lines** — Veo occasionally repeats the last sentence ("Tap the button. See if you qualify. See if you qualify."). Must re-roll. Detect via Whisper transcript word-count.
 
 ### Required prompt clauses to lock dialogue
 
@@ -300,7 +387,32 @@ ffmpeg -y -i clip.mp4 -t <end_time + 0.2> -c:v libx264 -preset fast -crf 19 -c:a
 
 ---
 
-## Audio normalization (canonical voice fix)
+## Audio normalization
+
+When voice/audio quality varies across clips (always — Veo TTS is non-deterministic), normalize. **Two tools, two use cases:**
+
+### Tier 1: `ffmpeg loudnorm` (default — simpler, safer)
+
+```bash
+ffmpeg -y -i clipN_trimmed.mp4 \
+  -af "loudnorm=I=-16:TP=-1.5:LRA=11" \
+  -c:v copy -c:a aac -b:a 192k \
+  clipN_norm.mp4
+```
+
+EBU R128 loudness normalization. Brings voice loudness within ~2.5dB across clips. Lip-sync intact. **No API cost.** Use this as the default normalization step in the production pipeline (between trim and crop).
+
+### Tier 2: ElevenLabs voice_changer (when timbre/mic-character drifts)
+
+`loudnorm` only fixes LOUDNESS. If one clip sounds "from a different mic" (different spectral centroid, different noise floor) compared to the others — that's a timbre problem, not a loudness problem. Use voice_changer.
+
+**Important learnings from this session:**
+- Voice_changer normalizes TIMBRE successfully (centroid drift drops from ±15% to ±3%).
+- But voice_changer can MAKE LOUDNESS VARIANCE WORSE — the cloned voice's output cleanliness varies per clip, so output loudness diverges. Always run `loudnorm` AFTER voice_changer if you use it.
+- **ElevenLabs has a 5-concurrent-request limit.** Use `max_workers=4` in ThreadPoolExecutor.
+- Don't bother voice-changing if `audio_match.py` only flags a few clips on LOUDNESS — `loudnorm` alone is enough. Only invoke voice_changer when CENTROID or NOISE differs significantly (>10%/4dB).
+
+### Recipe (for timbre normalization)
 
 When voice quality varies across clips (always — Veo TTS is non-deterministic), normalize them all through one consistent voice using ElevenLabs **voice changer** (speech-to-speech). This preserves each clip's prosody/timing/lip-sync and only swaps the voice timbre/loudness.
 
@@ -381,14 +493,55 @@ Audits voice loudness, noise floor, and spectral character across clips against 
 
 ---
 
+## Aspect-ratio deliverables
+
+Each campaign typically needs both:
+- **9:16 / 3:5** (Reels, TikTok, Stories) — the native Veo output aspect after watermark crop
+- **4:5** (Instagram feed / Facebook feed) — tallest aspect feed supports
+
+### `scripts/crop_4x5.py` — 4:5 conversion with letterbox detection
+
+```bash
+.venv/bin/python scripts/crop_4x5.py <portrait.mp4> --out <4x5.mp4>
+```
+
+**Veo bakes in ~100px black letterbox at top + ~20px at bottom** of its 720×1280 output. Naive `crop=720:900:0:0` keeps those bars. `crop_4x5.py` runs `ffmpeg cropdetect` first to find the actual non-black content region, then computes the largest 4:5 window inside it. Bias `top` (default) keeps face / drops floor.
+
+Workflow chain:
+```bash
+# 1. Stitched 9:16 ad at 720x1200
+# 2. Convert to 4:5 (auto-removes letterbox) → 720x900
+.venv/bin/python scripts/crop_4x5.py outputs/.../final_lr01.mp4 \
+  --out outputs/.../final_lr01_4x5.mp4
+# 3. Caption the 4:5 — caption_styled.py auto-adjusts position by aspect
+.venv/bin/python scripts/caption_styled.py outputs/.../final_lr01_4x5.mp4 \
+  --out outputs/.../final_lr01_4x5_styled.mp4 --highlight-style yellow_text
+```
+
+---
+
+## User skills (`~/.claude/skills/`)
+
+These auto-surface on relevant user phrases. Don't need to invoke manually — Claude does it.
+
+| Skill | Triggers | What it knows |
+|---|---|---|
+| `yellow-text-sub` | "caption this", "add subtitles", "Submagic style", "yellow highlight subs" | Full settings for `caption_styled.py` — font 0.0336, aspect-aware vertical_pos, yellow_text default, disclaimer integration. |
+| `pulaski-jones-disclaimer` | "the disclaimer", "Pulaski/Jones disclaimer", "Chowchilla disclaimer", "CCWF disclaimer" | Verbatim legal text + on-screen styling for the women's-prison campaign. **DO NOT paraphrase** — regulated. |
+| `feed-4x5` | "make it 4:5", "feed version", "Instagram feed crop", "Reels to feed" | `crop_4x5.py` invocation + the letterbox-detection rationale. |
+
+---
+
 ## If a Generation Fails or Returns 0KB
 
 1. Check for bare-skin descriptions → swap for covered clothing.
 2. Switch from v2v to i2v if moderation keeps tripping.
 3. Try a different model (Seedance → Kling, etc.).
 4. For sensitive contexts: encode visually (institutional pants, weary look) instead of naming ("victim", "abuse", "prison").
-5. **Veo "Internal Error" responses** are random KIE-side; just re-roll the same prompt.
-6. **Veo improvisation** (extra words, doubled proper nouns, trailing word) — see "Veo 3 gotchas" section for the lock prompt template; if locks fail, manual `ffmpeg -t` trim the unwanted tail.
+5. **Veo "Internal Error" responses** are random; just re-roll the same prompt.
+6. **Veo improvisation** (extra words, doubled proper nouns, trailing word, burned text, off-screen narrator) — see "Veo 3 gotchas" section. Most issues require **re-roll**, not post-fix.
+7. **Burned subtitle hallucinations** — flagged automatically by `dissect.py`'s OCR step. Check `burned_text.json`. Re-roll any flagged clip.
+8. **Poyo rate-limited (429)** — drop `max_workers` from 40 to 10. Submit limit is 20/10s account-wide.
 
 ---
 
@@ -414,8 +567,18 @@ For variants (A/B test same script with different character), pick a different a
 - Commit `outputs/` or `.env` (both gitignored).
 - Hardcode API keys — always from `.env`.
 - Invent visual details. If the dissect frames don't show it, don't write it into the analysis.
-- For legal services copy: omit "potential" before "compensation" — it's regulated.
+- For legal services lead-gen (prison-abuse compensation campaigns): use the phrase **"significant potential compensation"** when referring to the recovery. Don't say "compensation" alone, "damages", "settlement", "money owed", or "payout" — unify on "significant potential compensation" across all variations of the same campaign.
 - Mix output resolutions across clips of the same ad (Seedance 480p + Veo 720p won't concat clean).
 - **Chain last-frame for >5 clips** — quality compounds-degrades. Use clip-1 anchor instead.
 - **Skip the per-clip dissect QA gate** — Veo improvisation/audio-drift/watermark go undetected and compound through the rest of the ad.
 - **Use `tts()` to "fix" voice quality on existing Veo clips** — it breaks lip-sync. Use `voice_changer()` instead.
+- **Use `kie_client.generate_gpt_image` for GPT Image work** — always go through `openai_image.generate_image()` (OpenAI direct, `OPENAI_API_KEY`). KIE's GPT Image proxy adds cost markup and latency.
+- **Use `kie_client.generate_veo` for Veo3 Fast** — route to Poyo (`poyo_client.generate_veo`) at $0.10/clip. KIE is $0.30/clip.
+- **Run >2 `dissect.py` instances in parallel** — Whisper + I/O crashes the host. Cap at 2 with `xargs -P 2`.
+- **Burn captions onto deliverables by default** — user does captioning in post. Only burn when explicitly asked ("caption this", "with the disclaimer", "Submagic style").
+- **Submit >20 Poyo generations in parallel** — submit rate limit is 20/10s account-wide. Use `max_workers=10`.
+- **Pass 1 image to Poyo `generation_type: "frame"`** — requires exactly 2. For clip-1 anchor pattern, pass the anchor URL twice (start=end).
+- **Naive `crop=720:900:0:0` to make 4:5** — keeps Veo's baked-in letterbox bars. Use `scripts/crop_4x5.py` which runs `cropdetect` first.
+- **Paraphrase the Pulaski/Jones disclaimer** — it's REGULATED legal copy. Every comma is intentional. Skill `pulaski-jones-disclaimer` has the verbatim text.
+- **Frame Veo dialogue as a news-headline** (e.g., "Women from the X are finding out…") — triggers newscaster TTS that doesn't match intimate UGC tone. Rewrite conversationally.
+- **Use quote-framing in dialogue** ("And it said…", "She's like…") — Veo sometimes renders the framing as a separate off-screen narrator voice. Drop the framing.

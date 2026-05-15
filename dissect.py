@@ -1,15 +1,23 @@
 #!/usr/bin/env python3
 """
-Dissect a competitor video into beat-by-beat artifacts.
+Dissect a competitor / generated video into beat-by-beat artifacts.
 
-Usage: python dissect.py <path-to-video> [--model small]
+Usage: python dissect.py <path-to-video> [--model small] [--no-ocr]
 
 Produces outputs/<videoname>/:
-  metadata.json   — duration, fps, resolution, aspect ratio
-  scenes.json     — scene-cut timestamps (ffmpeg scene detection)
-  frames/         — one jpg per scene boundary (plus 0s)
-  audio.wav       — extracted mono 16k audio
-  transcript.json — Whisper output with word-level timestamps
+  metadata.json    — duration, fps, resolution, aspect ratio
+  scenes.json      — scene-cut timestamps (ffmpeg scene detection)
+  frames/          — one jpg per scene boundary + every --interval seconds
+  audio.wav        — extracted mono 16k audio
+  transcript.json  — Whisper output with word-level timestamps
+  burned_text.json — tesseract OCR per-frame, flagging Veo-hallucinated subtitles
+
+OCR step requires `brew install tesseract`. Skip with --no-ocr.
+
+Whisper catches what was SAID. OCR catches what was burned ON the frame —
+specifically, Veo's habit of hallucinating subtitle text despite "no on-screen text"
+prompts. A clip is FLAGGED if any frame has 2+ words at confidence >= 60 outside the
+"Veo" watermark, OR a single word repeats across 2+ frames (stable text = real burn-in).
 """
 import argparse
 import json
@@ -88,12 +96,113 @@ def transcribe(audio_path, model_name):
     return result
 
 
+# ─── Burned-in text detection (OCR) ─────────────────────────────────────────────
+
+WATERMARK_WORDS = {"veo", "veo3", "fast"}  # bottom-right corner watermark — ignore
+
+
+def _ocr_frame(jpg_path, drop_top_pct=0.04, drop_bottom_pct=0.05):
+    """Run tesseract via stdin (macOS sandbox blocks file reads).
+
+    Crops out the top letterbox + bottom watermark band before OCR. Returns a list
+    of (word, confidence) tuples. Filters out the "Veo" watermark and very-low-conf noise.
+    """
+    # Get frame dimensions
+    probe_r = subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "v:0",
+         "-show_entries", "stream=width,height", "-of", "csv=s=x:p=0", str(jpg_path)],
+        capture_output=True, text=True,
+    )
+    if probe_r.returncode != 0:
+        return []
+    w, h = (int(x) for x in probe_r.stdout.strip().split("x"))
+    drop_top = int(h * drop_top_pct)
+    drop_bottom = int(h * drop_bottom_pct)
+    crop_h = h - drop_top - drop_bottom
+    # Crop and pipe to tesseract
+    crop = subprocess.run(
+        ["ffmpeg", "-y", "-i", str(jpg_path), "-vf", f"crop={w}:{crop_h}:0:{drop_top}",
+         "-f", "image2pipe", "-vcodec", "png", "-"],
+        capture_output=True,
+    )
+    if crop.returncode != 0:
+        return []
+    ocr = subprocess.run(
+        ["tesseract", "stdin", "-", "--psm", "11", "-l", "eng", "tsv"],
+        input=crop.stdout, capture_output=True,
+    )
+    if ocr.returncode != 0:
+        return []
+    words = []
+    for line in ocr.stdout.decode("utf-8", errors="ignore").splitlines()[1:]:
+        parts = line.split("\t")
+        if len(parts) < 12:
+            continue
+        try:
+            conf = float(parts[10])
+        except ValueError:
+            continue
+        if conf < 60:
+            continue
+        word = parts[11].strip()
+        if len(word) < 3:
+            continue
+        if sum(c.isalpha() for c in word) < 3:
+            continue
+        if word.lower().strip(".,?!:;\"'") in WATERMARK_WORDS:
+            continue
+        words.append((word, round(conf, 1)))
+    return words
+
+
+def scan_frames_for_burned_text(frames_dir):
+    """Run OCR on every saved frame. Return {flagged: bool, frames: [...], reason: str}.
+
+    Flagging logic:
+      - Frame has 2+ words → likely a real burned subtitle line  → flag
+      - Same word appears in 2+ different frames → stable text = real burn-in → flag
+      - Single one-off word in one frame → could be Pixar feature noise → not flagged
+        (the visual scan / re-roll budget catches these manually)
+    """
+    if not frames_dir.exists():
+        return {"flagged": False, "frames": [], "reason": "no frames"}
+    per_frame = []
+    word_frame_count = {}  # word -> list of frame paths it appeared in
+    for jpg in sorted(frames_dir.glob("*.jpg")):
+        words = _ocr_frame(jpg)
+        per_frame.append({
+            "frame": jpg.name,
+            "words": [{"text": w, "conf": c} for w, c in words],
+        })
+        for w, _ in words:
+            wl = w.lower().strip(".,?!:;\"'")
+            word_frame_count.setdefault(wl, []).append(jpg.name)
+
+    reasons = []
+    # Multi-word frames
+    multiword = [f for f in per_frame if len(f["words"]) >= 2]
+    if multiword:
+        reasons.append(f"{len(multiword)} frame(s) with 2+ words")
+    # Stable repeated words across frames
+    repeated = {w: fs for w, fs in word_frame_count.items() if len(fs) >= 2}
+    if repeated:
+        sample = ", ".join(f"{w!r}×{len(fs)}" for w, fs in list(repeated.items())[:3])
+        reasons.append(f"repeated word(s): {sample}")
+
+    return {
+        "flagged": bool(reasons),
+        "reason": "; ".join(reasons) if reasons else "clean",
+        "frames": per_frame,
+    }
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("video", help="path to competitor video")
     ap.add_argument("--model", default="small", help="whisper model: tiny|base|small|medium|large")
     ap.add_argument("--scene-threshold", type=float, default=0.3)
     ap.add_argument("--interval", type=float, default=1.5, help="also sample a frame every N seconds (0 to disable)")
+    ap.add_argument("--no-ocr", action="store_true", help="skip burned-text OCR step (faster, but won't catch Veo subtitle hallucinations)")
     args = ap.parse_args()
 
     video = Path(args.video).expanduser().resolve()
@@ -129,10 +238,21 @@ def main():
     audio = out / "audio.wav"
     extract_audio(video, audio)
 
-    print(f"[5/5] whisper ({args.model})", flush=True)
+    n_steps = 5 if args.no_ocr else 6
+    print(f"[5/{n_steps}] whisper ({args.model})", flush=True)
     result = transcribe(audio, args.model)
     (out / "transcript.json").write_text(json.dumps(result, indent=2, ensure_ascii=False))
     print(f"      {len(result.get('segments', []))} segments", flush=True)
+
+    if not args.no_ocr:
+        print(f"[6/6] burned-text OCR (tesseract)", flush=True)
+        try:
+            burned = scan_frames_for_burned_text(out / "frames")
+            (out / "burned_text.json").write_text(json.dumps(burned, indent=2))
+            marker = "✗ FLAGGED" if burned["flagged"] else "✓ clean"
+            print(f"      {marker} — {burned['reason']}", flush=True)
+        except FileNotFoundError:
+            print(f"      [skipped] tesseract not installed (brew install tesseract)", flush=True)
 
     print(f"\nDONE → {out.relative_to(ROOT)}", flush=True)
 
