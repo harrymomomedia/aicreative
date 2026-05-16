@@ -23,7 +23,7 @@ _API_KEY = os.getenv("OPENAI_API_KEY")
 if not _API_KEY:
     raise RuntimeError("OPENAI_API_KEY not set in .env")
 
-_client = OpenAI(api_key=_API_KEY)
+_client = OpenAI(api_key=_API_KEY, timeout=600.0, max_retries=2)
 
 DEFAULT_MODEL = "gpt-image-2"
 VALID_SIZES = {"1024x1024", "1024x1536", "1536x1024", "auto"}
