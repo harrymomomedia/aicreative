@@ -42,9 +42,12 @@ User-set rule: **route each model to its cheapest reliable host**, not all throu
 
 | Model | Provider | Module | Cost | Notes |
 |---|---|---|---|---|
-| **Veo 3 / 3.1 Fast** | **Poyo** | `poyo_client.generate_veo` | **$0.10/clip** flat | Cheapest verified Veo. See "Poyo gotchas" below. |
-| **Seedance 2.0 Fast** | OpenRouter | (no client built — user pref) | $0.45-0.97/clip (token-based) | KIE Seedance is actually 20% cheaper ($0.36-0.80) but user prefers OpenRouter for consolidation. |
-| **Kling 3.0** | KIE | `kie_client.generate_kling` | varies | Unchanged. |
+| **Veo 3.1 Fast** | **Poyo** | `poyo_client.generate_veo` | **$0.10/clip** flat | Default Veo. See "Poyo gotchas". Fallback: `openrouter_video.generate_veo(model="google/veo-3.1-fast")`. |
+| **Veo 3.1 Lite** | **OpenRouter** | `openrouter_video.generate_veo` | **$0.40/8s** (audio) | Cheaper/lighter Veo tier. `OPENROUTER_ADCLI_KEY`. Not on Poyo. |
+| **Seedance 2.0 Fast** | **useapi.net** | `useapi_client.generate_seedance` | **unlimited** (flat monthly) | Default for high volume. Set `USEAPI_EXPLORE=true`. |
+| **Seedance 2.0 Fast (480p)** | **OpenRouter** | `openrouter_video.generate_seedance` | **~$0.053/clip** (10s 480p) | Pay-per-use fallback. `OPENROUTER_ADCLI_KEY`. Token-based pricing. |
+| **Kling 3.0** | **useapi.net** | `useapi_client.generate_kling` | **unlimited** (flat monthly) | Replaces KIE. Models: `kling-3-0-standard` (default) or `kling-3-0-pro`. |
+| **Runway Gen-4 Turbo** | **useapi.net** | `useapi_client.generate_runway` | **unlimited** (flat monthly) | New. Model: `gen4-turbo` (default) or `gen4`. Up to 10s. |
 | **nano-banana-2** | KIE | `kie_client.generate_nano_banana` | varies | Unchanged. |
 | **gpt-image-2** (t2i / i2i) | OpenAI direct | `openai_image.generate_image` | bundled in OpenAI subscription | **NEVER use `kie_client.generate_gpt_image`** — proxy adds cost. |
 | **ElevenLabs** (TTS / clone / voice_changer) | ElevenLabs direct | `elevenlabs_client` | per-character | 5 concurrent max — throttle when batching. |
@@ -79,6 +82,31 @@ Use this even when Veo runs via Poyo — image hosting is a separate concern fro
 - **Poyo outages → KIE Veo fallback.** Poyo's `veo3.1-fast` endpoint can degrade — 10min+ timeouts on payloads that succeeded earlier, "Server exception" on benign prompts. When this happens, `kie_client.generate_veo` (model `veo3_fast`, mode `"IMAGE_2_VIDEO"`) is the backup at $0.30/clip vs $0.10 — same underlying Veo 3 Fast model, different infrastructure. Use the **same anchor URL** (works for both providers); output is codec-compatible for concat. **Diagnosis:** if a known-good payload (one that succeeded earlier in the session) times out too, it's a Poyo-wide outage, not prompt-specific moderation — switch providers immediately.
 
 **Resolution mismatch warning:** Seedance 480p (496×864) won't concat cleanly with Veo/Kling 720p (720×1280). Pick one model per ad, or rescale.
+
+### useapi.net (Seedance / Kling / Runway — unlimited)
+
+All models route through: `POST https://api.useapi.net/v1/runwayml/videos/create`
+Client: `useapi_client.py`. Auth: `USEAPI_TOKEN` in `.env`.
+
+| Function | Default model | Duration | Notes |
+|---|---|---|---|
+| `generate_seedance` | `seedance-2` | 4–15s | Up to 11 image refs. Use `start_frame_path` for i2v clip-1 anchor. |
+| `generate_kling` | `kling-3.0-standard` | **5/10/15 only** | Also: `kling-3.0-pro`, `kling-o3-pro`, `kling-o3-4k`, `kling-2.6-pro`. |
+| `generate_runway` | `gen4-turbo` | 2–10s | Also: `gen4`, `gen4.5`. Supports `seed` param. |
+
+**All model IDs use dots:** `kling-3.0-pro` not `kling-3-0-pro`.
+
+**Image references** — upload local files first via `upload_asset(path)` → returns `assetId`. All generate functions accept `start_frame_path` / `end_frame_path` / `image_paths` as local-file shortcuts that auto-upload. Or pass pre-uploaded `*_asset_id` strings directly.
+
+**Asset upload endpoint:** `POST https://api.useapi.net/v1/runwayml/assets/?name={name}` — raw binary body, Content-Type = file mime type. Returns `assetId`.
+
+**`exploreMode=True`** (default) — Unlimited plan, no credits consumed, lower priority. ~10 min for Seedance/Gen-4.5. Gen-4 Turbo ~1-2 min even in explore. **NOT supported by `veo-3.1`.** Set `USEAPI_EXPLORE=false` in `.env` for credit mode / higher priority.
+
+**Status flow:** `PENDING → PROCESSING → SUCCEEDED / FAILED`. Response wrapped in `task: { taskId, status, progressRatio, estimatedTimeToStartSeconds, artifacts[] }`.
+
+**Output resolution:** Seedance on useapi defaults to 720p (supports 480p/720p/1080p). **HARD RULE — always use 480p for Seedance.** The user has set this as a project default: 720p costs 2× per second and 1080p ~3× per second for marginal quality gain at social-feed playback size. Pass `resolution="480p"` explicitly even on useapi.net (where price doesn't bite since it's flat-rate, but the rule is consistent so output specs match across providers and Veo/Kling 720p clips can be downscaled to 480p for clean concat — NOT the other way around).
+
+**Seedance is per-second pricing, not per-clip.** Poyo Seedance 2-Fast: 480p i2v $0.04/s, 480p t2v $0.07/s, 720p i2v $0.08/s, 720p t2v $0.14/s. So a 10s 480p t2v clip = $0.70, not $0.07. Veo 3.1 Fast IS flat-rate ($0.10/clip flat, always 8s). Don't confuse the two.
 
 ### Veo content-moderation triggers (Poyo + KIE)
 
@@ -144,7 +172,7 @@ The skill `yellow-text-sub` documents this. Per-word yellow text highlight (or y
 |---|---|---|
 | `--highlight-style` | `box` | Pass `yellow_text` for yellow fill instead of yellow rect behind white. **User preference: `yellow_text`.** |
 | `--font-ratio` | `0.0336` | ~3.4% of frame height. Campaign-approved. |
-| `--vertical-pos` | **auto by aspect** | `0.72` for 9:16, `0.82` for 4:5. Caption always lands just below the chin regardless of aspect. |
+| `--vertical-pos` | **auto by aspect** | `0.72` for 9:16, `0.82` for 4:5. Caption always lands just below the chin regardless of aspect — **but only for STANDARD centered talking-head layouts.** For PIP composites (persona overlay in a corner), the auto value lands on the persona's face. See PIP override rule below. |
 | `--disclaimer-start / --disclaimer-end` | `7.0 / 12.0` | Hard-cut window for disclaimer overlay. |
 | `--disclaimer-text` | Pulaski/Jones campaign | Skill `pulaski-jones-disclaimer` has the verbatim text. |
 | `--no-disclaimer` | — | Skip the disclaimer pass entirely. |
@@ -158,6 +186,20 @@ Older style — white text + black outline, no per-word highlight. Kept for ad-h
 ### Yellow-rect-positioning gotcha (lesson from this session)
 
 When rendering the yellow highlight rect behind a word, **use `draw.textbbox()` to measure where the text will actually land**, NOT `cur_y + line_h`. The latter includes line-leading and makes the rect hang below the text. Already fixed in `caption_styled.py` — preserve when refactoring.
+
+### PIP-composite caption override
+
+When the persona is in a PIP corner overlay (e.g., scaled to height ~720 in bottom-right of a 720×1280 canvas — see "Composite V3" pattern), the auto `--vertical-pos 0.72` lands on the persona's mouth/nose because the persona's chin sits much lower than in a standard centered talking-head shot.
+
+**For PIP composites, use `--vertical-pos 0.85` explicitly.** This lands the caption baseline at ~y=1088 on a 1280-tall canvas:
+- **Below** the PIP persona's chin (which is around y≈900 in a 720-tall PIP placed at y=540)
+- **Above** the Facebook mobile safe-cut area (FB's share/comment UI covers the bottom ~10% = ~y>1152 — caption baseline must stay ≤y≈1100)
+
+Calibrated specifically: chin clears at ≥0.82, FB safe area starts at 0.90. **0.85 is the sweet spot.** Do not use 0.92+ on PIP composites — it pushes the caption into FB's UI cut area and gets clipped on mobile playback.
+
+Same rule applies to 4:5 PIP composites — pass `--vertical-pos 0.85` explicitly, do not rely on the 0.82 default which assumes standard layout.
+
+For standard (non-PIP) talking-head deliverables, the existing aspect-aware defaults (0.72 / 0.82) remain correct.
 
 ---
 
@@ -359,6 +401,65 @@ Math must add up: each segment's length × count = source duration. Audio passes
 **Always show the character's face first** (no b-roll at 0–4s) to establish identity. Aim for **20% b-roll, 80% face** ratio.
 
 **Multi-reference Seedance blends, doesn't storyboard.** Don't pass 3 images expecting 3 hard cuts — generate separate clips and concat.
+
+---
+
+## PIP composite — persona overlay over animated backdrop
+
+When you want the BACKDROP to read as the primary subject (B-roll / news photos / facility shots) and the persona to read as a documentary cut-in / commentary, use the PIP layout instead of full-frame persona.
+
+```bash
+ffmpeg -y \
+  -i <backdrop_24s.mp4> \
+  -i <persona_greenscreen.mp4> \
+  -i <ugc_audio_source.mp4> \
+  -filter_complex "
+    [1:v]chromakey=color=0x78FF9A:similarity=0.12:blend=0.04,scale=-1:720,setsar=1[fg];
+    [0:v][fg]overlay=x=W-w-20:y=H-h-20:shortest=1,format=yuv420p[out]
+  " \
+  -map "[out]" -map 2:a -t 24.0 \
+  -c:v libx264 -preset fast -crf 19 -c:a aac -b:a 192k out.mp4
+```
+
+- **Persona height**: 720 (vs 1050 for full-frame layout) — about 56% of canvas height
+- **Position**: bottom-right (`x=W-w-20:y=H-h-20`); swap to `x=20` for bottom-left
+- **RVM green is 0x78FF9A** (not pure green) — sampled from actual Replicate RVM output. Use `chromakey=color=0x78FF9A:similarity=0.12:blend=0.04` — milder values prevent eating grey clothing
+- **Audio source**: use the ORIGINAL mp4 (RVM strips audio from greenscreen output)
+- **Caption MUST use `--vertical-pos 0.85`** — see "PIP-composite caption override" earlier
+- Reference: `outputs/illinois_jdc_urban_peer/composite_v5*.mp4`
+
+### Backdrop aspect-preservation — letterbox-with-blur (don't crop sides)
+
+gpt-image-2 outputs at 1024×1536 (2:3 portrait). Target 9:16 canvas (720×1280). 2:3 is "more square" than 9:16 — fitting requires either cropping sides (~16% width loss, kills wider composition) or letterboxing.
+
+**Letterbox-with-blur preserves full source composition.** Background = scaled+blurred source filling 720×1280 (context-aware filler, matches source colors). Foreground = source scaled preserving aspect to 720×1080 (fits width). Overlay fg centered vertically over bg:
+
+```bash
+ffmpeg -loop 1 -t 4 -i <source_1024x1536.png> -filter_complex "
+  [0:v]scale=2560:3840,boxblur=40:8,scale=720:1280,setsar=1[bg];
+  [0:v]scale=720:1080,setsar=1[fg];
+  [bg][fg]overlay=x=0:y=(H-h)/2,setsar=1[v]
+" -map "[v]" ...
+```
+
+Top + bottom 100px each are blurred zoomed source — reads as depth-of-field, not flat black bars. Most of canvas (720×1080, ~84%) shows source at native proportions.
+
+For docu-zoom on backdrops with this pattern, apply zoompan to the FOREGROUND layer only (scale source up first to 2160×3240 for headroom, then zoompan output to 720×1080). Reference: `scripts/jdc_a_docu_zoom.py`.
+
+### Varied docu-zoom — don't templated-zoom every backdrop
+
+Stitching multiple still-image backdrops with identical zoom (e.g., always slow push-in center 1.00→1.16) reads as templated/lazy. Vary per beat:
+
+| Beat type | zoompan recipe |
+|---|---|
+| Establishing wide | Slow push-in center, z=1.00→1.16 |
+| Subject emphasis | Push-in offset toward subject — `x='iw/3-(iw/zoom/3)'` for left bias, `x='(2*iw/3)-(iw/zoom/2)'` for right |
+| Emotional intensity | Tight push-in, z=1.00→1.20+ |
+| Reveal / scale | Slow tilt-down — z held at 1.10, `y='ih*0.15 + (ih*0.45 - ih*0.15) * on/<frames>'` |
+| Open up / breath | Slow pull-back — `z='if(eq(on,0),1.18,max(zoom-0.0019,1.00))'` |
+| Intimate / detail | Push-in offset toward a specific element |
+
+Mix 4–6 different recipes across a 24s ad. Patterns in `scripts/jdc_a_docu_zoom.py` for IL JDC campaign.
 
 ---
 
@@ -642,6 +743,56 @@ For variants (A/B test same script with different character), pick a different a
 
 ---
 
+## News-realistic backdrop generation (legal/prison campaigns)
+
+For lawsuit / juvenile-justice / institutional campaigns where backdrops should read as actual NEWS B-ROLL (not AI-stylized), use **nano-banana via KIE** ($0.05/image, ~30s render):
+
+Style anchors that work:
+- `"Photoreal news b-roll cinematography, shot like a 20/20 / Frontline / PBS Newshour documentary segment"`
+- `"Natural color grading, real-world lighting (no dramatic Hollywood key-light), slight handheld feel, slight grain"`
+- `"NOT cinematic, NOT stylized — looks like genuine news investigative footage shot on a news ENG camera or DSLR"`
+- For scenes with people: specify "documentary middle/wide framing keeps identities partially obscured by angle or distance" — passes moderation, matches doc style
+
+For scenes inside an institution (inmates + guards), nano-banana renders multi-figure scenes reliably — line walks, intake booking, cafeteria, yard, dayroom, procedural pat-down. See `scripts/jdc_a_inmate_backdrops.py` for the 6-prompt set we used on IL JDC.
+
+Use **gpt-image-2 medium quality** at 1024×1536 portrait when you need fine text rendering (signs, headlines) or higher-quality character consistency. Slightly pricier (~$0.05) but more reliable for text.
+
+### Real facility / location photos — sources that work
+
+When the user wants ACTUAL photos of real facilities (vs AI-generated), these web sources have produced usable shots in past campaigns:
+
+| Source pattern | What works |
+|---|---|
+| Construction-company project pages (e.g., `pathcc.com/projects/<facility>`) | Often have entrance monuments + building exteriors mid-renovation |
+| Local news outlets (`propublica.org`, `injusticewatch.org`) | Photojournalist exteriors w/ razor-wire / signage |
+| Advocacy non-profits (Chapin Hall, John Howard Association) | Building shots from inspection reports |
+| Tor Hoerman Law / Helping Survivors / Levy Law | Placeholder SVGs only — skip |
+| Wikipedia / Wikimedia Commons | Almost never have detention-facility photos |
+| Local news affiliates (WTTW, CBS local) | Often 403-block direct WebFetch — try Google search → click through |
+| Official state agency sites (idjj.illinois.gov) | Logos only, no facility photos |
+| AsylumProjects.org | 403-blocks scrapers |
+| The Final 5 Campaign timeline | Year-graphic images, NOT facility photos — easy to confuse since filenames reference facility opening years |
+
+**Copyright caveat:** all of these are copyrighted (advocacy non-profits, news orgs, construction companies). User-explicit "fair use / ignore copyright" only — for cleared commercial campaigns, license images or use AI-generated alternatives.
+
+### Video matting via Replicate RVM — specifics
+
+Replicate `arielreplicate/robust_video_matting` is the proven path for matting persona out of existing UGC. Pricing ~$0.05–0.15 per clip.
+
+Specifics from production use:
+- **RVM green color is `0x78FF9A`** (light-leaf green), not pure `0x00FF00`. Sampled from actual Replicate output.
+- **chromakey settings**: `similarity=0.12, blend=0.04` — milder than defaults. Grey clothing has similar luminance to green; aggressive chromakey eats hoodies.
+- **RVM strips audio** — pass the ORIGINAL mp4 as a 3rd input to ffmpeg for the audio map (`-map 2:a`).
+- **Watermark on free-tier output**: small green "DLY"/text on the persona's clothing. Not visible after composite if persona scale + position covers it.
+- Reusable: ONE matte file (`<persona>_greenscreen.mp4`) works across UNLIMITED background swaps. Generate once, composite many.
+- Reference: `replicate_client.py` + `outputs/illinois_jdc_urban_peer/ugc_greenscreen.mp4`.
+
+### gpt-image-2 60s timeout fix
+
+High-quality (`quality="high"`) 1024×1536 or 1536×1024 renders take 60–120s. OpenAI's default httpx timeout is 60s — renders fail with "Connection error." **Already fixed in `openai_image.py`**: client initialized with `timeout=600.0, max_retries=2`. Preserve this when refactoring.
+
+---
+
 ## Do Not
 
 - Combine `reference_image_urls` and `reference_video_urls` in one Seedance call.
@@ -650,6 +801,9 @@ For variants (A/B test same script with different character), pick a different a
 - Invent visual details. If the dissect frames don't show it, don't write it into the analysis.
 - For legal services lead-gen (prison-abuse compensation campaigns): use the phrase **"significant potential compensation"** when referring to the recovery. Don't say "compensation" alone, "damages", "settlement", "money owed", or "payout" — unify on "significant potential compensation" across all variations of the same campaign.
 - Mix output resolutions across clips of the same ad (Seedance 480p + Veo 720p won't concat clean).
+- **Use 720p or 1080p for Seedance** — HARD RULE: always 480p. Seedance is per-second pricing ($0.07/s t2v at 480p vs $0.14/s at 720p), so 720p doubles cost for marginal-at-best gain on social-feed-sized playback. Pass `resolution="480p"` on every Seedance call regardless of provider (Poyo / useapi / OpenRouter).
+- **Quote Seedance pricing as "per clip"** — it's per-SECOND. A 10s 480p t2v clip on Poyo costs $0.70 ($0.07/s × 10s), not $0.07. Only Veo 3.1 Fast on Poyo is true flat-rate ($0.10/clip flat, fixed 8s).
+- **Use default `--vertical-pos` (0.72) for PIP composites** — the persona's chin sits lower in a PIP corner overlay than in a standard centered talking head, so the default caption lands on the face. Pass `--vertical-pos 0.85` for any PIP composite (lands below chin, above FB mobile safe-cut area). Do NOT push it to 0.92+ — that clips under Facebook's mobile UI.
 - **Chain last-frame for >5 clips** — quality compounds-degrades. Use clip-1 anchor instead.
 - **Skip the per-clip dissect QA gate** — Veo improvisation/audio-drift/watermark go undetected and compound through the rest of the ad.
 - **Use `tts()` to "fix" voice quality on existing Veo clips** — it breaks lip-sync. Use `voice_changer()` instead.
