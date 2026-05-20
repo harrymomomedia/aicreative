@@ -21,7 +21,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-import whisper
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from elevenlabs_client import scribe_whisper_compat
 
 OUT_DIR = Path("outputs/illinois_jdc_news_eltracks")
 TRIM_DIR = OUT_DIR / "trimmed"
@@ -41,9 +42,9 @@ TAIL_PAD = 0.25   # seconds after last word
 FINAL = OUT_DIR / "final.mp4"
 
 
-def get_speech_window(model, video):
-    """Run whisper-medium, return (start, end) seconds of actual speech."""
-    r = model.transcribe(str(video), word_timestamps=True, language="en")
+def get_speech_window(video):
+    """Transcribe via ElevenLabs Scribe, return (start, end) seconds of actual speech."""
+    r = scribe_whisper_compat(str(video), language_code="en")
     words = []
     for s in r["segments"]:
         for w in s.get("words", []):
@@ -85,15 +86,12 @@ def get_duration(p):
 
 
 def main():
-    print("Loading whisper medium…", flush=True)
-    model = whisper.load_model("medium")
-
     print("\n=== TRIMMING ===")
     trimmed_paths = []
     for slug, src in CLIPS:
         dur = get_duration(src)
         print(f"\n[{slug}] {src.name}  (orig dur {dur:.2f}s)")
-        win = get_speech_window(model, src)
+        win = get_speech_window(src)
         if win is None:
             print(f"  No speech detected — skipping trim, copying as-is")
             dst = TRIM_DIR / f"{slug}.mp4"

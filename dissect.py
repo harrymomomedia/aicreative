@@ -2,19 +2,20 @@
 """
 Dissect a competitor / generated video into beat-by-beat artifacts.
 
-Usage: python dissect.py <path-to-video> [--model small] [--no-ocr]
+Usage: python dissect.py <path-to-video> [--biased-keywords Chowchilla Mija] [--no-ocr]
 
 Produces outputs/<videoname>/:
   metadata.json    — duration, fps, resolution, aspect ratio
   scenes.json      — scene-cut timestamps (ffmpeg scene detection)
   frames/          — one jpg per scene boundary + every --interval seconds
   audio.wav        — extracted mono 16k audio
-  transcript.json  — Whisper output with word-level timestamps
+  transcript.json  — ElevenLabs Scribe output with word-level timestamps
   burned_text.json — tesseract OCR per-frame, flagging Veo-hallucinated subtitles
 
-OCR step requires `brew install tesseract`. Skip with --no-ocr.
+Transcription is API-based (ElevenLabs Scribe) — needs ELEVENLABS_API_KEY set.
+OCR step requires tesseract on PATH. Skip with --no-ocr.
 
-Whisper catches what was SAID. OCR catches what was burned ON the frame —
+Scribe catches what was SAID. OCR catches what was burned ON the frame —
 specifically, Veo's habit of hallucinating subtitle text despite "no on-screen text"
 prompts. A clip is FLAGGED if any frame has 2+ words at confidence >= 60 outside the
 "Veo" watermark, OR a single word repeats across 2+ frames (stable text = real burn-in).
@@ -89,11 +90,19 @@ def extract_audio(video, audio_path):
     ])
 
 
-def transcribe(audio_path, model_name):
-    import whisper
-    model = whisper.load_model(model_name)
-    result = model.transcribe(str(audio_path), word_timestamps=True, verbose=False)
-    return result
+def transcribe(audio_path, biased_keywords=None, language="en"):
+    """Transcribe via ElevenLabs Scribe (speech-to-text API).
+
+    Returns Whisper-compatible JSON: {text, segments:[{words:[{start,end,word}]}], language}.
+    biased_keywords: proper nouns to bias toward, e.g. ['Chowchilla', 'Mija'] — sharply
+    improves proper-noun accuracy on legal/place-name-heavy ads.
+
+    Lazy import so probe/frames/OCR still run without ELEVENLABS_API_KEY; only the
+    transcription step requires the key.
+    """
+    from elevenlabs_client import scribe_whisper_compat
+    return scribe_whisper_compat(str(audio_path), biased_keywords=biased_keywords,
+                                 language_code=language)
 
 
 # ─── Burned-in text detection (OCR) ─────────────────────────────────────────────
@@ -199,7 +208,9 @@ def scan_frames_for_burned_text(frames_dir):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("video", help="path to competitor video")
-    ap.add_argument("--model", default="small", help="whisper model: tiny|base|small|medium|large")
+    ap.add_argument("--biased-keywords", nargs="+", default=None,
+                    help="proper nouns to bias Scribe toward, e.g. --biased-keywords Chowchilla Mija")
+    ap.add_argument("--language", default="en", help="ISO-639-1 language code for Scribe (default en)")
     ap.add_argument("--scene-threshold", type=float, default=0.3)
     ap.add_argument("--interval", type=float, default=1.5, help="also sample a frame every N seconds (0 to disable)")
     ap.add_argument("--no-ocr", action="store_true", help="skip burned-text OCR step (faster, but won't catch Veo subtitle hallucinations)")
@@ -239,10 +250,11 @@ def main():
     extract_audio(video, audio)
 
     n_steps = 5 if args.no_ocr else 6
-    print(f"[5/{n_steps}] whisper ({args.model})", flush=True)
-    result = transcribe(audio, args.model)
+    print(f"[5/{n_steps}] transcribe — ElevenLabs Scribe", flush=True)
+    result = transcribe(audio, biased_keywords=args.biased_keywords, language=args.language)
     (out / "transcript.json").write_text(json.dumps(result, indent=2, ensure_ascii=False))
-    print(f"      {len(result.get('segments', []))} segments", flush=True)
+    n_words = sum(len(s.get("words", [])) for s in result.get("segments", []))
+    print(f"      {len(result.get('segments', []))} segments, {n_words} words", flush=True)
 
     if not args.no_ocr:
         print(f"[6/6] burned-text OCR (tesseract)", flush=True)

@@ -3,11 +3,11 @@
 Add TikTok-style burned-in captions to a video.
 
 Usage:
-  .venv/bin/python caption.py <input.mp4> [--out output.mp4] [--model small] [--max-words 4]
+  .venv/bin/python caption.py <input.mp4> [--out output.mp4] [--biased-keywords ...] [--max-words 4]
 
 Pipeline:
   1. Extract audio (ffmpeg)
-  2. Whisper word-level transcribe
+  2. ElevenLabs Scribe word-level transcribe (needs ELEVENLABS_API_KEY)
   3. Chunk words into phrase groups (by max length + natural pauses)
   4. Render each chunk as a transparent PNG with PIL (bold all-caps, white + black outline)
   5. Overlay PNGs onto video with ffmpeg `overlay` filter, timed via `enable=between(t,...)`
@@ -85,10 +85,13 @@ def probe_size(video):
     return int(s["width"]), int(s["height"])
 
 
-def transcribe(audio, model_name):
-    import whisper
-    model = whisper.load_model(model_name)
-    return model.transcribe(str(audio), word_timestamps=True, verbose=False)
+def transcribe(audio, biased_keywords=None, language="en"):
+    """Word-level transcript via ElevenLabs Scribe. Whisper-compatible JSON shape."""
+    import sys, pathlib
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+    from elevenlabs_client import scribe_whisper_compat
+    return scribe_whisper_compat(str(audio), biased_keywords=biased_keywords,
+                                 language_code=language)
 
 
 def chunk_words(segments, max_words=4, min_pause=0.35):
@@ -257,7 +260,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("video")
     ap.add_argument("--out", default=None)
-    ap.add_argument("--model", default="small", help="whisper model: tiny|base|small|medium|large")
+    ap.add_argument("--biased-keywords", nargs="+", default=None,
+                    help="proper nouns to bias Scribe toward, e.g. --biased-keywords Chowchilla")
     ap.add_argument("--max-words", type=int, default=4)
     ap.add_argument("--keep-pngs", action="store_true")
     args = ap.parse_args()
@@ -277,8 +281,8 @@ def main():
         print("[1/4] extracting audio", flush=True)
         extract_audio(video, audio)
 
-        print(f"[2/4] whisper transcribe ({args.model})", flush=True)
-        result = transcribe(audio, args.model)
+        print("[2/4] transcribe — ElevenLabs Scribe", flush=True)
+        result = transcribe(audio, biased_keywords=args.biased_keywords)
 
         print("[3/4] chunking words", flush=True)
         chunks = chunk_words(result["segments"], max_words=args.max_words)
