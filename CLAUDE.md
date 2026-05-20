@@ -23,7 +23,9 @@ End-to-end UGC ad cloning. Four halves:
 10. **Trim silence; chain via clip-1 anchor.** Per-clip post-QA flow:
     a. `scripts/trim_silence.py <clip.mp4> <transcript.json>` (start/end-only by default — preserves internal pacing). Outputs `<clip>_trimmed.mp4`.
     b. **For clips 2-N: use a clean frame from CLIP 1 as the `IMAGE_2_VIDEO` first-frame**, NOT the last frame of the previous clip. Last-frame chaining compounds quality degradation across N generations; clip-1 anchor keeps quality consistent throughout the ad. Small visible "reset" between clips is acceptable for short-form UGC pacing. (Last-frame chain is an alternate technique — see "Stitching multi-clip ads" — for a "fake one-take" feel where you accept the drift.)
-    c. **Rotate anchor frames across clips 2-N** — extract 5-7 different clean frames from clip 1 at varied timestamps (e.g., t=0.5s, 2.0s, 3.5s, 5.0s, 6.5s) and assign a different one to each subsequent clip. Optionally pull 1-2 more from clip 2 once it lands for extra variety. **Never reuse a single anchor URL for every clip** — that produces visually identical clip starts and reads as templated/unnatural on UGC playback. Pattern in `scripts/chowchilla_a2_variations.py`: `get_anchor_url()` checks `clip{N}_anchor_url.txt` per-clip first, falls back to `clip1_anchor_url.txt`. See `feedback_clip_anchor_rotation.md` memory.
+    c. **Rotate anchor frames across clips 2-N** — extract 5-7 different clean frames from clip 1 and assign a different one to each subsequent clip. Optionally pull 1-2 more from clip 2 once it lands for extra variety. **Never reuse a single anchor URL for every clip** — that produces visually identical clip starts and reads as templated/unnatural on UGC playback. Pattern in `scripts/chowchilla_a2_variations.py`: `get_anchor_url()` checks `clip{N}_anchor_url.txt` per-clip first, falls back to `clip1_anchor_url.txt`. See `feedback_clip_anchor_rotation.md` memory.
+    d. **MUST — pick only EYES-OPEN, forward-gaze frames as anchors. This is the canonical method for ALL multi-clip ads (user-locked rule, 2026-05-20).** Do NOT grab anchor frames at blind fixed timestamps — a blink, half-closed, or averted-gaze seed makes Veo drift the **eye color and identity** across clips (this happened on the w05 white-woman ad: anchors caught mid-blink/averted → clips 2/5/8 drifted from blue-grey to brown). Use OpenCV eye-detection to filter: `select_clean_anchor_times()` in `scripts/chowchilla_b01_ads.py` samples the clip ~5Hz, keeps only frames with a frontal face + ≥2 eyes detected (= eyes open), and spreads N picks across the timeline. Reference end-to-end pipeline: `scripts/chowchilla_b01_ads.py` (clip-1 anchor + eyes-open rotation, KIE veo3_fast).
+    e. **Always add an explicit EYE-COLOR LOCK to every i2v prompt** so Veo doesn't drift the iris color per generation — e.g. `"warm dark-brown eyes that stay the SAME color throughout (never lighter/changing), open and looking into the lens"`. Set the color to match the persona anchor (w05 = pale blue-grey, b01 = dark brown).
 11. **Audit voice consistency — run BOTH detectors** (see "Audio QA" section): `scripts/audio_match.py` for loudness/noise/spectral outliers, and `scripts/voice_consistency.py` for speaker-identity drift (embedding cosine + F0). `audio_match` alone misses the "wrong person" cases; `voice_consistency` alone misses the "right person but mic blew up" cases. If voice loudness span > ~10dB OR speaker similarity < 0.85 OR |ΔF0| > 15Hz on several clips, **normalize via ElevenLabs voice changer** (see "Audio normalization" section). This is the single fix for Veo's biggest weakness — its TTS varies wildly between generations.
 12. Stitch with ffmpeg `concat` demuxer (lossless if codec params match).
 13. Add b-rolls via `filter_complex` (replace video segments, audio passthrough).
@@ -157,7 +159,7 @@ ElevenLabs API is **synchronous** — no polling. Function blocks until audio is
 
 ---
 
-## Captions — two scripts, two skills
+## Captions — three scripts, three skills
 
 **Default rule: DO NOT burn captions onto deliverables** (memory `feedback_skip_burned_captions`). The user adds captions themselves in their post-production tool. Only run the caption pipeline when explicitly asked ("caption this", "add subtitles", "Submagic style", "with the disclaimer").
 
@@ -179,6 +181,24 @@ The skill `yellow-text-sub` documents this. Per-word yellow text highlight (or y
 | `--no-disclaimer` | — | Skip the disclaimer pass entirely. |
 
 **Whisper proper-noun substitutions** live in `caption_styled.py:SUBSTITUTIONS`. Add new mistranscriptions there. Already covers `MIHA→MIJA` and the `CHOWCHILLA` variants.
+
+### `scripts/caption_hormozi3.py` — Submagic "Hormozi 3" style (reverse-engineered 2026-05-21)
+
+The skill `hormozi3` documents this. Alex-Hormozi creator-caption look: Montserrat Black all-caps, white text with the active LINE in a rotating yellow/green/red accent (per card), small text pop, and **animated emojis that slide across the subtitle**. Reverse-engineered + tuned frame-by-frame against a real Submagic export and user-approved.
+
+```bash
+.venv/bin/python scripts/caption_hormozi3.py <in.mp4> --out <out.mp4>
+.venv/bin/python scripts/caption_hormozi3.py <in.mp4> --out <out.mp4> --biased ""   # generic text
+```
+
+**GLOBAL parametric rule (no word-specific hacks — any new video looks like Submagic):**
+- **Font: Montserrat Black (`assets/fonts/Montserrat-Black.ttf`), FIXED `font_ratio 0.0336`** — a ~2-word line fills ~42% of frame width; white-cap height is uniform ~2.2% of frame. **NOT fit-to-width/area growth** — that makes short cards too big. Font only shrinks if a line/card overflows.
+- **Wrapping: ~2 words per line** (`words_per_line = 2`), max 3 lines; width fallback drops long single words to their own line. Tight stacking = the Submagic look ("I WAS / WRONG", "SIGNIFICANT / POTENTIAL / COMPENSATION").
+- **Color:** white default; active LINE = card accent, rotating per card 🟡`#FCFB14`→🟢`#2AF82B`→🔴`#EE1916`. Stroke `0.06×fontsize`, subtle shadow, **no glow** (glow = newer Impact template).
+- **Animation:** captions stay ON continuously (no per-word flash); text pop 96%→105%→100% over 0.12s; **emoji slide-across `0.42×width` (one side→center) over 0.40s**, presets rotate `slide_left/slide_right/slide_up/pop`; emoji uses **Noto animated GIFs** (internal wiggle/draw) — Submagic uses Apple's set, Noto is the closest *animated* one.
+- **Render = single-pass:** pre-composite the WHOLE caption track (text + animated-emoji frames + motion) to a PNG sequence in PIL, then **ONE ffmpeg `overlay`**. ~20s for a 60s clip. **Do NOT chain one `overlay` filter per card** — that's O(cards) and takes minutes.
+
+**Measurement lesson:** match RELATIVE proportions (% of frame width/height), not absolute px. Pixel masks are noisy — emoji color contaminates text measurements; measure a clean no-emoji card's widest-line WIDTH as % of frame.
 
 ### `scripts/caption.py` — legacy classic captions
 
@@ -728,6 +748,7 @@ These auto-surface on relevant user phrases. Don't need to invoke manually — C
 | Skill | Triggers | What it knows |
 |---|---|---|
 | `yellow-text-sub` | "caption this", "add subtitles", "Submagic style", "yellow highlight subs" | Full settings for `caption_styled.py` — font 0.0336, aspect-aware vertical_pos, yellow_text default, disclaimer integration. |
+| `hormozi3` | "Hormozi captions", "Hormozi 3", "Submagic Hormozi", "yellow green red captions" | `caption_hormozi3.py` — Montserrat Black, rotating yellow/green/red per-line accent, text pop, animated emojis sliding across the subtitle. Font fixed 0.0336, 2-words/line, single-pass render. Global parametric rule. |
 | `pulaski-jones-disclaimer` | "the disclaimer", "Pulaski/Jones disclaimer", "Chowchilla disclaimer", "CCWF disclaimer" | Verbatim legal text + on-screen styling for the women's-prison campaign. **DO NOT paraphrase** — regulated. |
 | `feed-4x5` | "make it 4:5", "feed version", "Instagram feed crop", "Reels to feed" | `crop_4x5.py` invocation + the letterbox-detection rationale. |
 
@@ -826,6 +847,7 @@ High-quality (`quality="high"`) 1024×1536 or 1536×1024 renders take 60–120s.
 - **Quote Seedance pricing as "per clip"** — it's per-SECOND. A 10s 480p t2v clip on Poyo costs $0.70 ($0.07/s × 10s), not $0.07. Only Veo 3.1 Fast on Poyo is true flat-rate ($0.10/clip flat, fixed 8s).
 - **Use default `--vertical-pos` (0.72) for PIP composites** — the persona's chin sits lower in a PIP corner overlay than in a standard centered talking head, so the default caption lands on the face. Pass `--vertical-pos 0.85` for any PIP composite (lands below chin, above FB mobile safe-cut area). Do NOT push it to 0.92+ — that clips under Facebook's mobile UI.
 - **Chain last-frame for >5 clips** — quality compounds-degrades. Use clip-1 anchor instead.
+- **Extract anchor frames at fixed/blind timestamps** — MUST select only EYES-OPEN, forward-gaze frames (OpenCV filter `select_clean_anchor_times()` in `scripts/chowchilla_b01_ads.py`). A blink/averted seed drifts Veo's eye-color + identity across clips (w05 lesson). Also add an eye-color lock to every i2v prompt. This is the user-locked canonical clip-1-anchor method — `feedback_clip_anchor_rotation.md`.
 - **Skip the per-clip dissect QA gate** — Veo improvisation/audio-drift/watermark go undetected and compound through the rest of the ad.
 - **Use `tts()` to "fix" voice quality on existing Veo clips** — it breaks lip-sync. Use `voice_changer()` instead.
 - **Use `openai_image.generate_image()` for GPT Image work** — as of 2026-05-20 GPT Image routes through `kie_client.generate_gpt_image` at 2K (OpenAI dropped — lower quality, caps at 1024×1536). Only use the OpenAI path if the user explicitly asks for it.
