@@ -50,7 +50,7 @@ Captured from the end-to-end build of `ad-967437869241001` (California women's p
 
 ## Captions
 
-- **Whisper auto-corrects some pronunciations and mangles others.** Phonetic respell `Chow-chilluh` came back as `Chowchilla` (great — captions read clean). But `Chowchilla` (in another segment) came back as `Chowchilly`. Always use a substitution dict for known proper nouns. See `caption.py` `SUBSTITUTIONS`.
+- **STT auto-corrects some pronunciations and mangles others.** Phonetic respell `Chow-chilluh` came back as `Chowchilla` (great — captions read clean). But `Chowchilla` (in another segment) came back as `Chowchilly`. Always use a substitution dict for known proper nouns. See `caption.py` `SUBSTITUTIONS`. *(Update 2026-05-20: transcription moved from local Whisper to ElevenLabs Scribe — pass `--biased-keywords` with the proper nouns to cut mistranscriptions at the source; SUBSTITUTIONS remains the post-fix.)*
 - **TikTok/Submagic font sizing is ~3–4% of frame height.** Not 6%. ~28–35px on 480p, ~38–45px on 720p. Bigger reads as low-effort/Mr-Beast-ish.
 - **Outline scales with fontsize** (~8% of fontsize) so it stays proportional when the font auto-shrinks.
 - **Adaptive font shrink for max-2-lines is essential.** Long-word chunks like "SIGNIFICANT POTENTIAL FINANCIAL COMPENSATION" can't fit in 2 lines at default size. The renderer should shrink ~8% per attempt until it fits, with a floor (~18px).
