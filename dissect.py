@@ -97,10 +97,16 @@ def transcribe(audio_path, biased_keywords=None, language="en"):
     biased_keywords: proper nouns to bias toward, e.g. ['Chowchilla', 'Mija'] — sharply
     improves proper-noun accuracy on legal/place-name-heavy ads.
 
-    Lazy import so probe/frames/OCR still run without ELEVENLABS_API_KEY; only the
-    transcription step requires the key.
+    Backend routing: prefer fal.ai (FAL_KEY) if set, else direct ElevenLabs
+    (ELEVENLABS_API_KEY). Both expose the same scribe_whisper_compat contract.
+    Lazy import so probe/frames/OCR still run without any key.
     """
-    from elevenlabs_client import scribe_whisper_compat
+    from dotenv import load_dotenv
+    load_dotenv()
+    if os.getenv("FAL_KEY"):
+        from fal_client import scribe_whisper_compat
+    else:
+        from elevenlabs_client import scribe_whisper_compat
     return scribe_whisper_compat(str(audio_path), biased_keywords=biased_keywords,
                                  language_code=language)
 
@@ -212,7 +218,7 @@ def main():
                     help="proper nouns to bias Scribe toward, e.g. --biased-keywords Chowchilla Mija")
     ap.add_argument("--language", default="en", help="ISO-639-1 language code for Scribe (default en)")
     ap.add_argument("--scene-threshold", type=float, default=0.3)
-    ap.add_argument("--interval", type=float, default=1.5, help="also sample a frame every N seconds (0 to disable)")
+    ap.add_argument("--interval", type=float, default=1.0, help="sample a frame every N seconds via ffmpeg (default 1.0; 0 to disable)")
     ap.add_argument("--no-ocr", action="store_true", help="skip burned-text OCR step (faster, but won't catch Veo subtitle hallucinations)")
     args = ap.parse_args()
 

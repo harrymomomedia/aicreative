@@ -222,7 +222,7 @@ For standard (non-PIP) talking-head deliverables, the existing aspect-aware defa
 ## Dissect.py — QA gate for generated clips
 
 ```
-.venv/bin/python dissect.py <video> [--biased-keywords Chowchilla Mija] [--interval 1.5] [--language en] [--no-ocr]
+.venv/bin/python dissect.py <video> [--biased-keywords Chowchilla Mija] [--interval 1.0] [--language en] [--no-ocr]
 ```
 
 Transcription is **ElevenLabs Scribe** (`scribe_v1`), not local Whisper — needs `ELEVENLABS_API_KEY`.
