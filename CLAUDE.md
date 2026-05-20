@@ -189,7 +189,10 @@ The skill `hormozi3` documents this. Alex-Hormozi creator-caption look: Montserr
 ```bash
 .venv/bin/python scripts/caption_hormozi3.py <in.mp4> --out <out.mp4>
 .venv/bin/python scripts/caption_hormozi3.py <in.mp4> --out <out.mp4> --biased ""   # generic text
+.venv/bin/python scripts/caption_hormozi3.py <in.mp4> --out <out.mp4> --disclaimer  # + legal disclaimer
 ```
+
+**`--disclaimer`** overlays the verbatim Pulaski/Jones legal text (skill `pulaski-jones-disclaimer`) at the bottom (white + black stroke, ~0.013 font, vertical 0.99), UNDER the captions, for 6s (`--disclaimer-secs`). It **auto-places at the calmest "most boring" window** via motion analysis (`find_boring_window()` — lowest frame-to-frame difference, avoiding the first/last 4s hook/CTA). Override with `--disclaimer-start <sec>`.
 
 **GLOBAL parametric rule (no word-specific hacks — any new video looks like Submagic):**
 - **Font: Montserrat Black (`assets/fonts/Montserrat-Black.ttf`), FIXED `font_ratio 0.0336`** — a ~2-word line fills ~42% of frame width; white-cap height is uniform ~2.2% of frame. **NOT fit-to-width/area growth** — that makes short cards too big. Font only shrinks if a line/card overflows.

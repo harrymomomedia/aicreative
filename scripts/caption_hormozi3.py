@@ -26,7 +26,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from scripts.caption_styled import extract_audio, probe_size, chunk_words, auto_vertical_pos, run
+from scripts.caption_styled import (extract_audio, probe_size, chunk_words, auto_vertical_pos, run,
+                                     render_disclaimer, find_font, DEFAULT_DISCLAIMER)
 
 FONT = str(ROOT / "assets/fonts/Montserrat-Black.ttf")
 EMOJI_DIR = ROOT / "assets/emoji"
@@ -263,7 +264,37 @@ def _scale_about(img, factor, cx, cy):
     return out
 
 
-def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, max_lines=3):
+def find_boring_window(video, length=6.0, edge=4.0):
+    """Return (start, end) of the calmest (lowest-motion) `length`-second window — the
+    'most boring part' — avoiding the first/last `edge` seconds (hook / CTA)."""
+    import tempfile
+    import numpy as np
+    from PIL import Image
+    dur = probe_duration(video)
+    if dur <= length + 2 * edge:
+        s = max(0.0, (dur - length) / 2)
+        return s, s + length
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        run(["ffmpeg", "-y", "-i", str(video), "-vf", "fps=2,scale=160:-1", "-q:v", "3", str(td / "f%04d.jpg")])
+        files = sorted(td.glob("f*.jpg"))
+        arrs = [np.asarray(Image.open(f).convert("L"), dtype=np.int16) for f in files]
+    motion = [0.0] + [float(np.abs(arrs[i] - arrs[i - 1]).mean()) for i in range(1, len(arrs))]
+    fps_s = 2
+    win = int(length * fps_s)
+    lo = int(edge * fps_s)
+    hi = max(lo + 1, len(motion) - win - int(edge * fps_s))
+    best = None
+    for s in range(lo, hi):
+        score = sum(motion[s:s + win])
+        if best is None or score < best[0]:
+            best = (score, s)
+    start = best[1] / fps_s
+    return start, start + length
+
+
+def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, max_lines=3,
+         disc_text=None, disc_start=0.0, disc_end=0.0):
     """Pre-composite the whole caption track (text + animated emoji w/ motion) to a PNG
     sequence, then overlay it in ONE ffmpeg pass (fast regardless of card count)."""
     import shutil
@@ -301,6 +332,14 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
         cd.append({"d0": d0, "d1": d1, "bounds": bounds, "lines": line_imgs, "es": es,
                    "ex": ex, "ey": ey, "frames": frames, "durs": durs, "preset": preset})
 
+    # disclaimer overlay (bottom of frame, hard-cut window) — rendered once, composited under captions
+    disc_img = None
+    if disc_text:
+        dp = work_dir / "disc.png"
+        render_disclaimer(disc_text, width, height, find_font(), dp, fontsize_ratio=0.013, vertical_pos=0.99)
+        disc_img = Image.open(dp).convert("RGBA")
+        print(f"      disclaimer ON {disc_start:.1f}-{disc_end:.1f}s (calmest window)", flush=True)
+
     frames_dir = work_dir / "cap"
     frames_dir.mkdir(exist_ok=True)
     blank = Image.new("RGBA", (width, height), (0, 0, 0, 0))
@@ -308,9 +347,11 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
     prev_key = prev_path = None
     for f in range(nframes):
         t = f / fps
+        disc_on = disc_img is not None and disc_start <= t < disc_end
         active = next((c for c in cd if c["d0"] <= t < c["d1"]), None)
         if active is None:
-            key = ("blank",)
+            key = ("disc",) if disc_on else ("blank",)
+            efi = None
         else:
             el = t - active["d0"]
             li = max((i for i in range(len(active["bounds"]) - 1) if active["bounds"][i] <= t), default=0)
@@ -328,13 +369,13 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
                     if efi is None:
                         efi = len(active["frames"]) - 1
                 edx, edy, escale = _emoji_xform(active["preset"], el, active["es"], width)
-            key = (id(active), li, efi, round(tscale, 2), round(escale, 2), edx, edy)
+            key = (id(active), li, efi, round(tscale, 2), round(escale, 2), edx, edy, disc_on)
         path = frames_dir / f"{f:05d}.png"
         if key == prev_key and prev_path is not None:
             shutil.copy(prev_path, path)
         else:
             if active is None:
-                blank.save(path, compress_level=1)
+                (disc_img if disc_on else blank).save(path, compress_level=1)
             else:
                 img = _scale_about(active["lines"][li], tscale, width // 2, cy).copy() \
                     if tscale != 1.0 else active["lines"][li].copy()
@@ -348,6 +389,8 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
                     else:
                         ox, oy = active["ex"] + edx, active["ey"] + edy
                     img.alpha_composite(em, (ox, oy))
+                if disc_on:
+                    img = Image.alpha_composite(disc_img, img)  # disclaimer under captions
                 img.save(path, compress_level=1)
             prev_key = key; prev_path = path
 
@@ -371,6 +414,12 @@ def main():
     ap.add_argument("--no-emoji", action="store_true")
     ap.add_argument("--biased", default="Chowchilla:3.0,CCWF:2.0",
                     help="comma-sep Scribe biased keywords (proper nouns). Empty for generic text.")
+    ap.add_argument("--disclaimer", action="store_true",
+                    help="overlay the legal disclaimer at the bottom during the calmest (most boring) window.")
+    ap.add_argument("--disclaimer-text", default=DEFAULT_DISCLAIMER)
+    ap.add_argument("--disclaimer-secs", type=float, default=6.0, help="how long the disclaimer stays up.")
+    ap.add_argument("--disclaimer-start", type=float, default=None,
+                    help="force disclaimer start (sec). Default: auto-detect calmest window.")
     ap.add_argument("--end", type=float, default=None)
     args = ap.parse_args()
 
@@ -393,9 +442,18 @@ def main():
         if args.end is not None:
             cards = [c for c in cards if c["start"] < args.end]
         print(f"      {len(cards)} cards, {sum(len(c['words']) for c in cards)} words", flush=True)
+        disc_text = disc_start = disc_end = None
+        if args.disclaimer:
+            if args.disclaimer_start is not None:
+                disc_start = args.disclaimer_start
+            else:
+                disc_start, _ = find_boring_window(video, length=args.disclaimer_secs)
+            disc_end = disc_start + args.disclaimer_secs
+            disc_text = args.disclaimer_text
         print("[4/4] render + burn", flush=True)
         burn(video, cards, td, out, args.font_ratio, args.vertical_pos,
-             use_emoji=not args.no_emoji, max_lines=args.max_lines)
+             use_emoji=not args.no_emoji, max_lines=args.max_lines,
+             disc_text=disc_text, disc_start=disc_start or 0.0, disc_end=disc_end or 0.0)
     print(f"\nDONE → {out}", flush=True)
 
 
