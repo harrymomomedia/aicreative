@@ -49,7 +49,7 @@ User-set rule: **route each model to its cheapest reliable host**, not all throu
 | **Kling 3.0** | **useapi.net** | `useapi_client.generate_kling` | **unlimited** (flat monthly) | Replaces KIE. Models: `kling-3-0-standard` (default) or `kling-3-0-pro`. |
 | **Runway Gen-4 Turbo** | **useapi.net** | `useapi_client.generate_runway` | **unlimited** (flat monthly) | New. Model: `gen4-turbo` (default) or `gen4`. Up to 10s. |
 | **nano-banana-2** | KIE | `kie_client.generate_nano_banana` | varies | Unchanged. |
-| **gpt-image-2** (t2i / i2i) | OpenAI direct | `openai_image.generate_image` | bundled in OpenAI subscription | **NEVER use `kie_client.generate_gpt_image`** — proxy adds cost. |
+| **gpt-image-2** (t2i / i2i) | **KIE** | `kie_client.generate_gpt_image` | per-image (2K) | **Default image provider** (changed 2026-05-20). `resolution="2K"`, `aspect_ratio="9:16"`. OpenAI direct DROPPED — lower quality + caps at 1024×1536. |
 | **ElevenLabs** (TTS / clone / voice_changer) | ElevenLabs direct | `elevenlabs_client` | per-character | 5 concurrent max — throttle when batching. |
 
 Memory: `project_video_provider_routing.md` — confirm before bulk-running new models since pricing tiers shift.
@@ -119,13 +119,14 @@ Visual-prompt language that triggers rejection, especially when combined with se
 - **In-car / parked-vehicle settings + young Black male persona** — frequently blocked even with benign dialogue. (Persona E "block_serious" in the IL JDC campaign was entirely unusable until the car setting was swapped.) **`"older sedan"`** is worse than **`"car"`**.
 - **Neck tattoo + sensitive dialogue** — compounds risk. Remove the neck-tattoo line from the visual prompt for clips that carry abuse/lawsuit language. Carry the neck tattoo on clip 1 only (where dialogue is the hook, not the claim).
 
-### GPT Image — OpenAI direct (NOT KIE)
+### GPT Image — KIE (default, changed 2026-05-20)
 
 | Function | Module | Auth | Notes |
 |---|---|---|---|
-| `generate_image` | `openai_image.py` | `OPENAI_API_KEY` | Text-to-image and image-to-image via OpenAI's **`gpt-image-2`** (current default, confirmed live 2026-05). **Do not use `kie_client.generate_gpt_image`.** |
+| `generate_gpt_image` | `kie_client.py` | `KIE_API_KEY` | **Default.** Text-to-image (no `image_urls`) and image-to-image (with `image_urls`) via KIE's **`gpt-image-2`**. `aspect_ratio`: auto\|1:1\|9:16\|16:9\|4:3\|3:4. `resolution`: 1K\|2K\|4K (1:1 can't be 4K). Use `resolution="2K"`. |
+| `generate_image` | `openai_image.py` | `OPENAI_API_KEY` | **No longer default** — OpenAI's gpt-image-2 produces lower-quality output and caps at 1024×1536. Only use if the user explicitly asks for the OpenAI path. |
 
-`kie_client.generate_gpt_image` exists but is **deprecated for this project** — it routes through KIE's GPT Image proxy and adds cost/latency. Always import from `openai_image` instead.
+**Rule change (2026-05-20):** the prior "OpenAI direct, never KIE" rule (which existed to avoid KIE's proxy cost markup) is **reversed**. The user prioritizes image quality + larger 2K/4K output over the markup. Route GPT Image through `kie_client.generate_gpt_image` at 2K. Memory: `feedback_image_gen_provider.md`.
 
 ---
 
@@ -827,7 +828,7 @@ High-quality (`quality="high"`) 1024×1536 or 1536×1024 renders take 60–120s.
 - **Chain last-frame for >5 clips** — quality compounds-degrades. Use clip-1 anchor instead.
 - **Skip the per-clip dissect QA gate** — Veo improvisation/audio-drift/watermark go undetected and compound through the rest of the ad.
 - **Use `tts()` to "fix" voice quality on existing Veo clips** — it breaks lip-sync. Use `voice_changer()` instead.
-- **Use `kie_client.generate_gpt_image` for GPT Image work** — always go through `openai_image.generate_image()` (OpenAI direct, `OPENAI_API_KEY`). KIE's GPT Image proxy adds cost markup and latency.
+- **Use `openai_image.generate_image()` for GPT Image work** — as of 2026-05-20 GPT Image routes through `kie_client.generate_gpt_image` at 2K (OpenAI dropped — lower quality, caps at 1024×1536). Only use the OpenAI path if the user explicitly asks for it.
 - **Use `kie_client.generate_veo` for Veo3 Fast** — route to Poyo (`poyo_client.generate_veo`) at $0.10/clip. KIE is $0.30/clip.
 - **Run >2 `dissect.py` instances in parallel** — Whisper + I/O crashes the host. Cap at 2 with `xargs -P 2`.
 - **Burn captions onto deliverables by default** — user does captioning in post. Only burn when explicitly asked ("caption this", "with the disclaimer", "Submagic style").
