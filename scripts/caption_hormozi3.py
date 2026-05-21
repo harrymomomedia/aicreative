@@ -36,14 +36,14 @@ EMOJI_DIR.mkdir(parents=True, exist_ok=True)
 ACCENTS = [(252, 251, 20), (42, 248, 43), (238, 25, 22)]  # per-card: yellow, green, red
 WHITE = (255, 255, 255)
 
-# keyword -> emoji. Prefer SINGLE-codepoint emojis (Noto has animated GIFs for these;
-# ZWJ sequences / flags are not animated). first match per card wins.
+# keyword -> emoji (Apple Color Emoji has every glyph incl. ZWJ families / flags).
+# first match per card wins. Matches Submagic's semantic picks.
 KEYWORD_EMOJI = {
     "mama": "❤️", "mom": "❤️", "mother": "❤️", "daughter": "❤️", "sister": "❤️", "love": "❤️",
     "california": "🔒", "prison": "🔒", "prisons": "🔒", "locked": "🔒", "jail": "🔒",
     "guards": "🚨", "guard": "🚨", "police": "🚨",
     "years": "⏳", "year": "⏳", "late": "⏳", "time": "⏳", "minutes": "⏱️", "minute": "⏱️",
-    "wrong": "❌", "never": "🚫", "nobody": "🚫", "nothing": "🚫", "don't": "🚫",
+    "wrong": "❌", "never": "🚫", "nobody": "🚫", "nothing": "🤷", "don't": "🚫",
     "compensation": "💰", "money": "💰", "owed": "💰", "paid": "💰", "cash": "💰",
     "abuse": "💔", "sexual": "💔", "hurt": "💔", "pain": "💔", "broken": "💔",
     "confidential": "🤫", "private": "🤫", "quiet": "🤫", "secret": "🤫",
@@ -58,38 +58,78 @@ KEYWORD_EMOJI = {
     "remember": "💭", "thought": "💭", "knew": "💭", "think": "💭",
     "fire": "🔥", "amazing": "🔥", "fight": "🔥",
 }
+
+# Emoji art sources:
+#  - PRIMARY: Google Noto ANIMATED emoji GIFs — internally animated (flag waves, money jingles),
+#    matching what Submagic actually uses. Google art (close-in-spirit to Apple, not identical).
+#  - fallback: Apple Color Emoji static (macOS, exact-Apple look but NO internal animation), then Twemoji.
 NOTO_GIF = "https://fonts.gstatic.com/s/e/notoemoji/latest/{code}/512.gif"
+APPLE_EMOJI_FONT = "/System/Library/Fonts/Apple Color Emoji.ttc"
 TWEMOJI_PNG = "https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.0.3/assets/72x72/{tcode}.png"
+_apple_font = None
 
 
-def _codes(e):
-    cps = [c for c in e if c != "️"]  # drop VS16
-    return "_".join(f"{ord(c):x}" for c in cps), "-".join(f"{ord(c):x}" for c in cps)
-
-
-def fetch_emoji(e):
-    """Return (path, is_animated). Tries Noto animated GIF first, falls back to Twemoji PNG."""
-    ncode, tcode = _codes(e)
-    gif = EMOJI_DIR / f"{ncode}.gif"
-    if gif.exists() and gif.stat().st_size > 2000:
-        return gif, True
-    try:
-        urllib.request.urlretrieve(NOTO_GIF.format(code=ncode), gif)
-        if gif.stat().st_size > 2000:
-            return gif, True
-        gif.unlink(missing_ok=True)
-    except Exception:
-        pass
+def _apple_static(emoji, size):
+    from PIL import Image, ImageDraw, ImageFont
+    import os
+    global _apple_font
+    if os.path.exists(APPLE_EMOJI_FONT):
+        try:
+            if _apple_font is None:
+                _apple_font = ImageFont.truetype(APPLE_EMOJI_FONT, 160)
+            canvas = Image.new("RGBA", (220, 220), (0, 0, 0, 0))
+            ImageDraw.Draw(canvas).text((30, 12), emoji, font=_apple_font, embedded_color=True)
+            bbox = canvas.getbbox()
+            if bbox:
+                g = canvas.crop(bbox); w, h = g.size; s = max(w, h)
+                sq = Image.new("RGBA", (s, s), (0, 0, 0, 0)); sq.alpha_composite(g, ((s - w) // 2, (s - h) // 2))
+                return sq.resize((size, size), Image.LANCZOS)
+        except Exception:
+            pass
+    tcode = "-".join(f"{ord(c):x}" for c in emoji if c != "️")
     png = EMOJI_DIR / f"{tcode}.png"
-    if png.exists() and png.stat().st_size > 200:
-        return png, False
+    if not (png.exists() and png.stat().st_size > 200):
+        try:
+            urllib.request.urlretrieve(TWEMOJI_PNG.format(tcode=tcode), png)
+        except Exception:
+            return None
     try:
-        urllib.request.urlretrieve(TWEMOJI_PNG.format(tcode=tcode), png)
-        if png.stat().st_size > 200:
-            return png, False
-    except Exception as ex:
-        print(f"      [emoji] {e} unavailable: {ex}", flush=True)
-    return None, False
+        return Image.open(png).convert("RGBA").resize((size, size), Image.LANCZOS)
+    except Exception:
+        return None
+
+
+# HYBRID policy: Apple static (preferred look) for most emojis; Noto ANIMATED GIF only for
+# the lively ones where internal motion reads well. Both still get the slide/fly transform.
+ANIMATE_VIA_NOTO = {"🔥", "⏳", "⏱️", "❤️", "✅", "❌", "💰", "😢", "😭", "🚨", "💯", "🎉", "👀", "💔"}
+
+
+def render_emoji_frames(emoji, size):
+    """Return (frames, durations_ms). For ANIMATE_VIA_NOTO emojis: Noto animated GIF
+    (internally animated). Otherwise: static Apple Color Emoji (exact Apple look)."""
+    from PIL import Image
+    if emoji in ANIMATE_VIA_NOTO:
+        ncode = "_".join(f"{ord(c):x}" for c in emoji if c != "️")
+        gif = EMOJI_DIR / f"{ncode}.gif"
+        if not (gif.exists() and gif.stat().st_size > 2000):
+            try:
+                urllib.request.urlretrieve(NOTO_GIF.format(code=ncode), gif)
+            except Exception:
+                pass
+        if gif.exists() and gif.stat().st_size > 2000:
+            try:
+                im = Image.open(gif); frames, durs = [], []
+                while True:
+                    frames.append(im.convert("RGBA").resize((size, size), Image.LANCZOS))
+                    durs.append(im.info.get("duration", 60) or 60)
+                    im.seek(im.tell() + 1)
+            except EOFError:
+                pass
+            if frames:
+                return frames, durs
+    # default: Apple static (preferred look)
+    a = _apple_static(emoji, size)
+    return ([a], [1000]) if a is not None else (None, None)
 
 
 def pick_emoji(words):
@@ -214,8 +254,8 @@ def scribe_transcribe(video, biased):
 
 
 TEXT_POP_DUR = 0.12      # text scale-pop on card appearance (measured: 96->105->100% over ~0.12s)
-EMOJI_ENTER_DUR = 0.40   # emoji entrance (slide-across needs time to read)
-EMOJI_PRESETS = ["slide_left", "slide_right", "slide_up", "pop"]  # favor the across-slide
+EMOJI_ENTER_DUR = 0.45   # emoji entrance — slow enough to read the slide/fly smoothly
+EMOJI_PRESETS = ["slide_across", "fly_out", "slide_up", "pop"]  # favor slide-across + fly-out
 
 
 def _smooth(p):
@@ -233,24 +273,32 @@ def _text_scale(elapsed):
     return 1.05 + (1.0 - 1.05) * ((p - 0.35) / 0.65)      # 1.05 -> 1.0 (settle)
 
 
-def _emoji_xform(preset, elapsed, es, width):
-    """Entrance motion, holding after EMOJI_ENTER_DUR.
-      slide_left/right : emoji SLIDES ACROSS the subtitle (travels ~the caption width) into
-                         its center resting spot — the signature Hormozi emoji move.
-      slide_up         : rises up from below into place.
-      pop              : quick scale 0->1.
-    Internal Noto-GIF animation plays on top throughout."""
-    if elapsed >= EMOJI_ENTER_DUR:
-        return 0, 0, 1.0
-    p = _smooth(elapsed / EMOJI_ENTER_DUR)
-    cross = int(width * 0.42)   # slide-across distance ~ subtitle width
-    if preset == "slide_left":
-        return int((1 - p) * -cross), 0, 1.0    # from left edge -> center
-    if preset == "slide_right":
-        return int((1 - p) * cross), 0, 1.0      # from right edge -> center
-    if preset == "slide_up":
-        return 0, int((1 - p) * es * 1.1), 1.0
-    return 0, 0, max(0.15, p)  # "pop": scale 0->1
+def _ease_out(p):
+    """Smooth deceleration (not rigid)."""
+    p = max(0.0, min(1.0, p))
+    return 1 - (1 - p) ** 3
+
+
+# entrance paths as (start_dx, start_dy, rest_dx, rest_dy) — fractions of (width, height),
+# offset from the base anchor (below text center). The emoji eases start->rest then HOLDS at rest.
+PRESET_PATH = {
+    "slide_across": (-0.26, 0.00, 0.26, 0.00),   # left edge -> right edge (full traverse), rests right
+    "fly_out":      (0.00, 0.05, 0.17, -0.24),    # center -> up/45deg outward, rests above-right
+    "slide_up":     (0.00, 0.18, 0.00, 0.00),     # rises from below, rests below-center
+    "pop":          (0.00, 0.00, 0.00, 0.00),     # scale in place
+}
+
+
+def _emoji_xform(preset, elapsed, width, height):
+    """Return (dx, dy, scale) offset from the base anchor. Eases start->rest over
+    EMOJI_ENTER_DUR, then holds at the rest offset (so different presets rest in different
+    spots — slide_across rests right, fly_out rests up-out, like Submagic)."""
+    pe = _ease_out(elapsed / EMOJI_ENTER_DUR)
+    sx, sy, rx, ry = PRESET_PATH.get(preset, PRESET_PATH["pop"])
+    dx = int((sx + (rx - sx) * pe) * width)
+    dy = int((sy + (ry - sy) * pe) * height)
+    scale = max(0.12, pe) if preset == "pop" else 1.0
+    return dx, dy, scale
 
 
 def _scale_about(img, factor, cx, cy):
@@ -321,13 +369,12 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
         emoji = pick_emoji(card["words"]) if use_emoji else None
         frames = durs = None; ex = ey = es = 0; preset = "pop"
         if emoji:
-            path, is_anim = fetch_emoji(emoji)
-            if path:
-                es = int(cap * 1.6); ex = (width - es) // 2; ey = lay["emoji_y"]
-                key = (str(path), es)
-                if key not in emoji_cache:
-                    emoji_cache[key] = load_emoji_frames(path, is_anim, es)
-                frames, durs = emoji_cache[key]
+            es = int(cap * 1.7); ex = (width - es) // 2; ey = lay["emoji_y"]
+            key = (emoji, es)
+            if key not in emoji_cache:
+                emoji_cache[key] = render_emoji_frames(emoji, es)
+            frames, durs = emoji_cache[key]
+            if frames is not None:
                 preset = EMOJI_PRESETS[emoji_idx % len(EMOJI_PRESETS)]; emoji_idx += 1
         cd.append({"d0": d0, "d1": d1, "bounds": bounds, "lines": line_imgs, "es": es,
                    "ex": ex, "ey": ey, "frames": frames, "durs": durs, "preset": preset})
@@ -351,13 +398,12 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
         active = next((c for c in cd if c["d0"] <= t < c["d1"]), None)
         if active is None:
             key = ("disc",) if disc_on else ("blank",)
-            efi = None
         else:
             el = t - active["d0"]
             li = max((i for i in range(len(active["bounds"]) - 1) if active["bounds"][i] <= t), default=0)
             tscale = _text_scale(el)
             efi = None; escale = 1.0; edx = edy = 0
-            if active["frames"]:
+            if active["frames"] is not None:
                 if len(active["frames"]) == 1:
                     efi = 0
                 else:
@@ -368,7 +414,7 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
                             efi = k; break
                     if efi is None:
                         efi = len(active["frames"]) - 1
-                edx, edy, escale = _emoji_xform(active["preset"], el, active["es"], width)
+                edx, edy, escale = _emoji_xform(active["preset"], el, width, height)
             key = (id(active), li, efi, round(tscale, 2), round(escale, 2), edx, edy, disc_on)
         path = frames_dir / f"{f:05d}.png"
         if key == prev_key and prev_path is not None:
