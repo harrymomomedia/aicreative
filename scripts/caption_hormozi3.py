@@ -55,8 +55,27 @@ KEYWORD_EMOJI = {
     "church": "🙏", "sunday": "🙏", "god": "🙏", "pray": "🙏", "blessed": "🙏",
     "cry": "😢", "tears": "😢", "sad": "😢", "crying": "😭",
     "shocked": "😱", "crazy": "😱", "scared": "😱",
-    "remember": "💭", "thought": "💭", "knew": "💭", "think": "💭",
+    "remember": "💭", "thought": "💭", "knew": "💭", "think": "💭", "thinking": "💭",
+    "figured": "💭", "figure": "💭", "wondered": "💭",
     "fire": "🔥", "amazing": "🔥", "fight": "🔥",
+    # --- expanded coverage so more cards get an emoji (legal-ad vocabulary) ---
+    "ago": "⏳", "spent": "⏳", "long": "⏳",
+    "thirty": "⏱️", "seconds": "⏱️", "second": "⏱️", "couple": "✌️", "two": "✌️",
+    "today": "📅", "days": "📅", "day": "📅",
+    "us": "👥", "ours": "👥", "everybody": "👥", "strangers": "👤", "soul": "🙏",
+    "hey": "👋", "hi": "👋", "hello": "👋",
+    "told": "🗣️", "tell": "🗣️", "telling": "🗣️", "say": "🗣️", "said": "🗣️", "voice": "🗣️", "loud": "🔊",
+    "listen": "👂", "hear": "👂", "heard": "👂",
+    "lied": "🤥", "lie": "🤥", "lying": "🤥",
+    "found": "🔍", "find": "🔍", "look": "👀", "looking": "👀",
+    "written": "✍️", "wrote": "✍️", "write": "✍️", "filled": "📝", "fill": "📝",
+    "door": "🚪", "closed": "🚪", "inside": "🔒",
+    "table": "🍽️", "plate": "🍽️",
+    "buried": "🕳️", "bury": "🕳️", "hide": "🙈", "hid": "🙈",
+    "sitting": "🪑", "sit": "🪑",
+    "lawyers": "⚖️", "complete": "✅", "completely": "✅", "done": "✅", "over": "✅",
+    "happened": "❓", "happen": "❓",
+    "stays": "🤫",
 }
 
 # Emoji art sources:
@@ -187,7 +206,7 @@ def compute_layout(words, width, height, fontsize_ratio, vertical_pos, max_lines
         cur_y += line_h + line_gap
     line_starts = [line[0]["start"] for line in lines]
     return {"fontsize": fontsize, "outline": outline, "placed": placed,
-            "line_starts": line_starts, "y0": y0, "text_h": text_h,
+            "line_starts": line_starts, "y0": y0, "text_h": text_h, "text_w": widest,
             "emoji_y": y0 + text_h + int(fontsize * 0.14), "nlines": n}
 
 
@@ -251,9 +270,10 @@ def scribe_transcribe(video, biased):
 
 
 TEXT_POP_DUR = 0.12      # text scale-pop on card appearance (measured: 96->105->100% over ~0.12s)
-EMOJI_ENTER_DUR = 0.25   # emoji entrance — SNAPPY (appears fast, settled-visible for most of its card)
-EMOJI_MIN_GAP = 0.8      # min sec between emoji placements (light throttle; most keyword cards show one)
-EMOJI_PRESETS = ["slide_across", "fly_out", "slide_up", "pop"]  # favor slide-across + fly-out
+SLIDE_ENTER_DUR = 0.30   # slide traverse duration (FIXED — same speed every time, NOT card-relative).
+                         # Ease-in-out over this, then HOLD at the destination for the rest of the card.
+EMOJI_MIN_GAP = 0.4      # min sec between emoji placements (low throttle → more emojis; most keyword cards show one)
+# (EMOJI_PRESETS + the slide/parked geometry live next to _emoji_offsets below)
 # NOTE: the emoji is BOUND TO ITS TEXT CARD — it disappears the instant the caption advances to the
 # next card (no cross-card linger). Submagic ties the emoji to the text segment; when the text moves
 # on, the emoji goes. The fix for "disappears too quickly" was a FASTER entrance, not a longer linger.
@@ -280,29 +300,42 @@ def _ease_out(p):
     return 1 - (1 - p) ** 3
 
 
-# entrance paths as (start_dx, start_dy, rest_dx, rest_dy) — fractions of (width, height),
-# offset from the base anchor (centered, just below the text block). Measured off the Submagic
-# reference: emojis HUG the subtitle (centered, close) — they slide IN then settle near center,
-# they do NOT fly out to the frame edges or park far above/beside the text. So every preset
-# REST is at/near (0,0) = centered just-below text; only the ENTRANCE direction varies.
-PRESET_PATH = {
-    "slide_across": (-0.13, 0.00, 0.00, 0.00),   # slides in across the text from the left, settles center
-    "fly_out":      (0.00, 0.05, 0.00, -0.02),    # drifts up from below to just under the text, centered
-    "slide_up":     (0.00, 0.07, 0.00, 0.00),     # small rise from below, settles center-below
-    "pop":          (0.00, 0.00, 0.00, 0.00),     # scale in place
-}
+# Emoji motion — a SET of directional slides + one static, ALL sharing the SAME distance + speed
+# mechanics (verified against the reference + user-approved directions from the arrow diagram):
+#  - Each preset slides in a compass direction (the arrows): left/right, up/down, the 4 diagonals,
+#    plus a STATIC that just stays put. Direction rotates per emoji for variety.
+#  - HORIZONTAL travel = fixed "INSIDE" word-width (centered, ±h). VERTICAL travel is CAPPED to <1
+#    line (v) so the emoji ALWAYS stays close to the text — never more than ~1 line away, and
+#    sdy/rdy are >=0 so it never rises INTO the text (no blocking). "up" rests just below the text;
+#    "down" rests ~1 line below.
+#  - Motion is EASE-IN-OUT (accelerate then decelerate, like a car) over a FIXED duration
+#    (SLIDE_ENTER_DUR — same speed every time, NOT card-relative), then HOLDS at the destination.
+EMOJI_PRESETS = ["right", "up_right", "up", "up_left", "left", "down", "static", "down_right", "down_left"]
 
 
-def _emoji_xform(preset, elapsed, width, height):
-    """Return (dx, dy, scale) offset from the base anchor. Eases start->rest over
-    EMOJI_ENTER_DUR, then holds at the rest offset (so different presets rest in different
-    spots — slide_across rests right, fly_out rests up-out, like Submagic)."""
-    pe = _ease_out(elapsed / EMOJI_ENTER_DUR)
-    sx, sy, rx, ry = PRESET_PATH.get(preset, PRESET_PATH["pop"])
-    dx = int((sx + (rx - sx) * pe) * width)
-    dy = int((sy + (ry - sy) * pe) * height)
-    scale = max(0.12, pe) if preset == "pop" else 1.0
-    return dx, dy, scale
+def _emoji_offsets(preset, h, v):
+    """Direction preset -> (sdx, sdy, rdx, rdy) px offsets from the base (centered, just below text).
+    h = horizontal half-travel (INSIDE width / 2); v = vertical travel (<1 line). sdy/rdy >= 0 so the
+    emoji stays at/below the base and never rises into the text. Travel is ease-in-out then HELD."""
+    P = {
+        "right":      (-h, 0,  h, 0),     # left -> right (stays just below text)
+        "left":       ( h, 0, -h, 0),     # right -> left
+        "up":         ( 0, v,  0, 0),     # from ~1 line below, UP to just below text
+        "down":       ( 0, 0,  0, v),     # from just below text, DOWN ~1 line
+        "up_right":   (-h, v,  h, 0),     # shallow diagonal up-right (stays close to text)
+        "up_left":    ( h, v, -h, 0),     # shallow diagonal up-left
+        "down_right": (-h, 0,  h, v),     # shallow diagonal down-right
+        "down_left":  ( h, 0, -h, v),     # shallow diagonal down-left
+        "static":     ( 0, 0,  0, 0),     # no movement — just stays there
+    }
+    return P.get(preset, P["static"])
+
+
+def _emoji_xform(elapsed, dur, sdx, sdy, rdx, rdy):
+    """EASE-IN-OUT (accel then decel, like a car) over fixed `dur`, then HOLD at the destination.
+    Same fixed-speed movement for every emoji (dur is constant, not card-relative)."""
+    p = _smooth(elapsed / max(0.05, dur))         # smoothstep; _smooth clamps p to [0,1] then holds
+    return int(sdx + (rdx - sdx) * p), int(sdy + (rdy - sdy) * p)
 
 
 def _scale_about(img, factor, cx, cy):
@@ -350,15 +383,23 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
     """Pre-composite the whole caption track (text + animated emoji w/ motion) to a PNG
     sequence, then overlay it in ONE ffmpeg pass (fast regardless of card count)."""
     import shutil
-    from PIL import Image
+    from PIL import Image, ImageFont, ImageDraw
     width, height = probe_size(video)
     fps = probe_fps(video)
     dur = probe_duration(video)
+    # FIXED slide distance for EVERY emoji = width of the word "INSIDE" (I->E) at the standard font
+    # size — same distance every time, NOT relative to the subtitle/word lengths. slide_half is half
+    # of that (the traverse is centered on the middle: -half -> +half).
+    _std_fs = max(16, int(height * fontsize_ratio))
+    _pf = ImageFont.truetype(FONT, _std_fs)
+    _pb = ImageDraw.Draw(Image.new("RGBA", (10, 10))).textbbox((0, 0), "INSIDE", font=_pf,
+                                                               stroke_width=max(2, int(_std_fs * 0.06)))
+    slide_half = (_pb[2] - _pb[0]) / 2.0
+    slide_v = int(_std_fs * 0.85)   # vertical travel for up/down/diagonal presets (<1 line → stays close to text)
     if vertical_pos is None:
-        # Measured off the Submagic reference: caption block center sits at ~0.60 of frame
-        # height (upper chest, just below the chin) — NOT lower-third. This puts the text near
-        # screen-center and the emoji (just below text) near center too, matching Submagic.
-        vertical_pos = 0.60
+        # Caption block center at ~0.64 of frame height — sits on the upper chest, clearly a bit
+        # BELOW the chin (0.60 crowded the throat/jaw; user-approved 0.64 gives clean chin clearance).
+        vertical_pos = 0.64
     cy = int(vertical_pos * height)
     print(f"      vertical_pos={vertical_pos:.3f}  max_font={fontsize_ratio}  max_lines={max_lines}  fps={fps:.2f}", flush=True)
 
@@ -384,10 +425,14 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
             frames, durs = emoji_cache[key]
             if frames is not None:
                 preset = EMOJI_PRESETS[emoji_idx % len(EMOJI_PRESETS)]; emoji_idx += 1
+                sdx, sdy, rdx, rdy = _emoji_offsets(preset, slide_half, slide_v)
                 # end = this card's d1 → emoji disappears the instant the text advances to the next card
                 emoji_raw.append({"start": d0, "end": d1, "ex": ex, "ey": ey, "es": es,
-                                  "frames": frames, "durs": durs, "preset": preset})
+                                  "frames": frames, "durs": durs,
+                                  "sdx": sdx, "sdy": sdy, "rdx": rdx, "rdy": rdy,
+                                  "edur": SLIDE_ENTER_DUR})
 
+    print(f"      {len(emoji_raw)} emojis placed across {len(cards)} cards", flush=True)
     disc_img = None
     if disc_text:
         dp = work_dir / "disc.png"
@@ -423,7 +468,7 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
                         efi = k; break
                 if efi is None:
                     efi = len(aem["frames"]) - 1
-            edx, edy, escale = _emoji_xform(aem["preset"], eel, width, height)
+            edx, edy = _emoji_xform(eel, aem["edur"], aem["sdx"], aem["sdy"], aem["rdx"], aem["rdy"])
         if active is None and aem is None and not disc_on:
             key = ("blank",)
         else:
