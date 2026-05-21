@@ -581,6 +581,33 @@ When a single clip has TWO people exchanging dialogue (e.g. a news-interview two
 
 **Verify with the per-segment F0 probe**: extract each speaker's audio span (`ffmpeg -ss <start> -t <dur>`) and run `librosa.pyin(fmin=70,fmax=400)`; if two on-camera speakers land within ~10 Hz of each other, they will read as the same person.
 
+### Fast 1080p over-sharpens UGC — use Lite 720p for "real phone" look
+Veo 3.1 **Fast at 1080p applies aggressive sharpening/upscaling** — edges (hair, beard, jacket seams) come out razor-crisp and read as AI-generated, which kills the UGC "shot on a phone" aesthetic. **Veo 3.1 Lite at 720p looks natural** — softer, like a real front-camera capture — AND comes out louder (avg -17 LUFS vs Fast's -25), smaller files (3× smaller), and cheaper. For UGC selfie/testimonial ads, default to **Lite 720p**; the extra resolution of 1080p is thrown away anyway since social feeds re-encode to ~720p. (Fast/1080p is still right for polished broadcast-style work where crispness is wanted.) Verified on the IL JDC persona-08 UGC ad, 2026-05.
+
+### Veo TTS volume is quiet by default — add an AUDIO CRITICAL clause
+Veo's TTS lands quiet (~-25 LUFS) and varies wildly per generation. Adding this clause to the prompt raises it to ~-17 LUFS (near broadcast) reliably:
+```
+AUDIO CRITICAL: He speaks CLEARLY AUDIBLY at FULL conversational
+projection, like he's speaking right into the phone's microphone. NOT
+whispered, NOT muttered, NOT soft. Clean clear broadcast-quality audio
+that fills the foreground.
+```
+Then `loudnorm=I=-16` in the stitch pass unifies all clips to -16 LUFS broadcast standard. Belt-and-suspenders: prompt clause gets you close, loudnorm finishes the job.
+
+### Pace consistency across clips — match word count, split long lines with overlap
+Veo fits whatever dialogue you give it into the clip duration, so a 28-word clip rushes (~3.5 wps) while a 12-word clip drags (~1.5 wps) — stitched together they feel jerky. **Target a consistent ~2.4 words/sec across all clips** (add `PACE LOCK: ~2.4 words per second. Slow, deliberate, each word given weight.` to the prompt). If a sentence is too long to fit at that pace, **split it across two clips with an overlapping bridge phrase**: clip A ends with "…Just found out." and clip B starts with "Just found out Illinois is paying…". At stitch time, keep clip A whole and trim clip B's duplicate opening phrase (Scribe auto-detects the overlap words and moves the trim-in point — see `scripts/jdc_ugc_p08_stitch.py` `overlap_trim_start`). Net result: full sentence delivered at consistent pace, seamless splice.
+
+### Per-beat emotional tone control + anti-commercial CTA
+Once dialogue/pace/audio locks are in place, the next failure mode is **emotional mismatch between clips** — e.g. a quiet vulnerable disclosure clip followed by a CTA clip that suddenly sounds like a TV ad. Two fixes:
+- **Reference the surrounding clips' energy explicitly.** For a bridge clip: "START quiet matching the prior disclosure, GRADUAL very-slight lift, END slightly more informational but still subdued — energy goes from -3 to -1, NOT 0 to +3."
+- **Kill commercial inflection on CTA words by name.** "Free", "quiz", "qualify" trigger Veo's salesy TTS. Generic "calm tone" doesn't fix it — you must call out the specific words: "NO emphasis on 'Free', NO enthusiasm on 'two-minute quiz', NO rising/upbeat inflection, NO TV-ad voice, NO smile in the voice. Deliver it like a sad afterthought, same subdued register as the disclosure." For richer facial life, generate 2-3 variants with different micro-expression direction (vulnerable-drift / contemplative-build / micro-expressive) and pick the best — prompt-only "be more expressive" is too vague.
+
+### Per-prompt voice variety is weak on Veo — use voice_changer for distinct speakers
+Asking for different voices per persona via prompt (pitch/age/register descriptions) barely moves Veo's TTS — across 5 personas with explicit distinct voice profiles, F0 still clustered at 84-109 Hz (only ~25 Hz max spread). If you genuinely need distinct-sounding speakers (e.g. multiple personas in one stitched piece), the prompt won't do it — clone + ElevenLabs voice_changer per speaker is the only reliable path. (For single-persona ads where every clip is the same person, this is moot.)
+
+### Provider degradation can hit Veo across ALL hosts at once
+Veo 3.1 routes through Google's backend regardless of reseller, so a Google-side capacity crunch fails KIE, Poyo, AND EvoLink simultaneously. Symptoms seen in one session: KIE returned `500 Internal Error` after full 4-min renders; Poyo got stuck at "running 5%" indefinitely then timed out; EvoLink returned `"Service busy. Allocating resources, please retry later."` at ~50%. When a benign prompt fails on 2+ different hosts, it's a Google-wide crunch, not your prompt — wait 30-60 min rather than burning re-rolls. **EvoLink** (`evolink_client.py`, `veo-3.1-fast-generate-preview`, `EVOLINK_API_KEY`) is a third Veo host to add to the KIE/Poyo fallback rotation. Separately, **KIE's own file host (`tempfile.redpandaai.co`) Cloudflare-429s per-account** if its URLs are fetched too often — don't curl-probe the upload URL yourself (your probes feed the rate-limit counter); free public hosts (catbox/imgur/0x0) also get 429'd by Veo fetchers, so prefer the generator's own storage.
+
 ### Improvisation patterns
 Veo will frequently:
 1. **Insert filler words** between sentences (often Spanish-sounding gibberish like "Hoeya", "Bacchiazade")
