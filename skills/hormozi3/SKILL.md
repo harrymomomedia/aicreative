@@ -57,7 +57,7 @@ Burns **Submagic "Hormozi 3"** captions. Reverse-engineered + tuned frame-by-fra
 
 ## Emoji system
 
-Keyword → emoji map in `caption_hormozi3.py:KEYWORD_EMOJI` (lowercased; first match per card; broadly expanded for ~60% card coverage). Render order in `render_emoji_frames()`: **Noto animated GIF first** (for ANY glyph that has one — flags 🇺🇸 work here), else **Apple Color Emoji static** (PIL `embedded_color`, 160px sbix strike), else Twemoji. **Prefer single-codepoint emojis** — the Apple fallback can't shape ZWJ families (👩‍👧) and renders a placeholder box. Cached in `assets/emoji/` (`.nogif` marker caches Noto 404s). `--no-emoji` skips.
+Keyword → emoji map in `caption_hormozi3.py:KEYWORD_EMOJI` (lowercased; first match per card; broadly expanded for ~60% card coverage). **No back-to-back repeats** — `pick_emoji(words, exclude=last_placed)` skips the previously placed glyph and prefers a different keyword's emoji in the same card (else places nothing), so the same emoji never appears on two consecutive placements (distracting). Render order in `render_emoji_frames()`: **Noto animated GIF first** (for ANY glyph that has one — flags 🇺🇸 work here), else **Apple Color Emoji static** (PIL `embedded_color`, 160px sbix strike), else Twemoji. **Prefer single-codepoint emojis** — the Apple fallback can't shape ZWJ families (👩‍👧) and renders a placeholder box. Cached in `assets/emoji/` (`.nogif` marker caches Noto 404s). `--no-emoji` skips.
 
 ## Pipeline (fast single-pass)
 
