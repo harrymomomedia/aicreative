@@ -47,12 +47,12 @@ Burns **Submagic "Hormozi 3"** captions. Reverse-engineered + tuned frame-by-fra
 **Animation (measured + approved):**
 - **Captions stay ON continuously** — no per-word flashing (cards are back-to-back; the active line flips per spoken line).
 - **Text pop:** on each card's appearance the text scales **96% → 105% (peak ~+0.04s) → 100% (settled ~0.12s)** — a subtle ~10% overshoot (`TEXT_POP_DUR 0.12`).
-- **Emoji slide-across:** the signature Hormozi move — the emoji **slides across the subtitle** (`0.42 × frame width`, one side → center resting spot) over `EMOJI_ENTER_DUR 0.40s`. Presets rotate `["slide_left","slide_right","slide_up","pop"]` (slide-across favored).
-- **Emoji internal animation:** uses **Noto animated emoji GIFs** (the GIF wiggles/draws itself — flag waves, X draws) playing throughout, on top of the slide. (Submagic uses Apple's set; Noto is the closest *animated* one. Art style differs slightly; motion matches.)
+- **Emoji entrance presets** (rotate per emoji card): `slide_across` (left edge→right edge, full traverse, smooth easeOut), `fly_out` (center→up/45° outward, rests above the text), `slide_up`, `pop`. Each rests in a different spot near screen-center, just above/below the text. `EMOJI_ENTER_DUR 0.45s`. Smooth ease (`1-(1-p)³`), not rigid.
+- **Emoji = HYBRID art** (frame-diff showed Submagic's *parked* emojis are static — the "animation" is mostly the *movement*): **Apple Color Emoji static** (exact look) for most; **Noto animated GIF** for the lively `ANIMATE_VIA_NOTO` set (🔥 ⏳ ❤️ ✅ ❌ 💰 …) which animate internally. Both get the transform motion.
 
 ## Emoji system
 
-Keyword → emoji map in `caption_hormozi3.py:KEYWORD_EMOJI` (lowercased; first match per card). Prefer **single-codepoint** emojis — Noto has animated GIFs for those; ZWJ sequences / flags are static. Fetch order: Noto animated GIF (`fonts.gstatic.com/.../512.gif`) → fallback Twemoji PNG. Cached in `assets/emoji/`. Edit the map to curate; `--no-emoji` skips.
+Keyword → emoji map in `caption_hormozi3.py:KEYWORD_EMOJI` (lowercased; first match per card). **Use single-codepoint emojis** — PIL can't shape ZWJ families (👩‍👧) or flags (🇺🇸) in the Apple font (they render a placeholder box), and Noto lacks animated GIFs for them too. Render: `render_emoji_frames()` → Noto animated GIF if the emoji is in `ANIMATE_VIA_NOTO`, else Apple Color Emoji static (PIL `embedded_color`, 160px sbix strike), else Twemoji. Cached in `assets/emoji/`. `--no-emoji` skips.
 
 ## Pipeline (fast single-pass)
 
@@ -64,7 +64,7 @@ Keyword → emoji map in `caption_hormozi3.py:KEYWORD_EMOJI` (lowercased; first 
 ## Gotchas
 
 - **Render is single-pass PNG-sequence + one overlay.** Chaining N `overlay` filters (one per card/emoji) is O(cards) slow — don't.
-- **Emoji = Noto animated GIFs**, composited per video-frame (PIL seeks GIF frames); not a color-emoji font.
+- **Emoji = Apple static (most) + Noto animated GIF (lively set)**, composited per video-frame with the transform motion. Apple via PIL `embedded_color` — single-codepoint only. There is no free animated-Apple set (paid Lottie packs only); Apple-emoji use in commercial video is a licensing gray area.
 - **Font is fixed, wrapping is 2-words/line** — resist "fit-to-width" growth; it makes short cards too big. The uniform size + tight wrap is the Submagic look.
 - `%` in argparse help strings must be `%%`.
 - Chunking via `caption_styled.chunk_words` → CHOWCHILLA/MIJA substitutions apply.
