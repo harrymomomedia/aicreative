@@ -23,7 +23,9 @@ Output:
 import subprocess
 import sys
 from pathlib import Path
-import whisper
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from elevenlabs_client import scribe_whisper_compat
 
 OUT_DIR = Path("outputs/illinois_jdc_ugc")
 CLIPS_DIR = OUT_DIR / "clips"
@@ -46,8 +48,8 @@ FINAL = OUT_DIR / "final.mp4"
 FINAL_4X5 = OUT_DIR / "final_4x5.mp4"
 
 
-def get_speech_window(model, video, overlap_trim_start):
-    r = model.transcribe(str(video), word_timestamps=True, language="en")
+def get_speech_window(video, overlap_trim_start):
+    r = scribe_whisper_compat(str(video), language_code="en")
     words = []
     for s in r["segments"]:
         for w in s.get("words", []):
@@ -102,9 +104,6 @@ def trim_and_normalize(src, dst, start, end):
 
 
 def main():
-    print("Loading whisper medium…", flush=True)
-    model = whisper.load_model("medium")
-
     print("\n=== TRIM + NORMALIZE PASS ===")
     trimmed_paths = []
     for clip in CLIPS:
@@ -114,7 +113,7 @@ def main():
             continue
         dur = get_duration(src)
         print(f"\n[{clip['name']}] {src.name} (dur {dur:.2f}s)", flush=True)
-        first, last = get_speech_window(model, src, clip.get("overlap_trim_start"))
+        first, last = get_speech_window(src, clip.get("overlap_trim_start"))
         if first is None:
             print(f"  No speech — copying as-is", flush=True)
             dst = TRIM_DIR / f"{clip['name']}.mp4"
