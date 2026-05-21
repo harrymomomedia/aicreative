@@ -225,7 +225,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("source", help="path to source video (audio used)")
     ap.add_argument("out_dir", help="output directory (created if missing)")
-    ap.add_argument("--model", default="small", help="whisper model")
+    ap.add_argument("--biased-keywords", nargs="+", default=None,
+                    help="proper nouns to bias Scribe toward")
     ap.add_argument("--width", type=int, default=1080)
     ap.add_argument("--height", type=int, default=1350)
     ap.add_argument("--fps", type=int, default=30)
@@ -253,11 +254,11 @@ def main():
     cap_dir.mkdir(exist_ok=True)
 
     audio = work / "audio.wav"
-    print(f"[1/5] extract audio for whisper", flush=True)
+    print(f"[1/5] extract audio for transcription", flush=True)
     extract_audio(source, audio)
 
-    print(f"[2/5] whisper transcribe ({args.model})", flush=True)
-    result = transcribe(audio, args.model)
+    print(f"[2/5] transcribe — ElevenLabs Scribe", flush=True)
+    result = transcribe(audio, biased_keywords=args.biased_keywords)
     (work / "transcript.json").write_text(json.dumps(result, indent=2, default=str))
 
     print(f"[3/5] chunk words", flush=True)

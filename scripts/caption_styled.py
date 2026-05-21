@@ -16,7 +16,7 @@ Usage:
   .venv/bin/python scripts/caption_styled.py <in.mp4> [--out out.mp4]
        [--disclaimer-text "Paid legal advertisement..." | --no-disclaimer]
        [--disclaimer-start 0 --disclaimer-end 5]
-       [--model small] [--max-words 3]
+       [--biased-keywords Chowchilla Mija] [--max-words 3]
 """
 import argparse
 import json
@@ -36,7 +36,8 @@ FONT_CANDIDATES = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
 ]
 
-# Whisper mistranscription fixups for proper nouns in our scripts
+# STT (ElevenLabs Scribe) mistranscription fixups for proper nouns in our scripts.
+# Prefer passing --biased-keywords to reduce these at the source; this dict is the post-fix.
 SUBSTITUTIONS = {
     "CHOWCHILLY": "CHOWCHILLA",
     "CHOW CHILLER": "CHOWCHILLA",
@@ -89,10 +90,12 @@ def probe_size(video):
     return int(s["width"]), int(s["height"])
 
 
-def transcribe(audio, model_name):
-    import whisper
-    model = whisper.load_model(model_name)
-    return model.transcribe(str(audio), word_timestamps=True, verbose=False)
+def transcribe(audio, biased_keywords=None, language="en"):
+    """Word-level transcript via ElevenLabs Scribe. Whisper-compatible JSON shape."""
+    sys.path.insert(0, str(ROOT))
+    from elevenlabs_client import scribe_whisper_compat
+    return scribe_whisper_compat(str(audio), biased_keywords=biased_keywords,
+                                 language_code=language)
 
 
 def find_font():
@@ -353,7 +356,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("video")
     ap.add_argument("--out", default=None)
-    ap.add_argument("--model", default="small")
+    ap.add_argument("--biased-keywords", nargs="+", default=None,
+                    help="proper nouns to bias Scribe toward, e.g. --biased-keywords Chowchilla Mija")
     ap.add_argument("--max-words", type=int, default=3)
     ap.add_argument("--no-disclaimer", action="store_true")
     ap.add_argument("--disclaimer-text", default=DEFAULT_DISCLAIMER)
@@ -383,8 +387,8 @@ def main():
         print("[1/4] extract audio", flush=True)
         extract_audio(video, audio)
 
-        print(f"[2/4] whisper ({args.model})", flush=True)
-        result = transcribe(audio, args.model)
+        print("[2/4] transcribe — ElevenLabs Scribe", flush=True)
+        result = transcribe(audio, biased_keywords=args.biased_keywords)
 
         print("[3/4] chunking", flush=True)
         chunks = chunk_words(result["segments"], max_words=args.max_words)

@@ -155,7 +155,9 @@ def scribe(audio_path, model_id="scribe_v1", biased_keywords=None,
     }
     """
     url = f"{BASE}/v1/speech-to-text"
-    files = {"file": (os.path.basename(audio_path), open(audio_path, "rb"), "audio/mpeg")}
+    import mimetypes
+    mime = mimetypes.guess_type(audio_path)[0] or "application/octet-stream"
+    files = {"file": (os.path.basename(audio_path), open(audio_path, "rb"), mime)}
     data = {"model_id": model_id}
     if biased_keywords:
         # ElevenLabs expects a JSON array string for the multipart 'biased_keywords' field

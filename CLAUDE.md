@@ -7,6 +7,13 @@ End-to-end UGC ad cloning. Four halves:
 3. **Voice** TTS + cloning via ElevenLabs direct (`elevenlabs_client.py`)
 4. **Caption** burn-in TikTok-style captions (`caption.py`)
 
+**API-first — no local LLM/CPU heavy lifting.** Speech-to-text runs on **ElevenLabs Scribe**
+(`elevenlabs_client.scribe` / `scribe_whisper_compat`), NOT local Whisper. Whisper has been
+removed entirely (changed 2026-05-20). Transcription, generation, voice, and image work all
+go through provider APIs; the local machine only runs ffmpeg + tesseract. This keeps the
+pipeline portable (runs on a small cloud box with no GPU) and consistent. `ELEVENLABS_API_KEY`
+is therefore required for any step that needs a transcript (dissect QA gate, captions, trims).
+
 ---
 
 ## The Workflow
@@ -19,7 +26,7 @@ End-to-end UGC ad cloning. Four halves:
 6. Adapt the analysis into a model-specific prompt. **Show the full prompt in chat. Wait for explicit go.**
 7. **Test proper-noun pronunciation at the shortest viable duration** before committing to longer clips.
 8. Generate clips. Clip count depends on model max-duration: **Veo 3 Fast = 8s/clip** (~8 clips per minute of ad), **Seedance = up to 15s/clip** (~3-4 clips per minute), **Kling = up to ~10s/clip**. Pick clip boundaries on natural speech breaks.
-9. **Dissect every generated clip immediately** with `dissect.py --interval 1.0`. Review opening, midpoint, and end frames + Whisper transcript. Verify: identity match, visual age, emotional tone lock, camera lock (no drift), motion fidelity, lip-sync, proper-noun pronunciation, audio quality. **Do not proceed to the next clip or to stitching until the current clip passes this QA gate.**
+9. **Dissect every generated clip immediately** with `dissect.py --interval 1.0`. Review opening, midpoint, and end frames + ElevenLabs Scribe transcript. Verify: identity match, visual age, emotional tone lock, camera lock (no drift), motion fidelity, lip-sync, proper-noun pronunciation, audio quality. **Do not proceed to the next clip or to stitching until the current clip passes this QA gate.**
 10. **Trim silence; chain via clip-1 anchor.** Per-clip post-QA flow:
     a. `scripts/trim_silence.py <clip.mp4> <transcript.json>` (start/end-only by default — preserves internal pacing). Outputs `<clip>_trimmed.mp4`.
     b. **For clips 2-N: use a clean frame from CLIP 1 as the `IMAGE_2_VIDEO` first-frame**, NOT the last frame of the previous clip. Last-frame chaining compounds quality degradation across N generations; clip-1 anchor keeps quality consistent throughout the ad. Small visible "reset" between clips is acceptable for short-form UGC pacing. (Last-frame chain is an alternate technique — see "Stitching multi-clip ads" — for a "fake one-take" feel where you accept the drift.)
@@ -29,7 +36,7 @@ End-to-end UGC ad cloning. Four halves:
 11. **Audit voice consistency — run BOTH detectors** (see "Audio QA" section): `scripts/audio_match.py` for loudness/noise/spectral outliers, and `scripts/voice_consistency.py` for speaker-identity drift (embedding cosine + F0). `audio_match` alone misses the "wrong person" cases; `voice_consistency` alone misses the "right person but mic blew up" cases. If voice loudness span > ~10dB OR speaker similarity < 0.85 OR |ΔF0| > 15Hz on several clips, **normalize via ElevenLabs voice changer** (see "Audio normalization" section). This is the single fix for Veo's biggest weakness — its TTS varies wildly between generations.
 12. Stitch with ffmpeg `concat` demuxer (lossless if codec params match).
 13. Add b-rolls via `filter_complex` (replace video segments, audio passthrough).
-14. Caption with `caption.py` (Whisper → PIL → ffmpeg overlay).
+14. Caption with `caption.py` (ElevenLabs Scribe → PIL → ffmpeg overlay).
 15. Optional variants: same script, different character anchor.
 
 **Iteration cadence:** generate freely — no explicit "go" needed per clip. After each clip, dissect per step 9. If it passes QA, advance to the next clip. If it fails, you have up to **3 re-generation attempts on the same clip** to fix the issue (adjust the prompt, the seed, the reference image, or the model). After 3 failed attempts, stop and escalate to the user for guidance instead of burning budget.
@@ -180,7 +187,7 @@ The skill `yellow-text-sub` documents this. Per-word yellow text highlight (or y
 | `--disclaimer-text` | Pulaski/Jones campaign | Skill `pulaski-jones-disclaimer` has the verbatim text. |
 | `--no-disclaimer` | — | Skip the disclaimer pass entirely. |
 
-**Whisper proper-noun substitutions** live in `caption_styled.py:SUBSTITUTIONS`. Add new mistranscriptions there. Already covers `MIHA→MIJA` and the `CHOWCHILLA` variants.
+**STT proper-noun substitutions** live in `caption_styled.py:SUBSTITUTIONS`. Add new mistranscriptions there. Already covers `MIHA→MIJA` and the `CHOWCHILLA` variants. **Prefer reducing them at the source** by passing `--biased-keywords Chowchilla Mija ...` to Scribe (sharply improves proper-noun accuracy); the SUBSTITUTIONS dict is the post-fix for whatever still slips through.
 
 ### `scripts/caption_hormozi3.py` — Submagic "Hormozi 3" style (reverse-engineered 2026-05-21)
 
@@ -239,10 +246,13 @@ For standard (non-PIP) talking-head deliverables, the existing aspect-aware defa
 ## Dissect.py — QA gate for generated clips
 
 ```
-.venv/bin/python dissect.py <video> [--model small] [--interval 1.5] [--no-ocr]
+.venv/bin/python dissect.py <video> [--biased-keywords Chowchilla Mija] [--interval 1.0] [--language en] [--no-ocr]
 ```
 
-Whisper models: `tiny|base|small|medium|large`. Start with `small`. Bigger = more accurate, slower.
+Transcription is **ElevenLabs Scribe** (`scribe_v1`), not local Whisper — needs `ELEVENLABS_API_KEY`.
+Pass `--biased-keywords` with the ad's proper nouns (place names, Spanish words, brand names) to
+sharply improve their transcription accuracy. `--language` defaults to `en`. (probe / frame
+extraction / OCR all still run without a key — only the transcript step calls the API.)
 
 Auto-falls back to interval-sampling (every `--interval` seconds) when scene-detection finds zero cuts. Important for single-shot UGC (talking heads).
 
@@ -262,15 +272,21 @@ A clip is flagged when:
 
 `scripts/scan_burned_text.py` exists for batch scanning multiple clips at once (predates the dissect integration). Either tool works.
 
-### dissect.py concurrency limit — MAX 2 PARALLEL
+### dissect.py concurrency limit — cap at ~4 (ElevenLabs limit, not host memory)
 
-Memory: `feedback_dissect_concurrency`. Each dissect loads the Whisper model (~1GB), extracts frames, writes many small files. Running ~10 in parallel CRASHES the host.
+Memory: `feedback_dissect_concurrency`. **Updated 2026-05-20:** the old "MAX 2 PARALLEL" rule
+existed because each dissect loaded a ~1GB local Whisper model and running ~10 in parallel
+crashed the host. With transcription now on **ElevenLabs Scribe** (remote API), that local-memory
+bottleneck is gone — dissect only runs ffmpeg frame extraction locally, which is light. The new
+limit is **ElevenLabs' 5-concurrent-request cap** (shared across Scribe + TTS + voice_changer).
+**Cap at ~4 parallel** so you leave headroom and don't 429 other ElevenLabs jobs running at the
+same time.
 
 ```bash
-# RIGHT — cap at 2:
-seq 1 10 | xargs -P 2 -I {} .venv/bin/python dissect.py clips/clip{}.mp4 --interval 1.0 --model small
+# RIGHT — cap at 4 (respects ElevenLabs 5-concurrent limit):
+seq 1 10 | xargs -P 4 -I {} .venv/bin/python dissect.py clips/clip{}.mp4 --interval 1.0
 
-# WRONG — for/wait spawns all 10 simultaneously:
+# WRONG — for/wait spawns all 10 simultaneously → 429s from ElevenLabs:
 for n in {1..10}; do .venv/bin/python dissect.py clip${n}.mp4 & ; done; wait
 ```
 
@@ -313,7 +329,17 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
 
-ffmpeg/ffprobe on PATH (`brew install ffmpeg`). `KIE_API_KEY` and `ELEVENLABS_API_KEY` in `.env`.
+`requirements.txt` is now light (requests, python-dotenv, Pillow) — no Whisper/torch, since
+transcription is API-based (ElevenLabs Scribe). The voice-QA scripts (`voice_consistency.py`)
+pull `resemblyzer` + `librosa` separately if you run them.
+
+System tools — ffmpeg/ffprobe + tesseract on PATH:
+- macOS: `brew install ffmpeg tesseract`
+- Linux / cloud box: `apt-get install -y ffmpeg tesseract-ocr`
+
+API keys in `.env` (or as real env vars — `load_dotenv()` defers to those): `KIE_API_KEY`,
+`ELEVENLABS_API_KEY` (required — transcription + voice), plus `POYO_API_KEY` (Veo) and any
+others per the provider-routing table.
 
 ---
 
@@ -342,9 +368,9 @@ KIE video models' native TTS frequently mangles proper nouns and non-English wor
 
 When TTS mispronounces a word, **rewrite it phonetically using English-syllable approximations** until the closed-loop test passes:
 
-> Generate the clip → dissect → check Whisper transcript. If Whisper renders the **intended target word** (or an audibly equivalent rendering), the TTS got close enough.
+> Generate the clip → dissect → check the Scribe transcript. If Scribe renders the **intended target word** (or an audibly equivalent rendering), the TTS got close enough.
 
-**Don't revert phonetic spellings just because Whisper transcribed them differently than the original word.** A respell that produces "Miha" or "me, huh?" for `Mee-hah` is correct — it's saying *Mija* in Spanish (/ˈmi.xa/), which is the goal.
+**Don't revert phonetic spellings just because Scribe transcribed them differently than the original word.** A respell that produces "Miha" or "me, huh?" for `Mee-hah` is correct — it's saying *Mija* in Spanish (/ˈmi.xa/), which is the goal.
 
 ### Heuristics
 
@@ -513,7 +539,7 @@ Veo will frequently:
 5. **Burn hallucinated subtitle text into the frame** — even WITH the "ABSOLUTELY NO ON-SCREEN TEXT" lock, ~10% of clips have garbled text at the bottom (e.g., "sopussol maret beong neolia?", "Juist ex shm sister", "Ex't ife the wbout"). **Cannot be fixed in post — must re-roll the clip.** Use the OCR step in `dissect.py` to flag these automatically.
 6. **News-headline phrasing triggers newscaster TTS delivery** — if the dialogue reads like an article intro ("Women from the California women's prisons are finding out they may qualify…"), Veo's TTS shifts to a formal/energetic announcer voice that doesn't match the intimate UGC tone of the rest of the ad. **Fix: rewrite the line to be conversational** ("Women in California prisons may qualify for compensation. For what the guards did.") AND add a tone hint like "SAME intimate quiet tone as the rest, NOT news-anchor, NOT informational, NOT energetic — she's repeating what she just read in her own quiet voice."
 7. **Quote-framing ("And it said…", "She's like…") sometimes triggers a second, off-screen narrator voice** for the framing phrase. The framing is rendered by a DIFFERENT speaker than the main character. Fix: drop the framing entirely. Just have her say the line directly.
-8. **Doubled lines** — Veo occasionally repeats the last sentence ("Tap the button. See if you qualify. See if you qualify."). Must re-roll. Detect via Whisper transcript word-count.
+8. **Doubled lines** — Veo occasionally repeats the last sentence ("Tap the button. See if you qualify. See if you qualify."). Must re-roll. Detect via Scribe transcript word-count.
 9. **Em-dash list-completion trap** — Veo invents a noun to "complete" a grammatically-open list. Example from IL JDC: `"...Cook County, St. Charles, or Harrisburg — I need you to hear this"` produced gibberish `"Coast Center"` between "Harrisburg" and "I need" — Veo grammatically completed the list as if the user had said `"Cook County [center], St. Charles [center], or Harrisburg [Center]"`. The em-dash gave Veo permission to keep going.
    **Fix:** restructure so the noun list is grammatically closed before the next clause. Use a preposition + comma:
    - ✗ `"a kid in Cook County, St. Charles, or Harrisburg — I need you to hear this"`
@@ -539,7 +565,7 @@ CRITICAL — NO SMILE EVER: Throughout the entire clip her mouth stays in a SOFT
 ```
 
 ### Trailing-word workaround
-Even with the lock, Veo sometimes adds a trailing word. Detect via Whisper word-timing in dissect output:
+Even with the lock, Veo sometimes adds a trailing word. Detect via Scribe word-timing in dissect output:
 
 ```python
 # In transcript.json: find the intended last word's `end` time
@@ -856,7 +882,7 @@ High-quality (`quality="high"`) 1024×1536 or 1536×1024 renders take 60–120s.
 - **Use `tts()` to "fix" voice quality on existing Veo clips** — it breaks lip-sync. Use `voice_changer()` instead.
 - **Use `openai_image.generate_image()` for GPT Image work** — as of 2026-05-20 GPT Image routes through `kie_client.generate_gpt_image` at 2K (OpenAI dropped — lower quality, caps at 1024×1536). Only use the OpenAI path if the user explicitly asks for it.
 - **Use `kie_client.generate_veo` for Veo3 Fast** — route to Poyo (`poyo_client.generate_veo`) at $0.10/clip. KIE is $0.30/clip.
-- **Run >2 `dissect.py` instances in parallel** — Whisper + I/O crashes the host. Cap at 2 with `xargs -P 2`.
+- **Run >4 `dissect.py` instances in parallel** — transcription is now ElevenLabs Scribe (5-concurrent account cap, shared with TTS/voice_changer). Cap at ~4 with `xargs -P 4` to avoid 429s. (The old MAX-2 rule was about local Whisper memory, which no longer applies.)
 - **Burn captions onto deliverables by default** — user does captioning in post. Only burn when explicitly asked ("caption this", "with the disclaimer", "Submagic style").
 - **Submit >20 Poyo generations in parallel** — submit rate limit is 20/10s account-wide. Use `max_workers=10`.
 - **Pass 1 image to Poyo `generation_type: "frame"`** — requires exactly 2. For clip-1 anchor pattern, pass the anchor URL twice (start=end).
