@@ -621,7 +621,9 @@ Per-ad finalize order that produced clean stitched ads: **Scribe-QA → word-awa
 
 - **Word-aware trailing trim (not silence trim).** Veo adds trailing words/sounds AFTER the scripted line ("They got-", "The bottom line", "(wave crash sound)") that silence-trim keeps (they're speech). Instead, subsequence-match the intended line against the Scribe word list and cut to the **last INTENDED word's end-time** (+ small pad). Removes trailing improv deterministically. Leading junk (a stray "But"/"um" before the first scripted word) is cut the same way. NOTE: this only removes leading/trailing improv — MID-line insertions ("ping", "Sam") still need a re-roll.
 - **Lead-in pad before voice_changer for first-word clarity.** Clips that start speaking immediately (first word at <0.1s, e.g. clip4's "women" at 0.079s) come out with a weak/dropped first word after STS — the voice_changer needs lead-in. Fix: after trimming, prepend ~0.15s of **frozen first-frame + silence** (`tpad=start_duration=0.15:start_mode=clone` on video, `adelay` on audio) so STS renders the first word at full energy. Lip-sync stays intact because the video is held during the silence.
-- **Cleanup gotcha:** zsh aborts a whole `rm clipA* clipB*` command if ANY glob matches nothing (you then silently reuse stale intermediates — bit us once: the "tighter trim + VC" looked applied but wasn't, duration was byte-identical). Use `find <dir> -maxdepth 1 \( -name '...' -o -name '...' \) -delete` for multi-pattern cleanup.
+- **Shell gotchas (the Bash tool runs zsh, not bash — bit us twice this session):**
+  1. **Unmatched glob aborts the whole command.** `rm clipA* clipB*` where one pattern matches nothing → zsh errors `no matches found` and runs NOTHING, so you silently reuse stale intermediates (the "tighter trim + VC" looked applied but wasn't — duration was byte-identical). Use `find <dir> -maxdepth 1 \( -name '...' -o -name '...' \) -delete` for multi-pattern cleanup.
+  2. **No word-splitting of unquoted vars.** `for pair in "d sister-call"; do set -- $pair; ad=$1; slug=$2; ...` does NOT split in zsh — `$1` becomes the whole `"d sister-call"` and `$2` is empty (a caption batch silently rendered the wrong paths). Either write explicit per-item commands (most reliable), use a real array, or force-split with `${=pair}`. Don't assume bash word-splitting in loops.
 
 ### STS pitch-delta zones — when voice_changer works vs fails
 
@@ -789,6 +791,31 @@ The user's chat client renders a video path as a **clickable inline preview ONLY
 Rule: every time you present a video file (generated clip, source upload, b-roll, composite, stitched final, aspect variant), wrap the path in backticks. Bulleted lists, tables, paragraphs — all fine, as long as the path itself is backticked. Same applies to absolute and relative paths.
 
 Does NOT apply to images (use the Read tool to show those inline). Audio paths don't render previews regardless, so plain text is fine for `.mp3` / `.wav`.
+
+---
+
+## Viewing user-shared CleanShot links — fetch the image, don't guess
+
+The user frequently drops **`https://cleanshot.com/share/<code>`** links to point at a specific frame/issue (a misplaced emoji, an arrow diagram of the motion they want, etc.). You CAN see these — **always fetch and Read the image instead of guessing at its content** (guessing wasted rounds early in the hormozi3 work). The share page is HTML; the real image is its `og:image`:
+
+```bash
+html=$(curl -sSL "https://cleanshot.com/share/<code>")
+img=$(echo "$html" | grep -oiE 'og:image" content="[^"]+' | sed 's/.*content="//')   # → https://brief.cleanshot.cloud/media/.../*.jpeg
+curl -sSL "${img%%\?*}" -o /tmp/shot.jpeg     # strip the ?min_width=... query for full-res
+```
+
+Then `Read /tmp/shot.jpeg`. (Often the screenshot is a frame of one of OUR own renders with annotations drawn on top — useful for seeing exactly which moment/element they mean.)
+
+---
+
+## Caption/emoji visual QA — ffmpeg frame-trace (no ImageMagick)
+
+How the hormozi3 look was reverse-engineered + tuned against the reference, and the repeatable method for any caption/overlay QA:
+
+- **Isolate + tile frames with ffmpeg** — `montage` (ImageMagick) is NOT installed on this host. Build contact sheets with the ffmpeg **`tile`** filter: `ffmpeg -i in.mp4 -vf "fps=10,crop=W:H:X:Y,scale=...,tile=4x6" -frames:v 1 grid.jpg`.
+- **Trace motion at 0.1s** (`fps=10`) and **crop a thin band** to the caption/emoji zone so a small glyph is trackable; add a reference line with **`drawbox=x=<cx>:y=0:w=2:h=H:color=red@0.9:t=fill`** (vertical = screen-center for horizontal slides; horizontal = chin/baseline for vertical position). Read the tiled grid row-major to see the position over time.
+- **Compare against a reference 1:1** when the user has run our clip through the target tool (e.g. Submagic): overlay a screen-center / chin line on BOTH and match positions.
+- **Match RELATIVE proportions** (% of frame W/H), never absolute px — see the hormozi3 "Measurement lesson" above. Pixel masks are noisy (emoji color contaminates text measurement); trace the glyph centroid visually instead.
 
 ---
 
