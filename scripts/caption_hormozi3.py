@@ -251,11 +251,12 @@ def scribe_transcribe(video, biased):
 
 
 TEXT_POP_DUR = 0.12      # text scale-pop on card appearance (measured: 96->105->100% over ~0.12s)
-EMOJI_ENTER_DUR = 0.45   # emoji entrance — slow enough to read the slide/fly smoothly
-EMOJI_LINGER = 2.6       # emoji stays on screen ~this long (past its card), capped at next emoji
-EMOJI_MIN_GAP = 1.5      # min sec between emoji placements — matches Submagic's ~1.5s cadence
-                         # (one emoji at a time, each lingering until the next replaces it)
+EMOJI_ENTER_DUR = 0.25   # emoji entrance — SNAPPY (appears fast, settled-visible for most of its card)
+EMOJI_MIN_GAP = 0.8      # min sec between emoji placements (light throttle; most keyword cards show one)
 EMOJI_PRESETS = ["slide_across", "fly_out", "slide_up", "pop"]  # favor slide-across + fly-out
+# NOTE: the emoji is BOUND TO ITS TEXT CARD — it disappears the instant the caption advances to the
+# next card (no cross-card linger). Submagic ties the emoji to the text segment; when the text moves
+# on, the emoji goes. The fix for "disappears too quickly" was a FASTER entrance, not a longer linger.
 
 
 def _smooth(p):
@@ -383,12 +384,9 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
             frames, durs = emoji_cache[key]
             if frames is not None:
                 preset = EMOJI_PRESETS[emoji_idx % len(EMOJI_PRESETS)]; emoji_idx += 1
-                emoji_raw.append({"start": d0, "ex": ex, "ey": ey, "es": es,
+                # end = this card's d1 → emoji disappears the instant the text advances to the next card
+                emoji_raw.append({"start": d0, "end": d1, "ex": ex, "ey": ey, "es": es,
                                   "frames": frames, "durs": durs, "preset": preset})
-    # emoji lingers ~EMOJI_LINGER past its card (Submagic keeps them up ~2-3s), capped at next emoji
-    for i, e in enumerate(emoji_raw):
-        nxt = emoji_raw[i + 1]["start"] if i + 1 < len(emoji_raw) else dur
-        e["end"] = min(e["start"] + EMOJI_LINGER, nxt)
 
     disc_img = None
     if disc_text:
