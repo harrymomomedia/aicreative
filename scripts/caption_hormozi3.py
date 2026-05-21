@@ -148,10 +148,13 @@ def render_emoji_frames(emoji, size):
     return ([a], [1000]) if a is not None else (None, None)
 
 
-def pick_emoji(words):
+def pick_emoji(words, exclude=None):
+    """First keyword→emoji match in the card. If that glyph == `exclude` (the previously placed
+    emoji), keep scanning for a DIFFERENT keyword's emoji in the same card; return None if the only
+    match repeats `exclude` — so the same emoji never shows back-to-back (distracting)."""
     for w in words:
         key = "".join(c for c in w["text"].lower() if c.isalpha() or c == "'")
-        if key in KEYWORD_EMOJI:
+        if key in KEYWORD_EMOJI and KEYWORD_EMOJI[key] != exclude:
             return KEYWORD_EMOJI[key]
     return None
 
@@ -409,6 +412,7 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
     cd = []          # text cards only
     emoji_raw = []   # emoji overlays (decoupled from cards, so they can linger)
     emoji_idx = 0
+    last_emoji = None   # last PLACED glyph — never repeat it back-to-back
     for ci, card in enumerate(cards):
         accent = ACCENTS[ci % len(ACCENTS)]
         lay = compute_layout(card["words"], width, height, fontsize_ratio, vertical_pos, max_lines)
@@ -417,7 +421,7 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
         bounds = [d0] + [lay["line_starts"][li] for li in range(1, lay["nlines"])] + [d1]
         line_imgs = [render_text_image(lay, li, accent, width, height) for li in range(lay["nlines"])]
         cd.append({"d0": d0, "d1": d1, "bounds": bounds, "lines": line_imgs})
-        emoji = pick_emoji(card["words"]) if use_emoji else None
+        emoji = pick_emoji(card["words"], exclude=last_emoji) if use_emoji else None
         if emoji and (not emoji_raw or d0 - emoji_raw[-1]["start"] >= EMOJI_MIN_GAP):
             es = int(cap * 1.7); ex = (width - es) // 2; ey = lay["emoji_y"]
             key = (emoji, es)
@@ -429,11 +433,13 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
                 sdx, sdy, rdx, rdy = _emoji_offsets(preset, slide_half, slide_v)
                 # end = this card's d1 → emoji disappears the instant the text advances to the next card
                 emoji_raw.append({"start": d0, "end": d1, "ex": ex, "ey": ey, "es": es,
-                                  "frames": frames, "durs": durs,
+                                  "frames": frames, "durs": durs, "glyph": emoji,
                                   "sdx": sdx, "sdy": sdy, "rdx": rdx, "rdy": rdy,
                                   "edur": SLIDE_ENTER_DUR})
+                last_emoji = emoji   # block this glyph from repeating on the next placement
 
-    print(f"      {len(emoji_raw)} emojis placed across {len(cards)} cards", flush=True)
+    print(f"      {len(emoji_raw)} emojis placed across {len(cards)} cards: "
+          f"{''.join(e['glyph'] for e in emoji_raw)}", flush=True)
     disc_img = None
     if disc_text:
         dp = work_dir / "disc.png"
