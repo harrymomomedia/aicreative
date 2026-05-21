@@ -81,6 +81,38 @@ POST https://kieai.redpandaai.co/api/file-stream-upload  → returns {data.downl
 ```
 Use this even when Veo runs via Poyo — image hosting is a separate concern from generation.
 
+### KIE Veo 3.1 model ids + anchor mode (verified 2026-05)
+
+KIE's confusingly-named Veo models (docs: `docs.kie.ai/veo3-api/generate-veo-3-video`):
+- `veo3_lite` = **Veo 3.1 Lite** (cheapest; use first per `feedback_veo_tier_routing`)
+- `veo3_fast` = **Veo 3.1 Fast** (NOT "Veo 3" — better identity hold than Lite)
+- `veo3` = **Veo 3.1 Quality** (NEVER use — hard rule)
+
+`generationType` for Veo 3.1 (the old `IMAGE_2_VIDEO` is gone): `TEXT_2_VIDEO` | `FIRST_AND_LAST_FRAMES_2_VIDEO` | `REFERENCE_2_VIDEO`. **For the clip-1 anchor pattern, use `FIRST_AND_LAST_FRAMES_2_VIDEO` and pass the anchor twice** (`image_urls=[anchor, anchor]`, start=end) — locks framing the same way Poyo's `frame` mode does. `kie_client.generate_veo(..., model="veo3_lite")` takes a `model` kwarg.
+
+**Lite drifts identity mid-clip on multi-character scenes** (the reporter+interviewee two-shot drifted both faces between 0.5s and 5.5s on Lite; Veo 3.1 Fast held them). For 2-person framing, expect to escalate Lite→Fast.
+
+### Kling 3.0 on KIE — element references + gotchas (verified 2026-05)
+
+`kie_client.generate_kling` → model `kling-3.0/video`, polls `/jobs/recordInfo`. Native audio via `sound=True`. `mode="std"` (720p, cheaper) | `"pro"` (better). Output is **higher-res than Veo** (~1176×1764 at 9:16 → scale to 720×1280 before concat with Veo clips). Docs: `docs.kie.ai/market/kling/kling-3-0`.
+
+**Element-reference system** (the "Omni" multi-subject path — best for locking 2+ distinct characters in one scene): define `kling_elements`, reference each by `@element_name` token in the prompt.
+```python
+kling_elements=[
+  {"name": "element_reporter", "description": "...", "element_input_urls": [url1, url2]},
+  {"name": "element_interviewee", "description": "...", "element_input_urls": [url1, url2]},
+]
+# prompt: "@element_reporter asks the question while @element_interviewee listens..."
+```
+Plus an optional `image_urls=[scene_baseline]` for the establishing composite/first-frame.
+
+Hard gotchas (all hit this session):
+- **Each element requires 2-4 images** (`element_input_urls`) — 1 image 422s with "must contain between 2 and 4 images". Generate a 2nd angle of the persona via gpt-image-2 i2i if you only have one.
+- **Max 3 elements per task.**
+- **Prompt hard-caps at 2500 chars** (same as Runway). Compress: consolidate locks, trim adjectives, drop photo-realism boilerplate. 422s with "length of 'prompt' must not exceed 2500 characters" if over.
+- **`multi_shots` is REQUIRED in the payload** (boolean) — omitting it 422s "multi_shots cannot be empty". Set `multi_shots=False` for a single shot, or `True` + a `multi_prompt=[{"prompt","duration"},...]` array for multi-shot.
+- **Kling auto-cuts shots mid-clip EVEN WITH `multi_shots=False`.** On a 10s reporter-question clip it held the two-shot 0-7s then hard-cut to a reporter-only close-up at 7.04s. Its auto-cinematography decides to insert reaction-shot cuts. To enforce one continuous take: keep the clip short (≤7s) and/or trim at the detected cut (`dissect.py` scene-detection reports the cut timestamp). Strong "NO CUTS, single continuous take" prompt language helps but does not guarantee.
+
 ### Poyo gotchas (Veo 3.1 Fast at $0.10/clip)
 
 - **`generation_type: "frame"` requires EXACTLY 2 `image_urls`.** For clip-1 anchor pattern, pass the anchor twice (start = end). API rejects 1-image with 400. Client at `poyo_client.py`.
@@ -540,6 +572,15 @@ Veo sometimes (~30-50% of generations) burns a "Veo" watermark in the bottom-rig
 - Re-roll until clean
 - OR crop bottom ~50px in post (changes aspect slightly)
 
+### Two-character dialogue in ONE clip → both speakers collapse to the same voice
+When a single clip has TWO people exchanging dialogue (e.g. a news-interview two-shot: reporter asks, interviewee answers), Veo renders **both voices at nearly identical pitch** even when the prompt explicitly asks for a mature-deep reporter vs a younger-higher interviewee. Measured on the IL JDC news clip: reporter F0 = 130.2 Hz, interviewee F0 = 128.8 Hz → **ΔF0 = 1.4 Hz, below human perception threshold** → it sounds like ONE person doing both parts. The *visual* lip-sync attribution can still be correct (right mouth moves at the right time — verify by frame-extracting at speech boundaries and checking which mouth is open), but the AUDIO reads as a single speaker. No prompt phrasing fixes this.
+
+**Fixes (in order of preference):**
+1. **One speaker per clip.** Restructure so each clip carries a single voice — e.g. clip 1 = reporter asks the question (interviewee in frame but SILENT, mouth sealed the entire clip), clip 2 = interviewee answers + next line. Add an explicit "ONLY <X> speaks this entire clip; <Y>'s mouth STAYS CLOSED, makes NO sound" lock. This was the chosen fix and it works cleanly.
+2. **ElevenLabs voice_changer dub per speaker segment.** Keep Veo's visual lip-sync, split the audio at the speaker boundary, run each segment through `voice_changer` to a distinct cloned voice (mature vs young), splice back. Guarantees ΔF0 separation; lip-sync stays intact (STS preserves timing).
+
+**Verify with the per-segment F0 probe**: extract each speaker's audio span (`ffmpeg -ss <start> -t <dur>`) and run `librosa.pyin(fmin=70,fmax=400)`; if two on-camera speakers land within ~10 Hz of each other, they will read as the same person.
+
 ### Improvisation patterns
 Veo will frequently:
 1. **Insert filler words** between sentences (often Spanish-sounding gibberish like "Hoeya", "Bacchiazade")
@@ -860,6 +901,18 @@ Save as `outputs/<videoname>/reference/character_<letter>_<setting>.png`.
 User picks one anchor → use the same image across all clips of that ad for character consistency.
 
 For variants (A/B test same script with different character), pick a different anchor and re-run the clip generation phase.
+
+### Multi-character scenes — composite two-shot anchor (gpt-image-2 i2i merge)
+
+For a two-person scene (e.g. news interview: reporter + interviewee in one frame), don't try to text-prompt both characters from scratch — **merge the two picked persona refs into one composite scene image via gpt-image-2 image-edit**, then use that composite as the video anchor. Pattern (IL JDC news ad, `scripts/jdc_news_composite_anchor.py`):
+
+1. Generate/pick the two persona refs separately (1 reporter, 1 interviewee).
+2. `generate_image(prompt="<two-shot composition: X on left in profile holding mic, Y on right 3/4 to camera, under the El tracks>", image_paths=[reporter.png, interviewee.png], ...)` — gpt-image-2 edit mode merges both faces+wardrobe into one scene. Render 2-3 framing variants, user picks one.
+3. Feed the composite as the video anchor:
+   - **Veo**: `FIRST_AND_LAST_FRAMES_2_VIDEO`, pass composite twice (start=end).
+   - **Kling 3.0**: composite as `image_urls` baseline + the two personas as `kling_elements` (`@element_X`) for stronger per-character identity lock. Kling needs **2-4 imgs per element** — generate a 2nd angle of each persona via gpt-image-2 i2i (`scripts/jdc_news_kling_element_variants.py`).
+
+The composite keeps framing/lighting/wardrobe consistent across all clips that reuse it.
 
 ---
 
