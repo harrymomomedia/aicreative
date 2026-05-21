@@ -37,7 +37,7 @@ Burns **Submagic "Hormozi 3"** captions. Reverse-engineered + tuned frame-by-fra
 - Font: **Montserrat Black (900)**, ALL CAPS.
 - **Size is essentially FIXED at `font_ratio 0.0336`** (≈ a ~2-word line fills ~42% of frame width — measured directly off the reference). It is NOT fit-to-width/area growth — short and long cards are the **same glyph size** (Submagic's white-cap height is uniform ~2.2% of frame height). Font only shrinks if a single line/card overflows the width or 3 lines.
 - **Wrapping: ~2 words per line** (`words_per_line = 2`), with a width fallback so long single words drop to 1/line. This tight stacking is what keeps the size looking uniform and "not too big" (e.g. "I WAS / WRONG", "YOU SITTING / DOWN", "SIGNIFICANT / POTENTIAL / COMPENSATION").
-- Position: lower-third, text-block center ~**0.70**.
+- Position: text-block center ~**0.60** of frame height — **upper chest, just below the chin** (measured off the reference). NOT lower-third. This puts the text near screen-center and the emoji (just below the text) near center too — the Submagic look. (Verified 2026-05-21 by overlaying a screen-center line on the real export: caption block sits at ~0.60, not 0.70.)
 
 **Color / stroke:**
 - Default word = WHITE `#FFFFFF`; the **active LINE** is the card's accent (whole line, not single word).
@@ -47,8 +47,10 @@ Burns **Submagic "Hormozi 3"** captions. Reverse-engineered + tuned frame-by-fra
 **Animation (measured + approved):**
 - **Captions stay ON continuously** — no per-word flashing (cards are back-to-back; the active line flips per spoken line).
 - **Text pop:** on each card's appearance the text scales **96% → 105% (peak ~+0.04s) → 100% (settled ~0.12s)** — a subtle ~10% overshoot (`TEXT_POP_DUR 0.12`).
-- **Emoji entrance presets** (rotate per emoji card): `slide_across` (left edge→right edge, full traverse, smooth easeOut), `fly_out` (center→up/45° outward, rests above the text), `slide_up`, `pop`. Each rests in a different spot near screen-center, just above/below the text. `EMOJI_ENTER_DUR 0.45s`. Smooth ease (`1-(1-p)³`), not rigid.
-- **Emoji = HYBRID art** (frame-diff showed Submagic's *parked* emojis are static — the "animation" is mostly the *movement*): **Apple Color Emoji static** (exact look) for most; **Noto animated GIF** for the lively `ANIMATE_VIA_NOTO` set (🔥 ⏳ ❤️ ✅ ❌ 💰 …) which animate internally. Both get the transform motion.
+- **Emoji position (MOST important — verified 2026-05-21 against the real export):** the emoji **HUGS the subtitle** — centered horizontally, just **below** the text block, near screen-center. It does **NOT** fly out to the frame edges, park far above, or sit off to the side. Every preset's REST position is at/near centered-just-below-text; only the **entrance direction** varies. (Measured: reference emoji sits at ~0.63 frame height directly under the caption, centered.)
+- **Emoji entrance presets** (rotate per emoji card, all settle centered-below): `slide_across` (slides in across the text from the left, settles center — short traverse, NOT across the whole frame), `fly_out` (drifts up from below to just under the text, centered), `slide_up` (small rise from below), `pop` (scale in place). `EMOJI_ENTER_DUR 0.45s`, smooth ease (`1-(1-p)³`). `PRESET_PATH` amplitudes are deliberately small (≤0.13 width / ≤0.07 height) — the early "edge→edge / fly-outward" versions read as "too far out, too far from the subtitle" vs the reference.
+- **Emoji cadence + linger:** one emoji at a time, on keyword cards, roughly every **~1.5s** (`EMOJI_MIN_GAP 1.5`). Each lingers until the **next** emoji replaces it, up to `EMOJI_LINGER 2.6s` for trailing gaps — so there's no flicker / "disappears too quickly." (Earlier a 2.5s min-gap was too sparse; the reference shows an emoji on most keyword cards.)
+- **Emoji art = PREFER the animated Noto GIF** when one exists for the glyph (animated beats static — matches what Submagic uses for the lively ones), else fall back to **Apple Color Emoji static** (exact-Apple look, PIL `embedded_color` 160px sbix strike, single-codepoint only), else Twemoji PNG. A `.nogif` marker caches 404s so we don't refetch. All get the transform motion regardless of art source.
 
 ## Emoji system
 

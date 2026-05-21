@@ -99,35 +99,32 @@ def _apple_static(emoji, size):
         return None
 
 
-# HYBRID policy: Apple static (preferred look) for most emojis; Noto ANIMATED GIF only for
-# the lively ones where internal motion reads well. Both still get the slide/fly transform.
-ANIMATE_VIA_NOTO = {"🔥", "⏳", "⏱️", "❤️", "✅", "❌", "💰", "😢", "😭", "🚨", "💯", "🎉", "👀", "💔"}
-
-
 def render_emoji_frames(emoji, size):
-    """Return (frames, durations_ms). For ANIMATE_VIA_NOTO emojis: Noto animated GIF
-    (internally animated). Otherwise: static Apple Color Emoji (exact Apple look)."""
+    """Return (frames, durations_ms). PREFER the animated Noto GIF when one exists (animated
+    beats static); fall back to static Apple Color Emoji (exact Apple look), then Twemoji."""
     from PIL import Image
-    if emoji in ANIMATE_VIA_NOTO:
-        ncode = "_".join(f"{ord(c):x}" for c in emoji if c != "️")
-        gif = EMOJI_DIR / f"{ncode}.gif"
-        if not (gif.exists() and gif.stat().st_size > 2000):
-            try:
-                urllib.request.urlretrieve(NOTO_GIF.format(code=ncode), gif)
-            except Exception:
-                pass
-        if gif.exists() and gif.stat().st_size > 2000:
-            try:
-                im = Image.open(gif); frames, durs = [], []
-                while True:
-                    frames.append(im.convert("RGBA").resize((size, size), Image.LANCZOS))
-                    durs.append(im.info.get("duration", 60) or 60)
-                    im.seek(im.tell() + 1)
-            except EOFError:
-                pass
-            if frames:
-                return frames, durs
-    # default: Apple static (preferred look)
+    ncode = "_".join(f"{ord(c):x}" for c in emoji if c != "️")
+    gif = EMOJI_DIR / f"{ncode}.gif"
+    miss = EMOJI_DIR / f"{ncode}.nogif"   # remember 404s so we don't refetch every run
+    if not (gif.exists() and gif.stat().st_size > 2000) and not miss.exists():
+        try:
+            urllib.request.urlretrieve(NOTO_GIF.format(code=ncode), gif)
+            if not (gif.exists() and gif.stat().st_size > 2000):
+                gif.unlink(missing_ok=True); miss.touch()
+        except Exception:
+            miss.touch()
+    if gif.exists() and gif.stat().st_size > 2000:
+        try:
+            im = Image.open(gif); frames, durs = [], []
+            while True:
+                frames.append(im.convert("RGBA").resize((size, size), Image.LANCZOS))
+                durs.append(im.info.get("duration", 60) or 60)
+                im.seek(im.tell() + 1)
+        except EOFError:
+            pass
+        if frames:
+            return frames, durs
+    # fallback: static Apple Color Emoji (preferred look for non-animated glyphs)
     a = _apple_static(emoji, size)
     return ([a], [1000]) if a is not None else (None, None)
 
@@ -255,6 +252,9 @@ def scribe_transcribe(video, biased):
 
 TEXT_POP_DUR = 0.12      # text scale-pop on card appearance (measured: 96->105->100% over ~0.12s)
 EMOJI_ENTER_DUR = 0.45   # emoji entrance — slow enough to read the slide/fly smoothly
+EMOJI_LINGER = 2.6       # emoji stays on screen ~this long (past its card), capped at next emoji
+EMOJI_MIN_GAP = 1.5      # min sec between emoji placements — matches Submagic's ~1.5s cadence
+                         # (one emoji at a time, each lingering until the next replaces it)
 EMOJI_PRESETS = ["slide_across", "fly_out", "slide_up", "pop"]  # favor slide-across + fly-out
 
 
@@ -280,11 +280,14 @@ def _ease_out(p):
 
 
 # entrance paths as (start_dx, start_dy, rest_dx, rest_dy) — fractions of (width, height),
-# offset from the base anchor (below text center). The emoji eases start->rest then HOLDS at rest.
+# offset from the base anchor (centered, just below the text block). Measured off the Submagic
+# reference: emojis HUG the subtitle (centered, close) — they slide IN then settle near center,
+# they do NOT fly out to the frame edges or park far above/beside the text. So every preset
+# REST is at/near (0,0) = centered just-below text; only the ENTRANCE direction varies.
 PRESET_PATH = {
-    "slide_across": (-0.26, 0.00, 0.26, 0.00),   # left edge -> right edge (full traverse), rests right
-    "fly_out":      (0.00, 0.05, 0.17, -0.24),    # center -> up/45deg outward, rests above-right
-    "slide_up":     (0.00, 0.18, 0.00, 0.00),     # rises from below, rests below-center
+    "slide_across": (-0.13, 0.00, 0.00, 0.00),   # slides in across the text from the left, settles center
+    "fly_out":      (0.00, 0.05, 0.00, -0.02),    # drifts up from below to just under the text, centered
+    "slide_up":     (0.00, 0.07, 0.00, 0.00),     # small rise from below, settles center-below
     "pop":          (0.00, 0.00, 0.00, 0.00),     # scale in place
 }
 
@@ -351,13 +354,17 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
     fps = probe_fps(video)
     dur = probe_duration(video)
     if vertical_pos is None:
-        vertical_pos = max(0.68, auto_vertical_pos(width, height) - 0.02)
+        # Measured off the Submagic reference: caption block center sits at ~0.60 of frame
+        # height (upper chest, just below the chin) — NOT lower-third. This puts the text near
+        # screen-center and the emoji (just below text) near center too, matching Submagic.
+        vertical_pos = 0.60
     cy = int(vertical_pos * height)
     print(f"      vertical_pos={vertical_pos:.3f}  max_font={fontsize_ratio}  max_lines={max_lines}  fps={fps:.2f}", flush=True)
 
     disp_end = [cards[i + 1]["start"] for i in range(len(cards) - 1)] + [cards[-1]["end"] + 0.4]
     emoji_cache = {}
-    cd = []
+    cd = []          # text cards only
+    emoji_raw = []   # emoji overlays (decoupled from cards, so they can linger)
     emoji_idx = 0
     for ci, card in enumerate(cards):
         accent = ACCENTS[ci % len(ACCENTS)]
@@ -366,9 +373,9 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
         d0, d1 = card["start"], disp_end[ci]
         bounds = [d0] + [lay["line_starts"][li] for li in range(1, lay["nlines"])] + [d1]
         line_imgs = [render_text_image(lay, li, accent, width, height) for li in range(lay["nlines"])]
+        cd.append({"d0": d0, "d1": d1, "bounds": bounds, "lines": line_imgs})
         emoji = pick_emoji(card["words"]) if use_emoji else None
-        frames = durs = None; ex = ey = es = 0; preset = "pop"
-        if emoji:
+        if emoji and (not emoji_raw or d0 - emoji_raw[-1]["start"] >= EMOJI_MIN_GAP):
             es = int(cap * 1.7); ex = (width - es) // 2; ey = lay["emoji_y"]
             key = (emoji, es)
             if key not in emoji_cache:
@@ -376,10 +383,13 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
             frames, durs = emoji_cache[key]
             if frames is not None:
                 preset = EMOJI_PRESETS[emoji_idx % len(EMOJI_PRESETS)]; emoji_idx += 1
-        cd.append({"d0": d0, "d1": d1, "bounds": bounds, "lines": line_imgs, "es": es,
-                   "ex": ex, "ey": ey, "frames": frames, "durs": durs, "preset": preset})
+                emoji_raw.append({"start": d0, "ex": ex, "ey": ey, "es": es,
+                                  "frames": frames, "durs": durs, "preset": preset})
+    # emoji lingers ~EMOJI_LINGER past its card (Submagic keeps them up ~2-3s), capped at next emoji
+    for i, e in enumerate(emoji_raw):
+        nxt = emoji_raw[i + 1]["start"] if i + 1 < len(emoji_raw) else dur
+        e["end"] = min(e["start"] + EMOJI_LINGER, nxt)
 
-    # disclaimer overlay (bottom of frame, hard-cut window) — rendered once, composited under captions
     disc_img = None
     if disc_text:
         dp = work_dir / "disc.png"
@@ -396,48 +406,50 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
         t = f / fps
         disc_on = disc_img is not None and disc_start <= t < disc_end
         active = next((c for c in cd if c["d0"] <= t < c["d1"]), None)
-        if active is None:
-            key = ("disc",) if disc_on else ("blank",)
-        else:
+        aem = next((e for e in emoji_raw if e["start"] <= t < e["end"]), None)
+        li = None; tscale = 1.0
+        if active is not None:
             el = t - active["d0"]
             li = max((i for i in range(len(active["bounds"]) - 1) if active["bounds"][i] <= t), default=0)
             tscale = _text_scale(el)
-            efi = None; escale = 1.0; edx = edy = 0
-            if active["frames"] is not None:
-                if len(active["frames"]) == 1:
-                    efi = 0
-                else:
-                    tot = sum(active["durs"]); tt = (el * 1000.0) % tot; acc = 0
-                    for k, dms in enumerate(active["durs"]):
-                        acc += dms
-                        if tt < acc:
-                            efi = k; break
-                    if efi is None:
-                        efi = len(active["frames"]) - 1
-                edx, edy, escale = _emoji_xform(active["preset"], el, width, height)
-            key = (id(active), li, efi, round(tscale, 2), round(escale, 2), edx, edy, disc_on)
+        efi = None; escale = 1.0; edx = edy = 0
+        if aem is not None:
+            eel = t - aem["start"]
+            if len(aem["frames"]) == 1:
+                efi = 0
+            else:
+                tot = sum(aem["durs"]); tt = (eel * 1000.0) % tot; acc = 0
+                for k, dms in enumerate(aem["durs"]):
+                    acc += dms
+                    if tt < acc:
+                        efi = k; break
+                if efi is None:
+                    efi = len(aem["frames"]) - 1
+            edx, edy, escale = _emoji_xform(aem["preset"], eel, width, height)
+        if active is None and aem is None and not disc_on:
+            key = ("blank",)
+        else:
+            key = (id(active) if active else 0, li, round(tscale, 2),
+                   id(aem) if aem else 0, efi, round(escale, 2), edx, edy, disc_on)
         path = frames_dir / f"{f:05d}.png"
         if key == prev_key and prev_path is not None:
             shutil.copy(prev_path, path)
         else:
-            if active is None:
-                (disc_img if disc_on else blank).save(path, compress_level=1)
-            else:
-                img = _scale_about(active["lines"][li], tscale, width // 2, cy).copy() \
-                    if tscale != 1.0 else active["lines"][li].copy()
-                if active["frames"] is not None and efi is not None:
-                    em = active["frames"][efi]
-                    if escale < 0.999:
-                        ns = max(2, int(active["es"] * escale))
-                        em = em.resize((ns, ns), Image.LANCZOS)
-                        ox = active["ex"] + (active["es"] - ns) // 2 + edx
-                        oy = active["ey"] + (active["es"] - ns) // 2 + edy
-                    else:
-                        ox, oy = active["ex"] + edx, active["ey"] + edy
-                    img.alpha_composite(em, (ox, oy))
-                if disc_on:
-                    img = Image.alpha_composite(disc_img, img)  # disclaimer under captions
-                img.save(path, compress_level=1)
+            img = disc_img.copy() if disc_on else blank.copy()
+            if active is not None:
+                txt = _scale_about(active["lines"][li], tscale, width // 2, cy) if tscale != 1.0 else active["lines"][li]
+                img = Image.alpha_composite(img, txt)
+            if aem is not None and efi is not None:
+                em = aem["frames"][efi]
+                if escale < 0.999:
+                    ns = max(2, int(aem["es"] * escale))
+                    em = em.resize((ns, ns), Image.LANCZOS)
+                    ox = aem["ex"] + (aem["es"] - ns) // 2 + edx
+                    oy = aem["ey"] + (aem["es"] - ns) // 2 + edy
+                else:
+                    ox, oy = aem["ex"] + edx, aem["ey"] + edy
+                img.alpha_composite(em, (ox, oy))
+            img.save(path, compress_level=1)
             prev_key = key; prev_path = path
 
     cmd = ["ffmpeg", "-y", "-i", str(video), "-framerate", f"{fps:.5f}", "-i", str(frames_dir / "%05d.png"),
