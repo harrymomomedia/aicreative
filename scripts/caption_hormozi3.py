@@ -36,6 +36,15 @@ EMOJI_DIR.mkdir(parents=True, exist_ok=True)
 ACCENTS = [(252, 251, 20), (42, 248, 43), (238, 25, 22)]  # per-card: yellow, green, red
 WHITE = (255, 255, 255)
 
+# Font is sized relative to WIDTH, NOT height — a phone shows the SAME horizontal width whether the
+# video is 9:16 or 4:5 or 1:1, so the caption must be the SAME physical size across aspects (sizing
+# to height made 4:5 captions ~70% the size of 9:16's despite identical 720px width). font_ratio
+# keeps its historical 9:16 meaning: there height = width*16/9, so height*ratio == width*(16/9)*ratio.
+# Computing from width with that 16/9 reference leaves 9:16 byte-identical and makes 4:5/1:1 match it.
+REF_ASPECT = 16 / 9
+def _font_px(width, ratio):
+    return max(16, int(width * REF_ASPECT * ratio))
+
 # keyword -> emoji (Apple Color Emoji has every glyph incl. ZWJ families / flags).
 # first match per card wins. Matches Submagic's semantic picks.
 KEYWORD_EMOJI = {
@@ -76,6 +85,16 @@ KEYWORD_EMOJI = {
     "lawyers": "⚖️", "complete": "✅", "completely": "✅", "done": "✅", "over": "✅",
     "happened": "❓", "happen": "❓",
     "stays": "🤫",
+    # --- IL JDC abuse-survivor campaign vocabulary (morphological variants + topic words) ---
+    "abused": "💔", "abusing": "💔", "sexually": "💔", "assault": "💔", "assaulted": "💔",
+    "compensated": "💰", "compensate": "💰", "paying": "💰", "pay": "💰", "pays": "💰",
+    "survivor": "💪", "survivors": "💪", "changing": "🔄", "change": "🔄", "changed": "🔄",
+    "free": "🆓", "check": "🔍", "checking": "🔍", "link": "🔗",
+    "juvenile": "🔒", "juvie": "🔒", "hall": "🔒", "detention": "🔒", "facility": "🔒",
+    "staff": "🚨", "member": "🚨", "warden": "🚨", "officer": "🚨",
+    "crime": "🚔", "criminal": "🚔", "illinois": "📍", "away": "🏃",
+    "child": "🧒", "kid": "🧒", "children": "🧒", "kids": "🧒",
+    "quietly": "🤫", "now": "⚡",
 }
 
 # Emoji art sources:
@@ -118,10 +137,22 @@ def _apple_static(emoji, size):
         return None
 
 
+# Glyphs whose Noto ANIMATED GIF starts in a state that misrepresents the meaning during a
+# short (~1s) card — e.g. 💔 begins as a WHOLE heart and only breaks apart late in the loop, so
+# on a brief subtitle it reads as ❤️ (romantic — tonally wrong on an abuse line). Force these to
+# the static Apple glyph (which shows the broken state immediately).
+FORCE_STATIC = {"💔"}
+
+
 def render_emoji_frames(emoji, size):
     """Return (frames, durations_ms). PREFER the animated Noto GIF when one exists (animated
-    beats static); fall back to static Apple Color Emoji (exact Apple look), then Twemoji."""
+    beats static); fall back to static Apple Color Emoji (exact Apple look), then Twemoji.
+    Glyphs in FORCE_STATIC always use the static Apple art (their animation misleads on short cards)."""
     from PIL import Image
+    if emoji in FORCE_STATIC:
+        g = _apple_static(emoji, size)
+        if g is not None:
+            return [g], [60]
     ncode = "_".join(f"{ord(c):x}" for c in emoji if c != "️")
     gif = EMOJI_DIR / f"{ncode}.gif"
     miss = EMOJI_DIR / f"{ncode}.nogif"   # remember 404s so we don't refetch every run
@@ -168,8 +199,8 @@ def compute_layout(words, width, height, fontsize_ratio, vertical_pos, max_lines
     max_w = int(width * 0.60)     # width safety (long single words break here)
     words_per_line = 2            # Submagic stacks ~2 words/line → uniform, tight look
     box_h = int(height * 0.30)    # height guard (rarely binds); long cards wrap to 3 lines
-    fontsize = max(16, int(height * fontsize_ratio))  # ~FIXED size (Submagic ref ~0.035)
-    floor = max(16, int(height * 0.028))
+    fontsize = _font_px(width, fontsize_ratio)  # WIDTH-relative → same physical size across aspects
+    floor = _font_px(width, 0.028)
 
     def meas(t, f, ol):
         b = draw.textbbox((0, 0), t, font=f, stroke_width=ol)
@@ -393,7 +424,7 @@ def burn(video, cards, work_dir, out, fontsize_ratio, vertical_pos, use_emoji, m
     # FIXED slide distance for EVERY emoji = width of the word "INSIDE" (I->E) at the standard font
     # size — same distance every time, NOT relative to the subtitle/word lengths. slide_half is half
     # of that (the traverse is centered on the middle: -half -> +half).
-    _std_fs = max(16, int(height * fontsize_ratio))
+    _std_fs = _font_px(width, fontsize_ratio)
     _pf = ImageFont.truetype(FONT, _std_fs)
     _pb = ImageDraw.Draw(Image.new("RGBA", (10, 10))).textbbox((0, 0), "INSIDE", font=_pf,
                                                                stroke_width=max(2, int(_std_fs * 0.06)))

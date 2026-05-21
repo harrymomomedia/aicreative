@@ -22,7 +22,7 @@ Burns **Submagic "Hormozi 3"** captions. Reverse-engineered + tuned frame-by-fra
 
 | Flag | Default | Notes |
 |---|---|---|
-| `--font-ratio` | `0.0336` | Font as fraction of frame height (see sizing below). |
+| `--font-ratio` | `0.0336` | Font size, WIDTH-anchored (see sizing below). Keeps its historical 9:16 meaning but is now aspect-independent. |
 | `--max-words` | `3` | Words per caption card (split on >0.35s pause). |
 | `--max-lines` | `3` | Up to 3 lines; long cards stack to 3. |
 | `--vertical-pos` | auto (~0.68–0.70) | Lower-third. |
@@ -35,7 +35,8 @@ Burns **Submagic "Hormozi 3"** captions. Reverse-engineered + tuned frame-by-fra
 
 **Font & size (the part that took the most tuning):**
 - Font: **Montserrat Black (900)**, ALL CAPS.
-- **Size is essentially FIXED at `font_ratio 0.0336`** (≈ a ~2-word line fills ~42% of frame width — measured directly off the reference). It is NOT fit-to-width/area growth — short and long cards are the **same glyph size** (Submagic's white-cap height is uniform ~2.2% of frame height). Font only shrinks if a single line/card overflows the width or 3 lines.
+- **Size is essentially FIXED at `font_ratio 0.0336`** (≈ a ~2-word line fills ~42% of frame width — measured directly off the reference). It is NOT fit-to-width/area growth — short and long cards are the **same glyph size**. Font only shrinks if a single line/card overflows the width or 3 lines.
+- **Font is sized relative to WIDTH, not height** (`_font_px(width, ratio)` + `REF_ASPECT = 16/9`). A phone shows the SAME horizontal width whether the video is 9:16 / 4:5 / 1:1, so the caption must be the SAME physical size across aspects. Sizing to height made 4:5 captions ~70% the size of 9:16's despite identical 720px width (user-flagged 2026-05-22). `font_ratio` keeps its historical 9:16 meaning (there `height = width·16/9`, so `height·ratio == width·(16/9)·ratio`) → 9:16 output unchanged, 4:5/1:1 now match it.
 - **Wrapping: ~2 words per line** (`words_per_line = 2`), with a width fallback so long single words drop to 1/line. This tight stacking is what keeps the size looking uniform and "not too big" (e.g. "I WAS / WRONG", "YOU SITTING / DOWN", "SIGNIFICANT / POTENTIAL / COMPENSATION").
 - Position: text-block center ~**0.70** of frame height — **lower third, well clear below the chin** even when she leans/tilts (`vertical_pos` default 0.70). 0.60/0.64 still caught the jaw on some clips; 0.70 keeps the caption + its 'down' emoji clear of the face AND above the bottom disclaimer band (~0.88–1.0). User-approved 2026-05-21.
 
