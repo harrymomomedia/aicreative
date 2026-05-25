@@ -299,8 +299,17 @@ def probe_duration(video):
 
 
 def scribe_transcribe(video, biased):
-    from elevenlabs_client import scribe_whisper_compat
-    return scribe_whisper_compat(str(video), biased_keywords=biased, language_code="en")
+    import os
+    from dotenv import load_dotenv
+    load_dotenv()  # ensure .env keys are in os.environ before getenv checks
+    if os.getenv("ELEVENLABS_API_KEY"):
+        from elevenlabs_client import scribe_whisper_compat
+        return scribe_whisper_compat(str(video), biased_keywords=biased, language_code="en")
+    elif os.getenv("FAL_KEY"):
+        from fal_client import scribe_whisper_compat as fal_scribe
+        return fal_scribe(str(video), biased_keywords=biased, language_code="en")
+    else:
+        raise RuntimeError("Neither ELEVENLABS_API_KEY nor FAL_KEY set in .env")
 
 
 TEXT_POP_DUR = 0.12      # text scale-pop on card appearance (measured: 96->105->100% over ~0.12s)
@@ -576,6 +585,12 @@ def main():
         extract_audio(video, td / "a.wav")
         print("[2/4] Scribe transcribe", flush=True)
         result = scribe_transcribe(video, biased)
+        # drop conversational filler tokens so they never get captioned ("yeah", "mm-hmm", "uh"...)
+        import re as _re
+        _FILLERS = {"mmhmm", "mhm", "mmm", "hmm", "uh", "um", "umm", "uhh", "uhhuh", "yeah", "yea"}
+        for _seg in result.get("segments", []):
+            _seg["words"] = [w for w in _seg.get("words", [])
+                             if _re.sub(r"[^a-z]", "", w.get("word", "").lower()) not in _FILLERS]
         print("[3/4] chunking", flush=True)
         cards = chunk_words(result["segments"], max_words=args.max_words)
         if args.end is not None:

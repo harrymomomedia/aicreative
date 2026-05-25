@@ -671,6 +671,19 @@ ffmpeg -y -i clipN_trimmed.mp4 \
 
 EBU R128 loudness normalization. Brings voice loudness within ~2.5dB across clips. Lip-sync intact. **No API cost.** Use this as the default normalization step in the production pipeline (between trim and crop).
 
+#### ⚠️ loudnorm PUMPS — use STATIC gain for the final pass (IL JDC, 2026-05-22)
+
+**Single-pass `loudnorm` runs in DYNAMIC mode** — it rides the gain over time (boosts quiet gaps, ducks loud words). On short UGC speech this is audible as **"the volume cuts off / pumps,"** and it can read as clipping. **`linear=true` does NOT fix it**: two-pass linear loudnorm silently **falls back to dynamic** whenever the content's loudness range exceeds the target LRA (a multi-clip ad almost always does). Confirmed on this campaign — the user flagged the pump immediately.
+
+**Fix — measure integrated loudness, apply ONE constant `volume` gain + a true-peak limiter** (transparent, no gain-riding, preserves natural dynamics). Do it ONCE on the **whole concatenated ad**, not per-clip:
+```python
+# measure integrated loudness of the concatenated ad
+input_i = json.loads(ffmpeg loudnorm=...:print_format=json on the concat)["input_i"]
+gain = -16.0 - input_i
+ffmpeg -i concat.mp4 -af f"volume={gain:.2f}dB,alimiter=limit=0.794:asc=1" ...  # 0.794 ≈ -2.0 dBFS
+```
+Verify: `astats` Flat factor must be `0.000000` (no clipping) and peak ≤ ~-1 dB. Reference: `scripts/jdc_finalize_v2.py` (step 4b) + standalone `scripts/jdc_refinish.py` (re-applies audio from saved STS without new API calls). **Also: ElevenLabs STS output is HOT (~-0.6 dBFS peak)** — never stack another normalization on top without a limiter.
+
 ### Tier 2: ElevenLabs voice_changer (when timbre/mic-character drifts)
 
 `loudnorm` only fixes LOUDNESS. If one clip sounds "from a different mic" (different spectral centroid, different noise floor) compared to the others — that's a timbre problem, not a loudness problem. Use voice_changer.
@@ -682,6 +695,8 @@ EBU R128 loudness normalization. Brings voice loudness within ~2.5dB across clip
 - Don't bother voice-changing if `audio_match.py` only flags a few clips on LOUDNESS — `loudnorm` alone is enough. Only invoke voice_changer when CENTROID or NOISE differs significantly (>10%/4dB), OR when `voice_consistency.py` flags speaker similarity <0.85.
 - **voice_changer also STRIPS background music / room bleed (Chowchilla w05 session).** STS re-synthesizes ONLY the voice, so a clip with hallucinated instrumental music or "(paper rustling)" comes out clean after the VC pass. So the voice-change pass doubles as music removal — no separate de-noise step needed.
 - **Clone the persona's voice ONCE and reuse the `voice_id` across ALL variation ads** (e.g., w05 E/D/A/C all used one cloned voice → every ad sounds like the same woman). Cache the id (`outputs/<persona>/<persona>_voice_id.txt`). Clone from a ~12s concat of a few clean clips, not one 4s clip.
+- **Clone from the CLEANEST clips, ranked — the #1 fix for a muffled clone (IL JDC, 2026-05-22).** Veo audio quality varies clip-to-clip; an instant clone built from dull/compressed clips comes out muffled/boxy. **Rank ALL of a persona's clips across ALL their ads by spectral centroid (brightness) and clone from the crispest 2-3.** Then **audio-isolate** that clone source first (`POST /v1/audio-isolation` — available on Creator tier; strips Veo's room-tone/compression hiss → brighter clone; note it 400s on very short <~4s clips, fall back to raw). Use **`eleven_english_sts_v2` + `similarity_boost=0.70`** (crisper than `multilingual_sts_v2` + 0.85; high similarity_boost makes a dull clone dominate). Verify with spectral centroid: the clean-clone output should track or exceed the original's centroid. Pipeline: `scripts/jdc_persona_clone.py` (one clone per persona) → `scripts/jdc_finalize_v2.py --voice-id <persona clone>`.
+- **ElevenLabs output-format ceiling is tier-gated:** `pcm_*` (lossless) needs **Pro tier**; Creator caps at **`mp3_44100_192`** (still a big step up from the `mp3_44100_128` default — always pass 192 explicitly). **fal.ai hosts the ElevenLabs voice-changer** (`fal-ai/elevenlabs/voice-changer`, `FAL_KEY`) and exposes **lossless `pcm_44100`/`pcm_48000` regardless of our tier** (billed via fal's account) — BUT its `voice` param only accepts voices on **fal's** account (presets like "Adam"/"Brian" + public library by name), NOT our private clones (`422 Voice not found`). So fal = lossless + generic/library voice; our direct API = persona's own clone @ 192k. We chose the persona clone (voice match > the marginal 192k→lossless gain for social-feed playback).
 
 ### Multi-clip finalize pipeline (Chowchilla w05, canonical)
 

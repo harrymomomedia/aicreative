@@ -41,6 +41,19 @@ def run_rvm(input_video_url, output_type="green-screen"):
     return str(output)
 
 
+def upscale_image(image_path, scale=4, face_enhance=True):
+    """Real-ESRGAN super-resolution — pixel SR, preserves identity (does NOT regenerate the subject).
+    scale 2-4; face_enhance runs GFPGAN to restore facial detail. Returns output URL."""
+    model_ver = "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa"
+    with open(image_path, "rb") as f:
+        output = replicate.run(model_ver, input={"image": f, "scale": scale, "face_enhance": face_enhance})
+    if hasattr(output, "url"):
+        return str(output.url)
+    if isinstance(output, str):
+        return output
+    return str(output)
+
+
 def download(url, dest):
     Path(dest).parent.mkdir(parents=True, exist_ok=True)
     r = requests.get(url, stream=True)

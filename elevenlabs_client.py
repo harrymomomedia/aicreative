@@ -85,6 +85,7 @@ def voice_changer(
     style=0.0,
     output_format="mp3_44100_128",
     remove_background_noise=False,
+    use_speaker_boost=True,
 ):
     """Speech-to-speech: convert input audio to target voice while preserving timing/cadence.
 
@@ -92,6 +93,9 @@ def voice_changer(
     WITHOUT losing the original mouth-movement timing (so lip-sync stays intact).
 
     model_id: 'eleven_multilingual_sts_v2' (default) | 'eleven_english_sts_v2'
+    use_speaker_boost: ON (default) adds presence/energy (louder, more pushed); OFF = less aggressive.
+    NOTE: STS has NO output-loudness param — it always normalizes hot (~-0.5 dBFS). Match the source
+    level in POST (gain the VC output to the source clip's measured loudness).
     """
     url = f"{BASE}/v1/speech-to-speech/{voice_id}"
     params = {"output_format": output_format}
@@ -99,6 +103,7 @@ def voice_changer(
         "stability": stability,
         "similarity_boost": similarity_boost,
         "style": style,
+        "use_speaker_boost": use_speaker_boost,
     }
     import json as _json
     files = {"audio": (os.path.basename(audio_path), open(audio_path, "rb"), "audio/mpeg")}
