@@ -171,6 +171,16 @@ Visual-prompt language that triggers rejection, especially when combined with se
 
 **Rule change (2026-05-20):** the prior "OpenAI direct, never KIE" rule (which existed to avoid KIE's proxy cost markup) is **reversed**. The user prioritizes image quality + larger 2K/4K output over the markup. Route GPT Image through `kie_client.generate_gpt_image` at 2K. Memory: `feedback_image_gen_provider.md`.
 
+#### Upscaling a PICKED image to 4K — Real-ESRGAN, NOT gpt-image-2 i2i (2026-05-25)
+
+**`gpt-image-2` image-to-image REGENERATES the subject — it does NOT upscale.** Feeding a picked persona back in with a "same man, render at 4K" prompt produced a **completely different person** (a Black man with braids came back as a light-skinned Mediterranean man). i2i is conditioned loosely; it re-imagines. Never use it to "make this exact image higher-res."
+
+**For identity-preserving 4K, use Real-ESRGAN** (true pixel super-resolution — adds pixels, keeps the exact face): `replicate_client.upscale_image(path, scale=2, face_enhance=True)` → `nightmareai/real-esrgan`. Gotchas:
+- **GPU input cap ~2.09M px.** A 1152×2048 source (2.36M) is rejected → downscale input to **1080×1920** first, then `scale=2` → exactly **2160×3840** (true 4K 9:16). Pipeline: `scripts/jdc_pod_upscale_4k.py`.
+- `face_enhance=True` (GFPGAN) sharpens the face but **smooths skin slightly** (loses a little "documentary" texture) — fine for most, use `False` to keep more imperfection.
+- **Replicate throttles to 6 req/min (burst 1) while account < $5 credit** — run upscales one at a time, not in parallel, or you 429.
+- **4K does NOT improve the Veo video** (Veo outputs 720p; a 1152×2048 anchor is already 1.6× that). Upscale only for crisp source assets / when the user asks — say so.
+
 ---
 
 ## Voice (ElevenLabs direct)
@@ -197,6 +207,15 @@ ElevenLabs API is **synchronous** — no polling. Function blocks until audio is
 - **All KIE video models (Veo/Kling/Seedance) have non-deterministic voice/audio quality** — voice loudness can span 40dB across clips, mic character shifts, noise floor varies. The canonical fix is ElevenLabs.
 - `voice_changer()` is the default normalization: keeps the source's pacing/prosody (so lip-sync stays intact) but unifies voice timbre/loudness. See "Audio normalization" section.
 - `tts()` is for cases where you want to fully replace the audio script (different words than what was generated) and you're willing to redo lip-sync via Sync.so.
+
+#### voice_changer (STS) — when NOT to use it, and its hard limits (2026-05-25)
+
+- **Skip the voice_changer for SINGLE-PERSONA videos.** STS *re-synthesizes* — it always sounds slightly hotter/more processed than the Veo source (the user A/B'd it and preferred **raw Veo**). VC's only real job is fixing voice drift **across clips that aren't the same person/seed**, or unifying a host who recurs **across multiple videos**. When all clips of one video are seeded from the **same persona anchor**, Veo's voice is already consistent → VC is pure quality loss. Instead: keep raw Veo audio, **per-clip static-gain to even Veo's clip-to-clip loudness**, concat, one true-peak limiter (Veo source often peaks **over 0 dBFS** — see Veo gotchas). Reference: `scripts/jdc_pod_winner_gen.py` (no-VC path).
+- **STS has NO output-loudness/volume parameter.** It always normalizes hot (~-0.5 dBFS peak) regardless of input level — *this* is why VC always comes back louder than Veo. To match the source loudness, do it in **post** (gain the VC output to the source clip's measured LUFS). No `stability`/`similarity_boost` value changes loudness.
+- **Settable params** (`elevenlabs_client.voice_changer`): `model_id` (we use **`eleven_english_sts_v2`** — crisper on English than multilingual), `stability` (0.5 — consistency vs expressiveness), `similarity_boost` (0.70 — adherence to clone timbre; high values amplify a dull clone → muffled), `style` (0.0), `use_speaker_boost` (**defaults ON** = more presence/louder/pushed; OFF = less aggressive — the only loudness-ish lever), `remove_background_noise` (default OFF). None set loudness.
+- **For a more NATURAL conversion (alternative to STS):** Replicate RVC (`zsxkib/realistic-voice-cloning`) is a different algorithm that preserves more source character. fal.ai hosts the same ElevenLabs STS with lossless PCM but only fal-account voices (not our clones).
+
+**ElevenLabs voice-slot limit = 30 (Creator tier).** Clones hit the cap fast across campaigns. When `/v1/voices/add` 400s, it's the slot limit — free slots by **deleting voices from completed campaigns** (`DELETE /v1/voices/{id}`); the source clips still exist locally to re-clone if ever needed. Check usage: `GET /v1/user/subscription` → `voice_slots_used`/`voice_limit`.
 
 ---
 
@@ -593,6 +612,15 @@ whispered, NOT muttered, NOT soft. Clean clear broadcast-quality audio
 that fills the foreground.
 ```
 Then `loudnorm=I=-16` in the stitch pass unifies all clips to -16 LUFS broadcast standard. Belt-and-suspenders: prompt clause gets you close, loudnorm finishes the job.
+
+### "Full projection" + announcer register overshoots 0 dBFS — limiter is mandatory (2026-05-25)
+The `AUDIO CRITICAL: FULL projection` clause makes Veo's TTS **overshoot full-scale** — measured source peaks of **+1 to +2.4 dBFS** (over 0) on most clips. A **direct-to-camera announcer** register is louder/more "in your face" than an intimate confession at the same LUFS, so the user perceives it as "red / talking too close" even when the final measures clean. Fixes: (1) **always run a true-peak limiter** on the master (`alimiter=limit=0.71:level=disabled:asc=1`) — it tames the over-0 source; (2) if it still feels hot, **master quieter** (-18 LUFS reads far less aggressive than -16 for the announcer register — but confirm with the user, they may prefer -16); (3) for less shouty delivery, soften the prompt to `clear relaxed conversational, NOT shouting` instead of "full projection." Note: a clip can have a peak >0 dBFS yet `flat factor 0` (mp3 float decode) — the over-0 still distorts on fixed-point playback, so don't trust flat-factor alone.
+
+### Veo TTS mangles slang interjections ("Ayo") and stacked short bursts (2026-05-25)
+Veo 3 renders **"Ayo" / "Aye yo" badly** — it came out as "Uh, yo" and blended into the next word. Stacking three short bursts ("Ayo, Illinois, real quick" = greeting + place + aside) makes it worse; Veo runs them together. **Lead with ONE clean opening clause.** "Yo" alone renders fine; a plain imperative ("Listen up, Illinois.") or a question hook ("You from Illinois? Listen.") is cleanest. Same proper-noun rule as always: Veo mangled "**Pere Marquette**" → "Pere Martel" — for legal ads naming a wrong/non-existent facility is a real problem, so prefer well-known facilities (Cook County, St. Charles) or phonetically respell.
+
+### Podcast format — keep "mm-hmm/yeah" reactions, just don't caption them (2026-05-25)
+In a podcast/interview register, Veo's interjected "mm-hmm"/"yeah" between sentences read as **natural reactions from others in the room** — the user wants them KEPT (audible), not re-rolled out. Just filter them from the burned captions (filler-word filter in `caption_hormozi3.py`). A "mm-hmm" filling what was dead silence (e.g. "...not you. Mm-hmm. Period.") actually improves pacing. This is the opposite of the confession/UGC rule where fillers are defects — register-dependent.
 
 ### Pace consistency across clips — match word count, split long lines with overlap
 Veo fits whatever dialogue you give it into the clip duration, so a 28-word clip rushes (~3.5 wps) while a 12-word clip drags (~1.5 wps) — stitched together they feel jerky. **Target a consistent ~2.4 words/sec across all clips** (add `PACE LOCK: ~2.4 words per second. Slow, deliberate, each word given weight.` to the prompt). If a sentence is too long to fit at that pace, **split it across two clips with an overlapping bridge phrase**: clip A ends with "…Just found out." and clip B starts with "Just found out Illinois is paying…". At stitch time, keep clip A whole and trim clip B's duplicate opening phrase (Scribe auto-detects the overlap words and moves the trim-in point — see `scripts/jdc_ugc_p08_stitch.py` `overlap_trim_start`). Net result: full sentence delivered at consistent pace, seamless splice.
