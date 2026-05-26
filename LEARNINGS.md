@@ -27,7 +27,7 @@ Captured from the end-to-end build of `ad-967437869241001` (California women's p
 
 - **Soften abuse language at the prompt level.** "What I went through" passes; "what the guards did to me" risks tripping. The ad's MEANING can stay strong with softer wording.
 - **Don't put "just out of prison" or "victim" in image-gen prompts** — GPT Image 2 will refuse or sanitize. Encode the context visually (tan institutional pants, weary look) without naming it.
-- **Legal services language has its own rules** outside content moderation. "Significant compensation" is a legal-risk phrase; **always include "potential"** → "significant potential financial compensation." Same with "what your case is worth" → "check if you may qualify." State bar regulates legal-ad copy independently of platform moderation.
+- **Legal services language has its own rules** outside content moderation, and they're **per-campaign / per-state**. Chowchilla (CA): use "significant **potential** compensation" (keep "potential"). **IL JDC (updated 2026-05): rule is looser — drop "potential", use "significant compensation"; recipient must be "may qualify for" / "may get" (NEVER "owed"/"paid"/"will get"); "Illinois is paying" is OK as a general statement.** Never "settlement"/"damages"/"payout". Same with "what your case is worth" → "check if you may qualify." State bar regulates legal-ad copy independently of platform moderation — confirm phrasing per campaign before bulk-running.
 
 ## Voice / pronunciation
 
