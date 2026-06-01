@@ -19,6 +19,117 @@
       "_appear": 0.5
     },
     {
+      "t": 2.7,
+      "emoji": "📖",
+      "motion": {
+        "type": "pop",
+        "s0": 0.45,
+        "dur": 0.13,
+        "peak": 1.1,
+        "ramp": 0.55,
+        "traj": [
+          [
+            0.0,
+            -233,
+            -6
+          ],
+          [
+            0.041,
+            -240,
+            10
+          ],
+          [
+            0.083,
+            -196,
+            9
+          ],
+          [
+            0.125,
+            -153,
+            2
+          ],
+          [
+            0.166,
+            -125,
+            1
+          ],
+          [
+            0.208,
+            -104,
+            2
+          ],
+          [
+            0.25,
+            -86,
+            1
+          ],
+          [
+            0.291,
+            -73,
+            2
+          ],
+          [
+            0.333,
+            -60,
+            1
+          ],
+          [
+            0.375,
+            -50,
+            1
+          ],
+          [
+            0.416,
+            -42,
+            1
+          ],
+          [
+            0.458,
+            -34,
+            0
+          ],
+          [
+            0.5,
+            -26,
+            0
+          ],
+          [
+            0.541,
+            -20,
+            0
+          ],
+          [
+            0.583,
+            -16,
+            0
+          ],
+          [
+            0.625,
+            -12,
+            0
+          ],
+          [
+            0.666,
+            -8,
+            0
+          ],
+          [
+            0.708,
+            -5,
+            0
+          ],
+          [
+            0.75,
+            -2,
+            -1
+          ]
+        ],
+        "slide": null
+      },
+      "cx": 479,
+      "_appear": 2.667
+    },
+    {
       "t": 4.7,
       "emoji": "💰",
       "motion": {
@@ -242,24 +353,6 @@
       "_appear": 15.767
     },
     {
-      "t": 20.1,
-      "emoji": "😣",
-      "motion": {
-        "type": "pop",
-        "s0": 0.45,
-        "dur": 0.13,
-        "peak": 1.1,
-        "ramp": 0.55,
-        "traj": null,
-        "slide": [
-          0,
-          0
-        ]
-      },
-      "cx": 359,
-      "_appear": 20.1
-    },
-    {
       "t": 22.2,
       "emoji": "🔢",
       "motion": {
@@ -296,8 +389,8 @@
       "_appear": 22.542
     },
     {
-      "t": 25.4,
-      "emoji": "😩",
+      "t": 23.7,
+      "emoji": "👊",
       "motion": {
         "type": "pop",
         "s0": 0.45,
@@ -311,25 +404,7 @@
         ]
       },
       "cx": 359,
-      "_appear": 25.283
-    },
-    {
-      "t": 28.1,
-      "emoji": "🕳️",
-      "motion": {
-        "type": "pop",
-        "s0": 0.45,
-        "dur": 0.13,
-        "peak": 1.1,
-        "ramp": 0.55,
-        "traj": null,
-        "slide": [
-          0,
-          0
-        ]
-      },
-      "cx": 359,
-      "_appear": 28.1
+      "_appear": 23.7
     },
     {
       "t": 35.8,
@@ -422,24 +497,6 @@
       "_appear": 50.8
     },
     {
-      "t": 55.4,
-      "emoji": "📍",
-      "motion": {
-        "type": "pop",
-        "s0": 0.45,
-        "dur": 0.13,
-        "peak": 1.1,
-        "ramp": 0.55,
-        "traj": null,
-        "slide": [
-          0,
-          0
-        ]
-      },
-      "cx": 359,
-      "_appear": 55.7
-    },
-    {
       "t": 58.1,
       "emoji": "✅",
       "motion": {
@@ -512,60 +569,6 @@
       },
       "cx": 359,
       "_appear": 62.567
-    },
-    {
-      "t": 65.5,
-      "emoji": "💵",
-      "motion": {
-        "type": "pop",
-        "s0": 0.45,
-        "dur": 0.13,
-        "peak": 1.1,
-        "ramp": 0.55,
-        "traj": null,
-        "slide": [
-          0,
-          0
-        ]
-      },
-      "cx": 359,
-      "_appear": 65.5
-    },
-    {
-      "t": 70.0,
-      "emoji": "💔",
-      "motion": {
-        "type": "pop",
-        "s0": 0.45,
-        "dur": 0.13,
-        "peak": 1.1,
-        "ramp": 0.55,
-        "traj": null,
-        "slide": [
-          0,
-          0
-        ]
-      },
-      "cx": 359,
-      "_appear": 70.0
-    },
-    {
-      "t": 72.2,
-      "emoji": "🔒",
-      "motion": {
-        "type": "pop",
-        "s0": 0.45,
-        "dur": 0.13,
-        "peak": 1.1,
-        "ramp": 0.55,
-        "traj": null,
-        "slide": [
-          0,
-          0
-        ]
-      },
-      "cx": 359,
-      "_appear": 72.042
     },
     {
       "t": 78.7,
@@ -697,24 +700,6 @@
       "_appear": 83.3
     },
     {
-      "t": 94.0,
-      "emoji": "📋",
-      "motion": {
-        "type": "pop",
-        "s0": 0.45,
-        "dur": 0.13,
-        "peak": 1.1,
-        "ramp": 0.55,
-        "traj": null,
-        "slide": [
-          0,
-          0
-        ]
-      },
-      "cx": 359,
-      "_appear": 93.925
-    },
-    {
       "t": 101.2,
       "emoji": "🏛️",
       "motion": {
@@ -731,24 +716,6 @@
       },
       "cx": 359,
       "_appear": 101.2
-    },
-    {
-      "t": 105.5,
-      "emoji": "🤫",
-      "motion": {
-        "type": "pop",
-        "s0": 0.45,
-        "dur": 0.13,
-        "peak": 1.1,
-        "ramp": 0.55,
-        "traj": null,
-        "slide": [
-          0,
-          0
-        ]
-      },
-      "cx": 359,
-      "_appear": 105.5
     },
     {
       "t": 109.7,
@@ -860,24 +827,6 @@
       },
       "cx": 484,
       "_appear": 109.625
-    },
-    {
-      "t": 113.8,
-      "emoji": "👀",
-      "motion": {
-        "type": "pop",
-        "s0": 0.45,
-        "dur": 0.13,
-        "peak": 1.1,
-        "ramp": 0.55,
-        "traj": null,
-        "slide": [
-          0,
-          0
-        ]
-      },
-      "cx": 359,
-      "_appear": 114.392
     },
     {
       "t": 116.5,
@@ -1007,5 +956,5 @@
       "_appear": 118.55
     }
   ],
-  "_motion_model": "Submagic emoji match. 29 emojis (~14/min) matching Submagic rate, captured by dissecting every 24fps frame (scripts/rederive_emoji.py). Per emoji: glyph, cx, _appear, motion.traj (replayed per-frame). Placement: big horizontal sliders (>200px: 😔 🚫 💸 ⏳) rest off-center under keyword; everything else (statics + subtle sliders) rests CENTERED (cx 359); emoji sits ~16px below OUR text. Glyphs: Submagic-identified where readable; keyword-appropriate for text-obscured events."
+  "_motion_model": "Submagic emoji match. 21 VISUALLY-CONFIRMED emojis (~10/min) — the auto-scan over-counts (text fragments) AND misses (text-obscured), so the set is verified on-screen. Big horizontal sliders (📖 😔 🚫 💸 ⏳) rest off-center under keyword; rest centered. ~16px below text."
 }

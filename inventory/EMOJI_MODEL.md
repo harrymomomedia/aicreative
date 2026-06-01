@@ -40,16 +40,19 @@ travels there*. A subtle slide parked far off-center reads as a broken "off-cent
 3. `caption_hormozi3.py --submagic-cards <cards.json> --submagic-emojis <inventory.json>` replays it.
 4. Verify: `scripts/emoji_match_report.py` (position/scale per frame) + `scripts/emoji_diff_track.py`.
 
-## Emoji RATE + glyph choices (rebuilt 2026-06)
+## Emoji RATE + glyph choices (VISUALLY VERIFIED 2026-06)
 
-Rebuilt to **29 emojis (~14/min)** to match Submagic's rate (was 14 ≈ half). Full glyph list:
-🛡️ 💰 😔 🚫 🚪 😣 🔢 😩 🕳️ 🏆 😤 🧘 📝 📊 📍 ✅ 🦸 💵 💔 🔒 💸 👩‍💼 📋 🏛️ 🤫 ⏳ 👀 👇 📝.
+**21 emojis (~10/min)** — every one confirmed on-screen in the Submagic export. Full list (by time):
+🛡️ 📖 💰 😔 🚫 🚪 🔢 👊 🏆 😤 🧘 📝 📊 ✅ 🦸 💸 👩‍💼 🏛️ ⏳ 👇 📝.
 
-- Glyphs identified directly from the Submagic export where the crop was readable (💰 😔 🚫 🚪 🔢 🏆
-  😤 🧘 📝 📊 ✅ 🦸 💸 👩‍💼 ⏳ 🏛️ + more); for events where the caption text obscured the emoji, the
-  glyph is **keyword-appropriate** (e.g. 🕳️ "the hole", 🔒 "locked up", ⚖️/🏛️ "courtroom", 👇 "tap the
-  button", 📋 "paperwork") — matching how Submagic picks emojis.
-- A handful are best-guess (😣 😩 📍 💔 🤫 👀) — refine against the export if a specific one looks off.
-- Fixed glyph error: 0:10 is **😔** (sad), not 😴.
-- Re-run the full scan: the per-frame emoji-event scan loop (diff vs master, segment events) +
-  `scripts/rederive_emoji.py` to recapture positions/motions.
+**Why visual verification (not auto-detection):** the diff-vs-master emoji scan is noisy BOTH ways —
+it over-counts (brief caption-text fragments below the wrapped text register as ~9 phantom "emoji
+events": ≈0:20, 0:25, 0:28, 0:55, 1:05, 1:10, 1:12, 1:34, 1:45, 1:53 — all confirmed to have NO emoji),
+AND it misses real ones whose glyph the caption text covers in the crop (📖 0:02, 👊 0:23, 👩‍💼 1:23
+were dropped by the scan but ARE present). So the canonical set is built by **eyeballing each
+candidate's lower-caption region** at its appear frame, not by trusting blob counts.
+
+- Glyphs read directly from the export. Fixed error: 0:10 is **😔** (sad), not 😴; the ~1:41 emoji is
+  **🏛️** (courtroom building), not 🔒.
+- To re-verify: extract `crop=720:320:0:830` at each candidate's appear time and look for an emoji
+  below the text; then `scripts/rederive_emoji.py` recaptures positions/motions.
