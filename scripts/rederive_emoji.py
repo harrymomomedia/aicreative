@@ -1,7 +1,14 @@
-"""Robust per-emoji re-derivation by dissecting every frame: correct REST (cx,cy), APPEARANCE time,
-and per-frame TRAJECTORY — handling previous-emoji lingering (filter by the current emoji's settled cy)
-and late appearance (📊 enters ~0.45s after its inventory time). Writes cx / appear / traj into the
-inventory so positions, timing, and movement all match Submagic frame-by-frame.
+"""Build the final, ready-to-render emoji inventory from the VISUALLY-VERIFIED emoji list.
+
+Input: inventory/submagic_emoji_inventory.json with each emoji's {emoji, t} (human-verified glyph +
+appearance time — see inventory/EMOJI_MODEL.md for why these are eyeballed, not auto-detected).
+
+This script (1) DISSECTS every 24fps frame to capture each emoji's REST (cx,cy), exact APPEARANCE
+time, and per-frame TRAJECTORY (robust to previous-emoji lingering + late appearance), then
+(2) APPLIES the placement rules so the inventory is ready to render with caption_hormozi3.py:
+big horizontal sliders (>200px travel) keep their off-center keyword rest; everything else
+(statics + subtle sliders) rests CENTERED; failed captures default to centered static. Vertical
+placement (~16px below OUR text) is done in the renderer, so cy is not pinned here.
 
   python scripts/rederive_emoji.py
 """
@@ -98,17 +105,53 @@ if __name__ == "__main__":
         if not r:
             print(f"{e['emoji']} t={e['t']:.2f}  FAILED"); continue
         rx, ry = r["rest"]; tr = r["traj"]; s = tr[0]
-        mag = (s[1] ** 2 + s[2] ** 2) ** 0.5
-        slid = mag > 8 and len(tr) >= 3
-        e["cx"] = rx
+        e["cx"] = rx                              # raw capture; placement rules (below) finalize cx/motion
         e["_appear"] = r["appear"]
-        e.setdefault("motion", {})
-        e["motion"]["traj"] = tr if slid else None
-        if not slid:
-            e["motion"]["slide"] = [0, 0]
+        e.setdefault("motion", {})["traj"] = tr   # full captured trajectory (offsets from rest)
+        mag = (s[1] ** 2 + s[2] ** 2) ** 0.5
         kind = "horiz" if abs(s[1]) > abs(s[2]) * 2 else ("vert" if abs(s[2]) > abs(s[1]) * 2 else "diag")
         print(f"{e['emoji']} t={e['t']:.2f} rest=({rx},{ry}) appear={r['appear']:.2f} "
               f"(inv {e['t']:.2f}, Δ{r['appear']-e['t']:+.2f}) start=({s[1]:+d},{s[2]:+d}) "
-              f"{'SLIDE '+kind if slid else 'pop'} frames={len(tr)}")
+              f"{'SLIDE '+kind if mag > 8 else 'pop'} frames={len(tr)}")
+    # ---- placement rules (bake the final, ready-to-render positions into the inventory) ----
+    # Submagic places an emoji under its keyword, so off-center is intentional ONLY when the emoji
+    # visibly travels there. A subtle slide parked far off-center reads as a broken "off-center
+    # static". So: BIG horizontal sliders (>200px travel) keep their off-center keyword rest; every
+    # other emoji (statics + subtle sliders) rests CENTERED — subtle ones still slide IN, to center.
+    # FAILED captures default to centered static. Vertical is handled in the renderer (~16px below
+    # OUR text), so cy isn't pinned here.
+    BASE = {"type": "pop", "s0": 0.45, "dur": 0.13, "peak": 1.10, "ramp": 0.55}
+    CENTER_CX = 720 // 2 - 1                       # 359
+    BIG_SLIDE_PX = 200                            # travel above this = obviously-moving big slider
+    big_n = 0
+    for e in inv["emojis"]:
+        m = e.get("motion", {})
+        tr = m.get("traj")
+        cx = e.get("cx")
+        ap = e.get("_appear")
+        evt = e["t"]
+        # require >=3 frames so a spurious 1-2 frame capture (caught a stray text fragment) is NOT
+        # mistaken for a big slide
+        big = bool(tr) and len(tr) >= 3 and abs(tr[0][1]) > BIG_SLIDE_PX
+        nm = dict(BASE)
+        if big:                                   # off-center keyword rest, replay the big slide
+            e["cx"] = cx
+            nm["traj"] = tr
+            nm["slide"] = None
+            big_n += 1
+        else:                                     # centered; keep a subtle slide-in if present, else pop
+            e["cx"] = CENTER_CX
+            if tr and 8 < (tr[0][1] ** 2 + tr[0][2] ** 2) ** 0.5 < 160 and len(tr) >= 3:
+                nm["traj"] = tr
+                nm["slide"] = None
+            else:
+                nm["traj"] = None
+                nm["slide"] = [0, 0]
+        e["motion"] = nm
+        # appearance = captured frame when reliable, else fall back to the verified inventory time
+        e["_appear"] = ap if (ap is not None and abs(ap - evt) <= 0.6) else evt
+
     json.dump(inv, open("inventory/submagic_emoji_inventory.json", "w"), indent=2, ensure_ascii=False)
-    print("\nupdated cx / _appear / motion.traj for all emojis")
+    n = len(inv["emojis"])
+    print(f"\nplacement applied: {big_n} big-slider(s) off-center, {n - big_n} centered  ({n} emojis total)")
+    print("wrote final cx / _appear / motion (traj) — ready to render with caption_hormozi3.py")
