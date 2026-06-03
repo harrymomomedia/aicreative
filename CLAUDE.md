@@ -279,6 +279,18 @@ The skill `hormozi3` documents this. Alex-Hormozi creator-caption look: Montserr
 
 **Measurement lesson:** match RELATIVE proportions (% of frame width/height), not absolute px. Pixel masks are noisy — emoji color contaminates text measurements; measure a clean no-emoji card's widest-line WIDTH as % of frame.
 
+### Submagic emoji-match — the in-house emoji track (built 2026-06)
+
+`caption_hormozi3.py --submagic-emojis <inventory.json>` reproduces Submagic's animated emoji track. Full model + tooling in **`inventory/EMOJI_MODEL.md`**. The hard-won rules (each cost real time this session — do NOT relearn):
+
+- **MEASURE by dissecting EVERY 24fps frame** — DIFF the captioned video vs the clean master to isolate the emoji (compact blob below the text). **Template matching FAILS during the scale-in entrance** (it mis-locks while the glyph grows); the diff works at any scale. Tools: `scripts/emoji_diff_track.py`, `emoji_match_report.py`, `rederive_emoji.py`, `capture_clean_traj.py`.
+- **The emoji SET must be VISUALLY verified — never trust blob counts.** Auto-detection is noisy BOTH ways: it OVER-counts (brief caption-text fragments register as phantom emoji "events") AND MISSES real ones whose glyph the wrapped text covers in the crop. Submagic's true rate on the 2-min e_b14 ad was **~10/min (21 emojis)** — not the 14 or 29 the auto-scan claimed at different settings. Eyeball each candidate's lower-caption region at its appear frame.
+- **Placement (user-locked):** statics → CENTERED; **subtle sliders (<~80px travel) → rest CENTERED** (they still slide IN, just settle centered); only **big horizontal sliders (>~200px, a clear fly-in) rest OFF-CENTER** under their keyword. A subtle slide parked far off-center reads as a broken "off-center static" (user flagged 🔢/🏆 for exactly this).
+- **Vertical: emoji sits ~16px BELOW OUR text block** (`ey = y0 + text_h + 16`). **NEVER pin Submagic's absolute cy** — our caption sits lower than theirs, so an absolute-cy pin lands the emoji ON our words and blocks the subtitle (this caused the "emoji covering the text" bug).
+- **Multi-part glyphs** (💰 money-bag, 📊 bar-chart, 💸) render as several colored blobs; the position capture can lock onto one part and read off-center — verify the TRUE center (they're centered in Submagic, not off-center). `rederive_emoji.py` guards: a big-slide needs **≥3 captured frames** (a spurious 1-frame capture is NOT a slide).
+- **Rate control:** `--emoji-gap <sec>` thins the AUTO-placed (non-Submagic) emoji rate toward Submagic's ~10/min (≈4.5s gives ~10/min). Default stays emoji-heavy. Glyph fixes verified: the "JUST A KID" emoji is 😔 (sad), not 😴; the courtroom emoji is 🏛️, not 🔒.
+- `rederive_emoji.py` is the ONE-SHOT builder: dissect → capture rest/appear/trajectory → apply the placement rules → ready-to-render inventory.
+
 ### `scripts/caption.py` — legacy classic captions
 
 Older style — white text + black outline, no per-word highlight. Kept for ad-hoc previews. Don't use for deliverables.
@@ -1127,6 +1139,13 @@ Once an ad is finished, push it into **AdMachin** (the user's own ad platform �
 
 The AdMachin MCP server is built at `/Users/harry/admachin-mcp/packages/mcp-server/dist/index.js` (an isolated git worktree of the admachin repo at `origin/main`, since the main checkout predates it) and registered with Claude Code at **user scope** (`claude mcp add admachin -s user`). It exposes all 75 v1 tools (`upload_creative`, `create_ad`, `launch_ad`, insights, etc.) for interactive use. **MCP config is read on cold start — restart Claude Code to load the tools.** Rebuild after a repo update: `cd /Users/harry/admachin-mcp && git fetch && git checkout origin/main -- packages/mcp-server && (cd packages/mcp-server && npm i --no-save --legacy-peer-deps typescript@5 @types/node && npm run build)`.
 
+### MCP limits learned (2026-06) — projects/subprojects are UUID-only
+
+- **No project/subproject NAME lookup exists.** Projects & subprojects are only ever referenced by UUID; there is no `list_projects`/`get_project`. You can only *infer* projects from `list_ad_plans` — and a project/subproject with **no ad plans is invisible to the API**. You also **cannot create** a project/subproject via the MCP (UI-owned). To file creatives under a named project/subproject (e.g. "tort / IL JDC"), get the UUIDs from the **web-UI URL** of that subproject page, or identify the right project by listing its existing `ad_copies`/`creatives` and matching the campaign content.
+- `upload_creative` lands in the **default (null) project** if no `project_id` is passed. **`update_creative_metadata` MOVES a creative between projects/subprojects** (re-tag, no re-upload needed) — use it to fix mis-filed uploads.
+- `list_ad_plans` / `list_ad_copies` return **huge payloads** (saved to a tool-results file) — query with `jq`, don't dump.
+- `find_or_create_ad_plan` is idempotent (key = project_id + subproject_id + title). Upload is free/safe; **launch SPENDS — keep it gated.**
+
 ---
 
 ## Do Not
@@ -1136,7 +1155,7 @@ The AdMachin MCP server is built at `/Users/harry/admachin-mcp/packages/mcp-serv
 - Commit `outputs/` or `.env` (both gitignored).
 - Hardcode API keys — always from `.env`.
 - Invent visual details. If the dissect frames don't show it, don't write it into the analysis.
-- For legal services lead-gen (prison-abuse compensation campaigns): use the phrase **"significant potential compensation"** when referring to the recovery. Don't say "compensation" alone, "damages", "settlement", "money owed", or "payout" — unify on "significant potential compensation" across all variations of the same campaign.
+- For legal services lead-gen (prison-abuse compensation campaigns): use the phrase **"significant potential compensation"** when referring to the recovery. Don't say "compensation" alone, "damages", "settlement", "money owed", or "payout" — unify on "significant potential compensation" across all variations of the same campaign. **Exception — IL JDC (2026-06): the user OK'd dropping "potential" — "significant compensation" is acceptable on that campaign.** "Illinois is paying" is compliant; "paid"/"owed"/"settlement" re the *viewer's* recovery are not (a factual "LA County paid $4B" comparison is allowed but needs firm sign-off + the disclaimer).
 - Mix output resolutions across clips of the same ad (Seedance 480p + Veo 720p won't concat clean).
 - **Use 720p or 1080p for Seedance** — HARD RULE: always 480p. Seedance is per-second pricing ($0.07/s t2v at 480p vs $0.14/s at 720p), so 720p doubles cost for marginal-at-best gain on social-feed-sized playback. Pass `resolution="480p"` on every Seedance call regardless of provider (Poyo / useapi / OpenRouter).
 - **Quote Seedance pricing as "per clip"** — it's per-SECOND. A 10s 480p t2v clip on Poyo costs $0.70 ($0.07/s × 10s), not $0.07. Only Veo 3.1 Fast on Poyo is true flat-rate ($0.10/clip flat, fixed 8s).
