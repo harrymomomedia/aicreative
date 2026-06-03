@@ -834,6 +834,9 @@ def main():
     ap.add_argument("--submagic-cards", default=None, help="JSON of extracted Submagic cards; match its grouping")
     ap.add_argument("--max-lines", type=int, default=2)  # Submagic caps at 2 lines
     ap.add_argument("--no-emoji", action="store_true")
+    ap.add_argument("--emoji-gap", type=float, default=None,
+                    help="min seconds between auto-placed emojis (raise to thin the rate toward "
+                         "Submagic's ~10/min; default keeps the emoji-heavy look).")
     ap.add_argument("--submagic-emojis", default=None,
                     help="JSON inventory (submagic_emoji_inventory.json) — place its exact emoji types/positions on the cards holding each timestamp, to match Submagic.")
     ap.add_argument("--biased", default="Chowchilla:3.0,CCWF:2.0",
@@ -846,6 +849,9 @@ def main():
                     help="force disclaimer start (sec). Default: auto-detect calmest window.")
     ap.add_argument("--end", type=float, default=None)
     args = ap.parse_args()
+    if args.emoji_gap is not None:
+        global EMOJI_MIN_GAP
+        EMOJI_MIN_GAP = args.emoji_gap
 
     video = Path(args.video).resolve()
     if not video.exists():
