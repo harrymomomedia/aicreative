@@ -16,7 +16,7 @@ VOICE_ID_FILE = OUT / "voice_id.txt"
 INTENDED = {
     1: "you used to count the hours until morning because you knew certain nights certain guards you knew what was coming",
     2: "in a california juvenile facility you knew their shift schedule you knew their footsteps",
-    3: "and when they abused you they called it a check a routine their job",
+    3: "and when they abuse you they called it a check a routine their job",
     4: "but you were a child in a california juvenile facility and what they did to you was not their job",
     5: "right now survivors are coming forward california is facing active legal claims",
     6: "and you may be owed significant potential compensation no proof no police report",
