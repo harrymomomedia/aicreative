@@ -1,0 +1,278 @@
+{
+  "version": 1,
+  "updated": "2026-06-09",
+  "default_for_ca_jdc_news": "news_bbc_left",
+  "styles": [
+    {
+      "id": "news_bbc_left",
+      "name": "BBC Left",
+      "type": "in_house",
+      "script": "scripts/caption_news_subtitle.py",
+      "look": "Left-aligned white broadcast subtitles in a black rectangular BBC-style box.",
+      "best_for": "Vertical reporter/news ads with a lower-third bar.",
+      "sample": "samples/news_bbc_left.mp4",
+      "args": [
+        "--style", "bbc-left",
+        "--vertical-pos", "0.585",
+        "--font-ratio", "0.037",
+        "--max-width-ratio", "0.78",
+        "--max-words", "8"
+      ],
+      "command": ".venv/bin/python scripts/caption_news_subtitle.py <in.mp4> --out <out.mp4> --style bbc-left --vertical-pos 0.585 --font-ratio 0.037 --max-width-ratio 0.78 --max-words 8"
+    },
+    {
+      "id": "news_bbc_center_bold",
+      "name": "BBC Center Bold",
+      "type": "in_house",
+      "script": "scripts/caption_news_subtitle.py",
+      "look": "Centered black BBC-style subtitle block with bold Helvetica Neue text.",
+      "best_for": "News videos where the caption should feel like traditional closed captions.",
+      "sample": "samples/news_bbc_center_bold.mp4",
+      "args": [
+        "--style", "bbc",
+        "--vertical-pos", "0.585",
+        "--font-ratio", "0.037",
+        "--max-width-ratio", "0.78",
+        "--max-words", "8",
+        "--font-index", "1"
+      ],
+      "command": ".venv/bin/python scripts/caption_news_subtitle.py <in.mp4> --out <out.mp4> --style bbc --vertical-pos 0.585 --font-ratio 0.037 --max-width-ratio 0.78 --max-words 8 --font-index 1"
+    },
+    {
+      "id": "news_bbc_center_medium",
+      "name": "BBC Center Medium",
+      "type": "in_house",
+      "script": "scripts/caption_news_subtitle.py",
+      "look": "Centered black BBC-style subtitle block with slightly lighter Helvetica Neue Medium text.",
+      "best_for": "News videos where the bold BBC version feels too heavy.",
+      "sample": "samples/news_bbc_center_medium.mp4",
+      "args": [
+        "--style", "bbc",
+        "--vertical-pos", "0.585",
+        "--font-ratio", "0.035",
+        "--max-width-ratio", "0.78",
+        "--max-words", "8",
+        "--font-index", "10"
+      ],
+      "command": ".venv/bin/python scripts/caption_news_subtitle.py <in.mp4> --out <out.mp4> --style bbc --vertical-pos 0.585 --font-ratio 0.035 --max-width-ratio 0.78 --max-words 8 --font-index 10"
+    },
+    {
+      "id": "news_youtube_classic",
+      "name": "YouTube Classic",
+      "type": "in_house",
+      "script": "scripts/caption_news_subtitle.py",
+      "look": "Centered white subtitle text with black outline and no backing box.",
+      "best_for": "Cleaner videos without a heavy broadcast-caption box.",
+      "sample": "samples/news_youtube_classic.mp4",
+      "args": [
+        "--style", "youtube",
+        "--vertical-pos", "0.595",
+        "--font-ratio", "0.034",
+        "--max-width-ratio", "0.76",
+        "--max-words", "7"
+      ],
+      "command": ".venv/bin/python scripts/caption_news_subtitle.py <in.mp4> --out <out.mp4> --style youtube --vertical-pos 0.595 --font-ratio 0.034 --max-width-ratio 0.76 --max-words 7"
+    },
+    {
+      "id": "news_youtube_box",
+      "name": "YouTube Box",
+      "type": "in_house",
+      "script": "scripts/caption_news_subtitle.py",
+      "look": "Centered white subtitle text with black outline and translucent black backing box.",
+      "best_for": "News/reporter videos needing more readability than classic YouTube subtitles.",
+      "sample": "samples/news_youtube_box.mp4",
+      "args": [
+        "--style", "youtube-box",
+        "--vertical-pos", "0.595",
+        "--font-ratio", "0.034",
+        "--max-width-ratio", "0.76",
+        "--max-words", "7"
+      ],
+      "command": ".venv/bin/python scripts/caption_news_subtitle.py <in.mp4> --out <out.mp4> --style youtube-box --vertical-pos 0.595 --font-ratio 0.034 --max-width-ratio 0.76 --max-words 7"
+    },
+    {
+      "id": "hormozi3",
+      "name": "Hormozi 3",
+      "type": "in_house",
+      "script": "scripts/caption_hormozi3.py",
+      "look": "Submagic-style creator captions: Montserrat Black all-caps, rotating yellow/green/red accent line, black stroke, animated emoji layer.",
+      "best_for": "UGC confession/storytime ads where the caption is a performance element.",
+      "sample": "samples/hormozi3_emoji.mp4",
+      "args": [
+        "--font-ratio", "0.0336",
+        "--max-words", "4",
+        "--max-lines", "2",
+        "--biased", ""
+      ],
+      "command": ".venv/bin/python scripts/caption_hormozi3.py <in.mp4> --out <out.mp4> --font-ratio 0.0336 --max-words 4 --max-lines 2 --biased \"\""
+    },
+    {
+      "id": "hormozi3_submagic_match",
+      "name": "Hormozi 3 Submagic Match",
+      "type": "in_house",
+      "script": "scripts/caption_hormozi3.py",
+      "look": "Hormozi 3 with Submagic card grouping and captured emoji inventory/trajectories.",
+      "best_for": "When matching a specific Submagic export frame-by-frame.",
+      "sample": "samples/hormozi3_emoji.mp4",
+      "args": [
+        "--submagic-cards", "<cards.json>",
+        "--submagic-emojis", "inventory/submagic_emoji_inventory.json",
+        "--max-words", "4",
+        "--max-lines", "2"
+      ],
+      "command": ".venv/bin/python scripts/caption_hormozi3.py <in.mp4> --out <out.mp4> --submagic-cards <cards.json> --submagic-emojis inventory/submagic_emoji_inventory.json --max-words 4 --max-lines 2"
+    },
+    {
+      "id": "hormozi3_no_emoji",
+      "name": "Hormozi 3 No Emoji",
+      "type": "in_house",
+      "script": "scripts/caption_hormozi3.py",
+      "look": "Hormozi 3 text system only, with emoji layer disabled.",
+      "best_for": "Sensitive legal UGC that still needs punchy creator captions without emoji clutter or per-word flashing.",
+      "sample": "samples/hormozi3_text.mp4",
+      "args": [
+        "--no-emoji",
+        "--font-ratio", "0.0336",
+        "--max-words", "4",
+        "--max-lines", "2"
+      ],
+      "command": ".venv/bin/python scripts/caption_hormozi3.py <in.mp4> --out <out.mp4> --no-emoji --font-ratio 0.0336 --max-words 4 --max-lines 2"
+    },
+    {
+      "id": "yellow_text_submagic",
+      "name": "Yellow Text Submagic",
+      "type": "in_house",
+      "script": "scripts/caption_styled.py",
+      "look": "TikTok/Submagic-style all-caps captions with spoken word in yellow text and other words in white.",
+      "best_for": "UGC ads where per-word emphasis is explicitly desired; avoid by default on sensitive sexual-abuse/prison legal ads because it can feel flashy.",
+      "sample": "samples/yellow_or_box_styled.mp4",
+      "args": [
+        "--highlight-style", "yellow_text",
+        "--font-ratio", "0.04"
+      ],
+      "command": ".venv/bin/python scripts/caption_styled.py <in.mp4> --out <out.mp4> --highlight-style yellow_text --font-ratio 0.04"
+    },
+    {
+      "id": "yellow_box_submagic",
+      "name": "Yellow Box Submagic",
+      "type": "in_house",
+      "script": "scripts/caption_styled.py",
+      "look": "TikTok/Submagic-style all-caps captions with a yellow box behind the active word.",
+      "best_for": "Older UGC caption look or when the yellow-text variant is not enough emphasis; avoid by default on sensitive sexual-abuse/prison legal ads because it flashes word-by-word.",
+      "sample": "samples/yellow_or_box_styled.mp4",
+      "args": [
+        "--highlight-style", "box",
+        "--font-ratio", "0.04"
+      ],
+      "command": ".venv/bin/python scripts/caption_styled.py <in.mp4> --out <out.mp4> --highlight-style box --font-ratio 0.04"
+    },
+    {
+      "id": "nick",
+      "name": "Nick",
+      "type": "in_house",
+      "script": "scripts/caption_nick.py",
+      "look": "Submagic Nick-style sentence-case white text on semi-transparent dark rounded box, no emoji, no color accent.",
+      "best_for": "Cleaner legal UGC or spoken testimonial where all-caps feels too creator-heavy; preferred calm style for sensitive direct-to-camera prison-abuse ads.",
+      "sample": "samples/nick_internal.mp4",
+      "args": [
+        "--font", "helvetica",
+        "--font-ratio", "0.044",
+        "--vertical-pos", "0.754",
+        "--max-words", "2"
+      ],
+      "command": ".venv/bin/python scripts/caption_nick.py <in.mp4> --out <out.mp4> --font helvetica --font-ratio 0.044 --vertical-pos 0.754 --max-words 2"
+    },
+    {
+      "id": "nick_high_news_legacy",
+      "name": "Nick High News Legacy",
+      "type": "in_house",
+      "script": "scripts/caption_nick.py",
+      "look": "Nick-style rounded dark box moved higher for news/lower-third layouts.",
+      "best_for": "Legacy reference only; current CA news videos should use news_bbc_left unless Nick is explicitly requested.",
+      "sample": "samples/nick_high.mp4",
+      "args": [
+        "--font", "helvetica",
+        "--font-ratio", "0.044",
+        "--vertical-pos", "0.62",
+        "--max-words", "2"
+      ],
+      "command": ".venv/bin/python scripts/caption_nick.py <in.mp4> --out <out.mp4> --font helvetica --font-ratio 0.044 --vertical-pos 0.62 --max-words 2"
+    },
+    {
+      "id": "submagic_builtin_template",
+      "name": "Submagic Built-In Template",
+      "type": "external_api",
+      "script": "scripts/submagic_client.py",
+      "look": "Authentic Submagic template render, e.g. Hormozi 3, Dan 2, Kelly 2, Jack, Claire, Matt.",
+      "best_for": "When exact Submagic template authenticity matters more than verbatim caption control.",
+      "sample": "samples/submagic_hormozi3_api.mp4",
+      "args": [
+        "caption",
+        "<in.mp4>",
+        "<out.mp4>",
+        "<templateName>",
+        "<dictionary_csv>"
+      ],
+      "command": ".venv/bin/python scripts/submagic_client.py caption <in.mp4> <out.mp4> \"Hormozi 3\" \"California,L.A. County,juvenile,sexual abuse\""
+    },
+    {
+      "id": "submagic_lewis_template",
+      "name": "Submagic Lewis Template",
+      "type": "external_api",
+      "script": "scripts/submagic_client.py",
+      "look": "Submagic Lewis built-in template: cleaner sentence-case style with active-word treatment and emoji.",
+      "best_for": "When using Submagic API's Lewis look from prior CCWF/IL JDC experiments.",
+      "sample": "samples/submagic_lewis_api.mp4",
+      "args": [
+        "caption",
+        "<in.mp4>",
+        "<out.mp4>",
+        "Lewis",
+        "<dictionary_csv>"
+      ],
+      "command": ".venv/bin/python scripts/submagic_client.py caption <in.mp4> <out.mp4> \"Lewis\" \"California,L.A. County,juvenile,sexual abuse\""
+    },
+    {
+      "id": "submagic_matt_l1_theme",
+      "name": "Submagic Matt L1 Theme",
+      "type": "external_api",
+      "script": "scripts/submagic_client.py",
+      "look": "Custom Submagic theme created in app for a lower/Y-adjusted Matt caption.",
+      "best_for": "When using the user's custom Matt L1 theme rather than a built-in template.",
+      "sample": null,
+      "theme_id": "de96476a-c235-410a-a3db-fa52a9265537",
+      "args": [
+        "caption",
+        "<in.mp4>",
+        "<out.mp4>",
+        "--theme-id",
+        "de96476a-c235-410a-a3db-fa52a9265537",
+        "<dictionary_csv>"
+      ],
+      "command": ".venv/bin/python scripts/submagic_client.py caption <in.mp4> <out.mp4> --theme-id de96476a-c235-410a-a3db-fa52a9265537 \"California,L.A. County,juvenile,sexual abuse\""
+    }
+  ],
+  "companion_overlays": [
+    {
+      "id": "ca_news_top_disclaimer",
+      "name": "CA News Top Disclaimer",
+      "script": "scripts/burn_disclaimer.py",
+      "look": "Pulaski/Jones legal disclaimer at top of frame for CA news videos so it does not collide with the lower-third.",
+      "command": ".venv/bin/python scripts/burn_disclaimer.py <in.mp4> <out.mp4> --vertical-pos 0.17 --secs 6.0"
+    },
+    {
+      "id": "pulaski_jones_bottom_disclaimer",
+      "name": "Pulaski/Jones Bottom Disclaimer",
+      "script": "scripts/burn_disclaimer.py",
+      "look": "Pulaski/Jones legal disclaimer near bottom of frame for videos without a lower-third bar.",
+      "command": ".venv/bin/python scripts/burn_disclaimer.py <in.mp4> <out.mp4> --vertical-pos 0.99 --secs 6.0"
+    },
+    {
+      "id": "broadcast_blue_lower_third",
+      "name": "Broadcast Blue Lower Third",
+      "script": "scripts/ca_jdc_broadway_lower_third.py",
+      "look": "Cobalt BREAKING NEWS lower-third with headline JUVENILE HALL SEXUAL ABUSE CLAIMS and 30-second CTA.",
+      "command": ".venv/bin/python scripts/ca_jdc_broadway_lower_third.py"
+    }
+  ]
+}
