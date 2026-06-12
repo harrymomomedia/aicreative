@@ -22,7 +22,7 @@ is therefore required for any step that needs a transcript (dissect QA gate, cap
 2. Run `dissect.py <video>` → produces `outputs/<videoname>/` with frames, transcript, scenes.
 3. Read frames + transcript → write `analysis.md` with **Setting / Character / Camera / Beats / Tone / Style**.
 4. User picks the model (Seedance/Kling/Veo) and provides their product/character assets.
-5. Generate **4–6 reference characters in parallel** with GPT Image 2 → user picks one anchor.
+5. Generate **4–6 reference characters in parallel** with GPT Image 2 → user picks one anchor. **Whenever generating any image or video, show the exact model/provider and the full prompt in chat so the prompt is reusable in later sessions.**
 6. Adapt the analysis into a model-specific prompt. **Show the full prompt in chat. Wait for explicit go.**
 7. **Test proper-noun pronunciation at the shortest viable duration** before committing to longer clips.
 8. Generate clips. Clip count depends on model max-duration: **Veo 3 Fast = 8s/clip** (~8 clips per minute of ad), **Seedance = up to 15s/clip** (~3-4 clips per minute), **Kling = up to ~10s/clip**. Pick clip boundaries on natural speech breaks.
@@ -56,9 +56,10 @@ User-set rule: **route each model to its cheapest reliable host**, not all throu
 | **Veo 3.1 Lite (FREE)** | **useapi google-flow** | `googleflow_client.generate_veo` | **$0 — free, no credit** | **DEFAULT for Veo Lite.** Model `veo-3.1-lite-low-priority`, ultra-low-priority queue (SLOW but free). `startImage` i2v persona lock. `USEAPI_TOKEN`, EMAIL `flowmomomedia@gmail.com`. See `feedback_veo_lite_free_path` memory + `scripts/podcast_omni_produce.py`. |
 | **Veo 3.1 Lite** | **OpenRouter** | `openrouter_video.generate_veo` | **$0.40/8s** (audio) | Paid fallback when the free queue is too slow. `OPENROUTER_ADCLI_KEY`. Not on Poyo. (KIE `veo3_lite` also paid — spends points, hourly cap.) |
 | **Seedance 2.0 Fast** | **useapi.net** | `useapi_client.generate_seedance` | **unlimited** (flat monthly) | Default for high volume. Set `USEAPI_EXPLORE=true`. |
-| **Seedance 2.0 Fast (480p)** | **OpenRouter** | `openrouter_video.generate_seedance` | **~$0.05/sec** (480p; ≈$0.25 per 5s) | Pay-per-use fallback. `OPENROUTER_ADCLI_KEY`. **Per-SECOND**, token-based. KIE Seedance ≈ **$0.07/sec**. (Old "$0.053/clip" figure was ~10× off.) |
-| **Kling 3.0** | **useapi.net** | `useapi_client.generate_kling` | **unlimited** (flat monthly) | Replaces KIE. Models: `kling-3-0-standard` (default) or `kling-3-0-pro`. |
+| **Seedance 2.0 Fast (480p)** | **OpenRouter** | `openrouter_video.generate_seedance` | **~$0.05/sec** (480p, token-based) | Pay-per-use fallback when useapi is down or the unlimited queue is too slow. `OPENROUTER_ADCLI_KEY`. Seedance is per-second, not per-clip. Do not confuse this with Runway; OpenRouter video API has Seedance/Kling/Veo/Sora/Wan, not Runway Gen-4. |
+| **Kling 3.0** | **useapi.net** | `useapi_client.generate_kling` | **unlimited** (flat monthly) | Replaces KIE. Models: `kling-3.0-standard` (default) or `kling-3.0-pro`. |
 | **Runway Gen-4 Turbo** | **useapi.net** | `useapi_client.generate_runway` | **unlimited** (flat monthly) | New. Model: `gen4-turbo` (default) or `gen4`. Up to 10s. |
+| **prunaai/p-video** | **Replicate** | `replicate.Client(...).predictions.create(model=("prunaai","p-video"))` | token-based | Image-to-video fallback for policy-heavy talking-head/reporter clips. Use native audio, 10s chunks, short prompts, and post links before QA. |
 | **nano-banana-2** | KIE | `kie_client.generate_nano_banana` | varies | Unchanged. |
 | **gpt-image-2** (t2i / i2i) | **KIE** | `kie_client.generate_gpt_image` | per-image (2K) | **Default image provider** (changed 2026-05-20). `resolution="2K"`, `aspect_ratio="9:16"`. OpenAI direct DROPPED — lower quality + caps at 1024×1536. |
 | **ElevenLabs** (TTS / clone / voice_changer) | ElevenLabs direct | `elevenlabs_client` | per-character | 5 concurrent max — throttle when batching. |
@@ -71,7 +72,7 @@ Memory: `project_video_provider_routing.md` — confirm before bulk-running new 
 |---|---|---|---|
 | `generate_kling` | `kling-3.0/video` | `/jobs/createTask` | mode `std` (720p), 9:16 |
 | `generate_nano_banana` | `nano-banana-2` | `/jobs/createTask` | — |
-| `generate_seedance` | `bytedance/seedance-2-fast` | `/jobs/createTask` | 480p (496×864), 9:16, audio on, **min 4s, max 15s**. **NOT preferred — route to OpenRouter per user rule.** |
+| `generate_seedance` | `bytedance/seedance-2-fast` | `/jobs/createTask` | 480p (496×864), 9:16, audio on, **min 4s, max 15s**. **NOT preferred — route high-volume jobs to useapi.net, or OpenRouter for cheap 480p pay-per-use fallback.** |
 | `generate_veo` | `veo3_fast` | `/veo/generate` | 720p (720×1280), 9:16. **NOT preferred — route to Poyo for $0.10/clip vs $0.30.** |
 
 All return `{"status": "success"|"failed", "urls": [...], "raw": {...}}`. KIE Veo polls a different endpoint (`/veo/record-info`) — handled internally.
@@ -148,11 +149,37 @@ Client: `useapi_client.py`. Auth: `USEAPI_TOKEN` in `.env`.
 
 **`exploreMode=True`** (default) — Unlimited plan, no credits consumed, lower priority. ~10 min for Seedance/Gen-4.5. Gen-4 Turbo ~1-2 min even in explore. **NOT supported by `veo-3.1`.** Set `USEAPI_EXPLORE=false` in `.env` for credit mode / higher priority.
 
+**Account setup gotcha (hit 2026-06-12):** A valid `USEAPI_TOKEN` is not enough for RunwayML-backed models. First register at least one Runway account:
+```
+POST https://api.useapi.net/v1/runwayml/accounts/{email}
+Authorization: Bearer $USEAPI_TOKEN
+Content-Type: application/json
+
+{"email":"same@email.com","password":"...","maxJobs":3}
+```
+Do not URL-encode the `@` in the path for this API; include the same `email` in the JSON body. Omitting the account gives `Please configure at least one account`; omitting `maxJobs` gives `Required param maxJobs is missing or empty`.
+
+**Verified smoke test (2026-06-12):** `useapi_client.generate_seedance(..., duration=5, aspect_ratio="9:16")` submitted, polled, and downloaded successfully to `outputs/test_seedance.mp4` in ~2 minutes with explore mode enabled.
+
+**Explore-mode queue is intentionally slow and shallow.** For bulk Seedance jobs, assume tasks can sit `THROTTLED` for hours, not minutes. Do not use 15-minute poll ceilings. Use multi-hour polling (3h+) and 429 submit backoff; a 429 usually means the useapi account queue is full, not that the prompt failed. For long runs, persist task IDs as soon as they submit so completed outputs can be recovered if local polling dies.
+
+**Seedance juvenile/JDC moderation pattern (verified 2026-05 JDC b-roll batch).** `seedance-2` on useapi rejects prompts that combine juvenile/youth detention with body-search, shower/towel, bunk/bedroom proximity, or adult-guard-over-minor framing, returning `SAFETY.INPUT.TEXT` / `CHILDREN`. Do not keep rerolling these; rewrite more indirectly, remove child-age descriptors, move the implication into props/CCTV/logbooks/corridors/documents, or route to another model. Shots that passed: doorway silhouettes, corridor escort, peephole observation, closed office door, empty cell clothing, laundry evidence, CCTV wall shadows, yard corner whisper, stairwell escort, logbook, personnel file, untouched tray, solitary aftermath, exterior night, empty corridor, redacted court docs.
+
+### OpenRouter video (Seedance/Kling/Veo/Sora/Wan — pay-per-use)
+
+Client: `openrouter_video.py`. Auth: prefer `OPENROUTER_ADCLI_KEY`, fallback `OPENROUTER_API_KEY`. Endpoint: `POST https://openrouter.ai/api/v1/videos`; model discovery: `GET /videos/models`.
+
+**Do not repeat:** OpenRouter does **not** provide Runway Gen-4 models here. It does provide `bytedance/seedance-2.0-fast`, `kwaivgi/kling-v3.0-std`, `google/veo-3.1-lite`, `google/veo-3.1-fast`, `openai/sora-2-pro`, and Wan models. Keep Runway Gen-4 on useapi.net's RunwayML wrapper.
+
+**Seedance 2.0 Fast 480p:** use `openrouter_video.generate_seedance(resolution="480p", model="bytedance/seedance-2.0-fast")` as cheap pay-per-use fallback. User correction: the memorable figure is about **$0.053 per 10s 480p clip**, token-based, not "Runway at $0.05" and not per-second pricing.
+
+**Veo:** OpenRouter Veo 3.1 Lite is paid fallback (`google/veo-3.1-lite`, ~$0.40/8s audio at 720p). Poyo remains default for Veo Fast at $0.10/clip flat.
+
 **Status flow:** `PENDING → PROCESSING → SUCCEEDED / FAILED`. Response wrapped in `task: { taskId, status, progressRatio, estimatedTimeToStartSeconds, artifacts[] }`.
 
 **Output resolution:** Seedance on useapi defaults to 720p (supports 480p/720p/1080p). **HARD RULE — always use 480p for Seedance.** The user has set this as a project default: 720p costs 2× per second and 1080p ~3× per second for marginal quality gain at social-feed playback size. Pass `resolution="480p"` explicitly even on useapi.net (where price doesn't bite since it's flat-rate, but the rule is consistent so output specs match across providers and Veo/Kling 720p clips can be downscaled to 480p for clean concat — NOT the other way around).
 
-**Seedance is per-second pricing, not per-clip.** Poyo Seedance 2-Fast: 480p i2v $0.04/s, 480p t2v $0.07/s, 720p i2v $0.08/s, 720p t2v $0.14/s. So a 10s 480p t2v clip = $0.70, not $0.07. Veo 3.1 Fast IS flat-rate ($0.10/clip flat, always 8s). Don't confuse the two.
+**Seedance pricing differs by provider.** useapi is flat monthly/unlimited, OpenRouter Seedance 2.0 Fast 480p is token-based and remembered here as about **$0.053 per 10s clip**, while KIE-style Seedance endpoints may be per-second. Do not carry a per-second warning from one provider into OpenRouter decisions.
 
 ### Veo content-moderation triggers (Poyo + KIE)
 
@@ -168,6 +195,16 @@ Visual-prompt language that triggers rejection, especially when combined with se
 **THE big one — child + sexual-abuse in the SAME generation = hard child-safety block (2026-05-25).** A clip whose dialogue pairs a minor reference ("kid", "juvenile", "juvie", "I was twelve") with "sexual abuse"/"sexually abused" gets deterministically blocked (child-safety classifier, not generic NSFW). **Fix: split the two across separate clips** — clip A carries the age/"kid" beat, clip B carries the "a staff member sexually abused you" beat; never both in one clip. Verified across the IL JDC podcast set. Note: "sexual abuse" + "locked up" + facility names in one clip passes FINE as long as no kid/juvenile word is present (the announcer videos do exactly this). Also: a persona image that simply *reads young* can block every generation regardless of dialogue (real_02 was unusable on benign lines) — swap the persona, don't fight the prompt.
 
 **Unwanted recurring element (e.g. headphones)? Check the PROMPT first, not the anchor.** When every clip kept showing headphones, the cause was a prompt line ("headphones on"), NOT the host image (which was clean). Negate it explicitly (`"NOT wearing headphones — none on head or neck"`) or delete the line. Don't re-roll the anchor chasing a prompt-driven artifact.
+
+### Replicate p-video gotchas (PrunaAI, verified 2026-06)
+
+Use `prunaai/p-video` only when the user explicitly asks for it or Veo policy blocks a simple talking-head/reporter ad. For talking heads, use **image-to-video with native model audio**. Do NOT pass an external audio file by default; lip-sync degraded and long audio-conditioned runs capped badly.
+
+- **Chunk at 10 seconds** for speech control. The public duration allows up to 20s, but 10s chunks had better mouth timing, cleaner pacing, and fewer weird sounds.
+- **Keep prompts short**: fixed camera, fixed frame, no zooming, no panning, no screen text, no graphics, natural mouth movement, clean native audio. Long negative prompt lists confused the model.
+- **No subtitles/on-screen text in the generation**. If text appears, re-prompt shorter with "No screen text, no graphics, no labels, no captions, no subtitles."
+- **Camera still breathes slightly** even with fixed-camera wording. The user accepted this as a model limit; do not add stabilization, deshake, frozen frames, or speed changes unless explicitly approved.
+- **Post every generated chunk/final link in chat before QA or post-production** so the user can review the raw model output first.
 
 ### GPT Image — KIE (default, changed 2026-05-20)
 
@@ -226,7 +263,7 @@ ElevenLabs API is **synchronous** — no polling. Function blocks until audio is
 
 ---
 
-## Captions — three scripts, three skills
+## Captions — four scripts, four skills
 
 **Default rule: DO NOT burn captions onto deliverables** (memory `feedback_skip_burned_captions`). The user adds captions themselves in their post-production tool. Only run the caption pipeline when explicitly asked ("caption this", "add subtitles", "Submagic style", "with the disclaimer").
 
@@ -302,6 +339,8 @@ In-house clone of Submagic's **"Nick"** caption template — **white sentence-ca
 ```
 
 Locked spec (do NOT re-derive): text white `#F8F8F8` **sentence-case** (preserve case — NOT all-caps); box fill `rgb(45,45,42)` @ **0.58** opacity, corner radius ~0.20×box_h, pad_x 0.32 / pad_y 0.14 ×font_px; **font px ≈ 0.044×H** (cap-height ~0.031×H); box center **vpos 0.754**; ~2 words/card single centered line; trailing punctuation stripped (keeps apostrophes); subtle scale-pop 0.94→1.0 over 0.12s. Same single-pass PNG-sequence + one-overlay render as `caption_hormozi3.py` (reuses its `scribe_transcribe`/`probe_*`). Skill: `caption-disclaimer` (Nick subsection).
+
+**Default use case:** sensitive legal ads where the user references **Submagic Nick** but needs verbatim control. For the women's-prison campaign, pair it with `burn_disclaimer.py` or the `pulaski-jones-disclaimer` skill for the final combo file.
 
 ### `scripts/caption.py` — legacy classic captions
 
@@ -667,6 +706,18 @@ Asking for different voices per persona via prompt (pitch/age/register descripti
 ### Provider degradation can hit Veo across ALL hosts at once
 Veo 3.1 routes through Google's backend regardless of reseller, so a Google-side capacity crunch fails KIE, Poyo, AND EvoLink simultaneously. Symptoms seen in one session: KIE returned `500 Internal Error` after full 4-min renders; Poyo got stuck at "running 5%" indefinitely then timed out; EvoLink returned `"Service busy. Allocating resources, please retry later."` at ~50%. When a benign prompt fails on 2+ different hosts, it's a Google-wide crunch, not your prompt — wait 30-60 min rather than burning re-rolls. **EvoLink** (`evolink_client.py`, `veo-3.1-fast-generate-preview`, `EVOLINK_API_KEY`) is a third Veo host to add to the KIE/Poyo fallback rotation. Separately, **KIE's own file host (`tempfile.redpandaai.co`) Cloudflare-429s per-account** if its URLs are fetched too often — don't curl-probe the upload URL yourself (your probes feed the rate-limit counter); free public hosts (catbox/imgur/0x0) also get 429'd by Veo fetchers, so prefer the generator's own storage.
 
+### Underfilled clips → dangerous improv (R10, 2026-06-11)
+Veo fills whatever duration you request — a SHORT line in a LONG clip leaves a void it fills with invented monologue. A 10-word hook in an 8s clip produced a full defamatory ramble ("...it is a prison that houses women who have committed serious crimes... housed with male inmates"). **Match dialogue length to duration at ~2.4wps: ≤10 words → duration=4; 15-19 words → 8s.** Never leave >2s of unscripted room. Per-clip Scribe QA catches it when it slips through — and also catches clip↔line MAPPING bugs after any re-segmentation (an off-by-one in R10's loop silently dropped a beat and shifted every line; the transcript check caught it on clip 2). Verify the first persona's transcripts line-by-line before letting a big multi-persona batch run.
+
+### Background stillness — prompt lock + dense QA + frozen-plate rescue (2026-06-11)
+Veo renders background motion non-deterministically per clip (washer drums spin, doors swing open, cars pass), breaking stitched-ad continuity. Three-part rule:
+1. **Prompt:** audit each persona setting for motion sources BEFORE generating; add a global BACKGROUND LOCK clause ("completely STATIC — no moving people, vehicles, screens, flickering lights; nothing in motion except her") plus setting-specific locks (machines IDLE + doors CLOSED, street empty, car PARKED engine off).
+2. **QA (user-locked):** background-motion checks need DENSE sampling — `fps=6` tile grid over the WHOLE clip, NOT a single spot frame. A door swing is an event in time; a single-frame check passed a still-moving door twice.
+3. **Deterministic rescue:** when re-rolls keep drawing motion and a VEED alpha matte exists, composite the persona cutout over a FROZEN (blurred) background plate for the offending segment — motion becomes impossible. Used on the l7 laundromat CTA. Reference: `scripts/cawp_r10_blur_finish.py` + memory `feedback_static_backgrounds`.
+
+### google-flow free queue ops (403/429)
+The free `veo-3.1-lite-low-priority` queue throws transient 403s under sustained load — `googleflow_client` retries internally and usually recovers, but a run can die when retries exhaust, and hard 429s leave a `[FAIL]` hole. **Just relaunch the same gen script**: skip-if-exists resumes at the first missing clip; a final sweep re-run fills the holes. Server-side jobs survive local process death (same as KIE/Poyo). Don't run parallel one-off gens during a big batch — the extra submit pressure feeds the throttle.
+
 ### Improvisation patterns
 Veo will frequently:
 1. **Insert filler words** between sentences (often Spanish-sounding gibberish like "Hoeya", "Bacchiazade")
@@ -766,6 +817,25 @@ Per-ad finalize order that produced clean stitched ads: **Scribe-QA → word-awa
 - **Shell gotchas (the Bash tool runs zsh, not bash — bit us twice this session):**
   1. **Unmatched glob aborts the whole command.** `rm clipA* clipB*` where one pattern matches nothing → zsh errors `no matches found` and runs NOTHING, so you silently reuse stale intermediates (the "tighter trim + VC" looked applied but wasn't — duration was byte-identical). Use `find <dir> -maxdepth 1 \( -name '...' -o -name '...' \) -delete` for multi-pattern cleanup.
   2. **No word-splitting of unquoted vars.** `for pair in "d sister-call"; do set -- $pair; ad=$1; slug=$2; ...` does NOT split in zsh — `$1` becomes the whole `"d sister-call"` and `$2` is empty (a caption batch silently rendered the wrong paths). Either write explicit per-item commands (most reliable), use a real array, or force-split with `${=pair}`. Don't assume bash word-splitting in loops.
+
+### Transcript word-matching QA — canonicalize before comparing (K-Veo, 2026-06)
+
+Any QA that compares a Scribe transcript word-by-word against the scripted line (clean-verify
+reject logic, word-aware trims, overlap detection) MUST canonicalize BOTH sides first, or it
+false-rejects clips whose audio is actually perfect:
+- **Scribe renders spoken amounts as DIGITS** — "a hundred and sixteen million dollars" comes back
+  as "$116 million", which breaks exact-word subsequence matching ("missing words"). Fold any
+  number phrase (number-words + glue + currency) to a single `#num#` token on both sides.
+- **Benign colloquial swaps** — `got to↔gotta`, `going to↔gonna`, `an↔a` read as missing/extra words.
+- **Reaction chains** ("Mm-hmm", "uh-huh") carry internal hyphens — strip nasal/vowel-only chains.
+- **Check defects (false-start hyphen, stutter) ONLY inside the kept span** — trailing/leading
+  improv is trimmed at assembly anyway; rejecting on it re-rolls clips you'd trim regardless.
+
+Reference implementation: `_prep` / `_prep_ts` in `scripts/podcast_omni_produce.py` (the trim
+matcher uses the same canonicalization with timestamps so the cut still lands on the intended
+words). Diagnostic rule: when several clips fail the SAME reject reason on a new model, read the
+actual rejected transcripts before burning re-rolls — on K-Veo, 3 of 7 beats were false-rejected
+3× each (~9 wasted generations) and all cleared first-try once the checker was fixed.
 
 ### STS pitch-delta zones — when voice_changer works vs fails
 
@@ -888,6 +958,16 @@ Stack is free, local, no API calls. Resemblyzer is Apache 2.0; weights bundled (
 
 **Run both.** Tier 1 catches volume/mic-floor issues. Tier 2 catches speaker-identity drift. Each misses what the other catches.
 
+### Two-speaker interview trap — correct lip-sync can still be the wrong voice (2026-06-12)
+
+For reporter/interviewee, host/guest, or other 2-speaker clips, do **NOT** stop at "the right mouth is moving." Veo/Kling can assign the mouth movements correctly while both lines still sound like the same man. On the IL JDC Chicago-El interview test, reporter vs interviewee landed at ~130.2 Hz and ~128.8 Hz (`Δ≈1.4 Hz`) — visually acceptable, audibly the same voice.
+
+Rules:
+- Audit **each speaker turn separately** with `scripts/voice_consistency.py` or at least a quick F0 readout.
+- If the two speakers land in nearly the same register/timbre, fail the clip even when lip-sync passes.
+- Default rescue path: **restructure to one speaker per clip** (question clip, answer clip) instead of forcing a 2-voice exchange into one generation.
+- **Kling 3.0 element refs** hold two faces better than Veo Lite/Fast, but keep continuous 2-person takes short (~7s) because Kling may auto-cut mid-clip even with `multi_shots=False`.
+
 ---
 
 ## Aspect-ratio deliverables
@@ -961,7 +1041,7 @@ How the hormozi3 look was reverse-engineered + tuned against the reference, and 
 
 ---
 
-## User skills (`~/.claude/skills/`)
+## User skills (`~/.codex/skills/`, mirrored in repo `skills/`)
 
 These auto-surface on relevant user phrases. Don't need to invoke manually — Claude does it.
 
@@ -969,6 +1049,7 @@ These auto-surface on relevant user phrases. Don't need to invoke manually — C
 |---|---|---|
 | `yellow-text-sub` | "caption this", "add subtitles", "Submagic style", "yellow highlight subs" | Full settings for `caption_styled.py` — font 0.0336, aspect-aware vertical_pos, yellow_text default, disclaimer integration. |
 | `hormozi3` | "Hormozi captions", "Hormozi 3", "Submagic Hormozi", "yellow green red captions" | `caption_hormozi3.py` — Montserrat Black, rotating yellow/green/red per-line accent, text pop, animated emojis sliding across the subtitle. Font fixed 0.0336, 2-words/line, single-pass render. Global parametric rule. |
+| `nick-subtitle` | "Nick subtitle", "Submagic Nick", "dark pill captions", "Nick captions" | `caption_nick.py` — sentence-case white bold sans on a dark rounded box, ~2 words/card, no emoji, no color accent. Use for calmer legal/talking-head captioning with exact transcript control. |
 | `pulaski-jones-disclaimer` | "the disclaimer", "Pulaski/Jones disclaimer", "Chowchilla disclaimer", "CCWF disclaimer" | Verbatim legal text + on-screen styling for the women's-prison campaign. **DO NOT paraphrase** — regulated. |
 | `feed-4x5` | "make it 4:5", "feed version", "Instagram feed crop", "Reels to feed" | `crop_4x5.py` invocation + the letterbox-detection rationale. |
 
@@ -1005,6 +1086,14 @@ For variants (A/B test same script with different character), pick a different a
 
 **Survivor/confession personas must read ORDINARY, not celebrity (2026-05-25).** For abuse-survivor confession ads the persona has to look relatable and real, or it doesn't land. Append a realism tail to the image prompt: *"Photoreal candid documentary photo (NOT a glamour or fashion shoot, NOT a celebrity portrait) — an ordinary everyday-looking man, plain average features. Natural skin with visible pores, blemishes, uneven tone, slight under-eye shadows, imperfect teeth, no beauty retouching, no filter, no makeup."* Reference batch: `scripts/jdc_podcast_real.py` / `real2.py` (real_01–20 hosts). Also: a too-young-reading face can trip Veo's child-safety block on benign lines — pick an age-appropriate persona for abuse dialogue.
 
+**Chicago survivor realism needs fatigue, not polish (2026-06-12).** When the brief is "Chicago victim 10 years later" or "from the streets/hood, realistic," warm/friendly/promotional language produces faces that are too clean and aspirational. Push the prompt toward weary documentary realism: Black man in his 30s, average features, tired eyes, uneven skin tone, slight facial heaviness, no smile, no beauty mode, no retouching, phone-camera or local-news realism. Do NOT write him like a fashion portrait or lifestyle ad.
+
+**Background-preserving person swaps: nano-banana first (2026-06-12).** If the user gives an existing photo and says "keep this exact background, only change the person," default to `generate_nano_banana` or another strict edit model. `gpt-image-2` i2i tends to re-stage the whole car/interior and beautify the face instead of performing a faithful swap. Preserve crop, camera angle, lighting, reflections, seat/interior geometry, and replace only the subject. After picking the right face, re-run **one locked variant** for the required 2K portrait output instead of broad batch re-generation.
+
+### Persona batches need explicit per-persona facial identity (2026-06-11)
+
+gpt-image-2 MODE-COLLAPSES on repeated demographic prompts: 15 "ordinary Latina woman, 40s-60s" prompts varying only age/setting/clothes returned the same face in 15 outfits (user: "they all look the same... we need to generate each separate identity"). **Give every persona an explicit anthropometry block**: face shape (round/long/heart/square/gaunt/angular), skin tone across the real range (light olive ↔ deep brown; indigenous/Afro-Latina features), nose/lips/brows, build (heavyset/athletic/thin), hair texture, distinguishing marks (mole, scar, missing tooth, penciled brows). Reference batch: `scripts/cawp_latina_personas2.py` (l7-l21). For incarcerated-population realism, include a hard-lived subset and fine-line tattoos on FOREARM/HAND/CHEST only — necks stay clean (neck ink + abuse dialogue compounds Veo moderation). One persona = one facility/life story across simultaneously-running ads; don't have the same face claim different prisons or timelines.
+
 ### Announcer vs confession register — pick GAZE to match (2026-05-25)
 Two distinct talking-head registers, and the **gaze must match the register** or it reads wrong:
 - **Confession** (intimate first-person disclosure): GAZE = **off-camera**, talking to a host/someone in the room; viewer is "overhearing." Off-camera gaze sells the candid feel.
@@ -1013,6 +1102,10 @@ Putting a hype direct-response read into a "confession" visual (off-camera gaze)
 
 ### Reverse-engineering a winning reference ad → new scripts (2026-05-25)
 When the user drops a high-performing ad and wants more like it: transcribe it (Scribe), extract its **beat structure** (the IL JDC winner had 9: hook/geo → qualifier (abuse + facilities) → payoff → kill-objection (no paperwork) → urgency → low-risk (no court/cost) → confidential → CTA → FOMO close), then replicate the structure with fresh, compliance-correct copy. Vary hook/facilities/close per variant. **Compliance rewrite is mandatory** — winning ads often say "owed compensation"/"money won for you"/"what's yours" (all imply a guaranteed payout); rewrite to "may qualify for significant compensation" / "Illinois is paying" (never "paid"/"owed"/"settlement").
+
+**If the user wants the SAME winner angle, keep the angle but not the sentence skeleton.** Preserve the winning framing/camera position and overall beat logic only as the scaffold. Rewrite the discovery mechanism, sentence rhythm, and disclosure logic so each variation sounds like a different person telling the same truth, not a synonym-swapped clone of the winner.
+
+**Name approved concepts and finals with descriptive slugs, not just letters.** `A/B/C/D` are fine during ideation, but once a concept survives review, rename it to something human-readable like `confession`, `sister-call`, `read-twice`, or `direct`. This prevents confusion during captioning, re-renders, launch staging, and future session handoff.
 
 ### Re-finalize efficiency — clear only the re-rolled clip's VC cache
 When you re-roll a single clip and re-run the finalize: the trim step always regenerates, but `voice_changer` is **skip-if-exists** on `vc/clip{N}_vc.mp3`. So delete ONLY the re-rolled clip's `vc/clip{N}_vc.mp3` (and let trim regenerate `trimmed/`); all other clips reuse their cached VC → no wasted ElevenLabs calls, finalize stays cheap.
@@ -1063,11 +1156,11 @@ When the user wants ACTUAL photos of real facilities (vs AI-generated), these we
 
 **Copyright caveat:** all of these are copyrighted (advocacy non-profits, news orgs, construction companies). User-explicit "fair use / ignore copyright" only — for cleared commercial campaigns, license images or use AI-generated alternatives.
 
-### Video matting via Replicate RVM — specifics
+### Video matting / background removal — VEED on fal (preferred), RVM legacy
 
-Replicate `arielreplicate/robust_video_matting` is the proven path for matting persona out of existing UGC. Pricing ~$0.05–0.15 per clip.
+**Preferred (user-locked 2026-06-10): VEED background removal on fal** — `fal_client.remove_background(video_path, out_path)`, model `veed/video-background-removal/fast` (~$0.012/30 frames ≈ $0.08 per 8s clip). Default `output_codec="vp9"` returns a webm **with a real alpha channel** → composite with plain ffmpeg `overlay` (put `-c:v libvpx-vp9` BEFORE the webm input to preserve alpha) — **no chromakey, no green spill**. `variant="green-screen"` exists if a keyable green output is needed; the standard (non-fast) variant adds edge refinement at ~2x price.
 
-Specifics from production use:
+Replicate RVM below is the **legacy fallback** (`arielreplicate/robust_video_matting`, ~$0.05–0.15 per clip). Specifics from production use:
 - **RVM green color is `0x78FF9A`** (light-leaf green), not pure `0x00FF00`. Sampled from actual Replicate output.
 - **chromakey settings**: `similarity=0.12, blend=0.04` — milder than defaults. Grey clothing has similar luminance to green; aggressive chromakey eats hoodies.
 - **RVM strips audio** — pass the ORIGINAL mp4 as a 3rd input to ffmpeg for the audio map (`-map 2:a`).
@@ -1111,6 +1204,8 @@ Keep a **cold / muted / desaturated** block for dark beats and a separate **BRIG
 
 ### Creative
 - **Open on a CHARACTER (a face), not an establishing building** — for cold-traffic scroll-stop a scared kid's face >> a skyline. The building/skyline establishing belongs in a LATER beat. (A/B'd both: `explainer_v2` police-open vs `v1` building-open — the face-open hooks harder.)
+- **Make proof beats literal, not abstract.** If the line says he saw the news / learned Illinois paid out millions, show the character READING or SEEING the news and reacting in shock. If the line says other people came forward, show MANY survivors, not a single generic figure. If the line says "locked me up," land on bars / a closing cell / escort, not a vague hallway.
+- **Hope beats need instant contrast.** When the copy turns toward justice / relief / brighter future, switch to a clip that is already bright and joyful from frame one. A slow emotional transition misses the beat and feels late.
 - **A meaningful ending beats an abstract one** — "face turning into the light" read as random; "the man kneeling to comfort his younger self" (closure) was the fix.
 
 ---
@@ -1139,6 +1234,10 @@ Once an ad is finished, push it into **AdMachin** (the user's own ad platform �
 - **No `/projects` or `/me` endpoint yet.** Find `project_id` via `list_ad_plans()` or the web UI. PAT scopes can't be introspected up front — a missing scope only surfaces as `FORBIDDEN` at call time.
 - **`launch_ad` needs FB ids that must already exist:** `ad_account_id` (`act_…`), `campaign_id`, `adset_id`, `page_id`, `cta_type` (e.g. `LEARN_MORE`), `landing_url`. Requires the `launch:meta` scope. The client passes a **stable** idempotency key (`launch-<ad_id>`) so a re-run within 24h won't double-spend.
 
+### Copy approval gate (user-locked rule, 2026-06-11)
+
+**Present every headline + primary text VERBATIM in chat and get explicit approval BEFORE creating copy rows or assembling ads.** A template walkthrough or hook-list pick is NOT approval — the final assembled text is what needs sign-off (user: "I need you to present it here for me to approve before you upload it to admachin"). Best pattern (R10): present ~10 lettered options per copy type, the user picks a pool, then sense-pair approved combos across creatives (round-robin, matching copy details like timeframes to each video). If staging ever runs ahead of approval, present everything immediately and amend rejected rows via new copy + `update_ad`. Also: **one writer per JSON state file** — two staging scripts sharing one state file clobbered each other's ids mid-run (read-modify-write race; recover ids from the printed log).
+
 ### Launch safety (user-locked rule)
 
 **Launch is gated, never the default.** A plain `admachin_push.py <video>` run stops at a draft ad and prints the id. Launching requires `--launch` AND confirmation: an interactive `type LAUNCH` prompt, or `--yes` for automation. With no TTY and no `--yes`, the launch is **refused** (never silently spends). Per-campaign FB targeting lives in **`admachin_targets/<name>.json`** (gitignored — holds FB ad-account/campaign ids), selected with `--campaign <name>`; CLI flags override. Print a template with `--print-config-template`.
@@ -1157,6 +1256,41 @@ The AdMachin MCP server is distributed as the private GitHub Packages npm packag
 - `upload_creative` lands in the **default (null) project** if no `project_id` is passed. **`update_creative_metadata` MOVES a creative between projects/subprojects** (re-tag, no re-upload needed) — use it to fix mis-filed uploads.
 - `list_ad_plans` / `list_ad_copies` return **huge payloads** (saved to a tool-results file) — query with `jq`, don't dump.
 - `find_or_create_ad_plan` is idempotent (key = project_id + subproject_id + title). Upload is free/safe; **launch SPENDS — keep it gated.**
+
+---
+
+## Session Memory Pass
+
+When the user asks to update learnings, save memory, create rules/skills from a completed session, or prevent the same mistakes in future sessions, use the `session-memory-pass` skill. Use judgment: save only durable lessons that are likely to matter again, including user preferences, rejected directions, wording constraints, prompting lessons, model/provider gotchas, production QA findings, scripts/assets/final outputs, and "do not repeat" patterns. Put campaign-only details in `inventory/` or `outputs/<campaign>/`, broad project rules in `CLAUDE.md`, and reusable workflows in `~/.codex/skills/` mirrored to repo `skills/`. Commit/push only the memory/rule changes and leave unrelated dirty files alone.
+
+---
+
+## Git / GitHub Handoff Safety
+
+- **Re-check branch + status immediately before staging and immediately before pushing.** Multiple Codex sessions can operate in this repo at once; another session may checkout a branch, commit the dirty files, or push while this session is still reasoning. Do not trust an earlier `git status`.
+- If expected dirty files disappear or the branch changes mid-task, pause and inspect `git status`, `git log --oneline -8`, `git reflog -8`, and `git diff main..HEAD` before doing anything else. Determine whether another session already committed the work instead of creating duplicate or conflicting commits.
+- Before pushing a branch that includes newly captured work, run a secret scan over exactly what will be committed or pushed. For a branch already committed by another session, scan `git diff --name-only main..HEAD` file contents before fast-forwarding `main`.
+- When a fast-forward is safe but the active worktree is on another session's branch, prefer `git push origin HEAD:main` over switching branches. This avoids disturbing the other session's checkout while still updating GitHub.
+
+### Secret handling (learned the hard way, 2026-06-12)
+
+- **Never write a real secret value into ANY file — including scratch notes and session logs.** `SESSION_LOG.txt` once captured two plaintext API keys (KIE + ElevenLabs) and got pushed; cleanup took a full `git filter-repo` history rewrite + force-push. Reference keys by env-var name only (`KIE_API_KEY`); values live exclusively in gitignored `.env`.
+- **A secret pushed to GitHub is compromised — rotation is mandatory, scrubbing is not enough.** `git filter-repo` + force-push rewrites the branches, but GitHub keeps serving orphaned commits by SHA for ~90 days, and any clone/fork retains them. Scrub to stop casual discovery, then tell the user to rotate the key in the provider dashboard.
+- **Redact, don't delete (user-locked).** When cleaning secrets out of a useful file, replace only the secret with a `[REDACTED-...]` placeholder and keep the rest of the content. Deleting the whole file threw away session notes the user wanted; the fix was recovering the content from the orphaned commit via the GitHub REST API and restoring it redacted.
+- **Positive-control every secret scan.** `grep -E "key1\|key2"` matches a literal pipe in ERE — silent false negatives (this happened during the audit). Before trusting a "no hits" result, confirm the pattern matches a planted test string.
+
+---
+
+## AdMachin Tort / Sensitive UGC Rules
+
+For AdSwipe analysis, tort/legal UGC scripts, women's-prison campaigns, CIW/CCWF ads, Veo talking-head production, or legal captions, use the `admachin-video-ads` skill. Core rules:
+
+- Analyze AdSwipe videos transcript-first; viral metrics are sparse and should not drive the whole decision.
+- Put audience + harm + "may qualify for significant potential compensation" in the first 5 seconds.
+- For sexual-abuse/prison-abuse/legal ads, avoid flashing per-word captions and emoji-heavy styles; prefer calm phrase captions, Nick, simple `caption.py`, or `caption_hormozi3.py --no-emoji`.
+- Avoid "private check" because it can sound like a payment. Prefer "private form," "private page," "free case review," or "private questions."
+- If Veo/Scribe mishears a key word repeatedly, rewrite around it instead of retrying forever.
+- Verify clip 1 before parallelizing clips 2-N, and QA stitched boundaries for ghost tails or soft-dissolve artifacts.
 
 ---
 
@@ -1180,19 +1314,28 @@ The AdMachin MCP server is distributed as the private GitHub Packages npm packag
 - **Use `kie_client.generate_veo` for Veo3 Fast** — route to Poyo (`poyo_client.generate_veo`) at $0.10/clip. KIE is $0.30/clip.
 - **Run >4 `dissect.py` instances in parallel** — transcription is now ElevenLabs Scribe (5-concurrent account cap, shared with TTS/voice_changer). Cap at ~4 with `xargs -P 4` to avoid 429s. (The old MAX-2 rule was about local Whisper memory, which no longer applies.)
 - **Burn captions onto deliverables by default** — user does captioning in post. Only burn when explicitly asked ("caption this", "with the disclaimer", "Submagic style").
+- **Use frozen frames, frame holds, deshake, or speed changes to hide cut-off words, silence, mic glitches, or bad gestures unless the user explicitly approves that exact post process.** The user finds these unnatural. Prefer re-trimming at original speed or re-rolling the bad clip.
 - **Submit >20 Poyo generations in parallel** — submit rate limit is 20/10s account-wide. Use `max_workers=10`.
 - **Pass 1 image to Poyo `generation_type: "frame"`** — requires exactly 2. For clip-1 anchor pattern, pass the anchor URL twice (start=end).
 - **Naive `crop=720:900:0:0` to make 4:5** — keeps Veo's baked-in letterbox bars. Use `scripts/crop_4x5.py` which runs `cropdetect` first.
 - **Paraphrase the Pulaski/Jones disclaimer** — it's REGULATED legal copy. Every comma is intentional. Skill `pulaski-jones-disclaimer` has the verbatim text.
 - **Frame Veo dialogue as a news-headline** (e.g., "Women from the X are finding out…") — triggers newscaster TTS that doesn't match intimate UGC tone. Rewrite conversationally.
+- **Postprocess AI-video problems with frozen frames, slowdown, stabilization, or forced zoom/crop fixes unless the user explicitly approves** — these make videos feel unnatural. Prefer rerolling the bad clip, changing the seed/avatar, or tightening the prompt/provider route.
+- **Wait until after verification/post-production to share generated video chunks or finals** — the user wants the clickable video path/link immediately after generation, before QA or cleanup.
+- **Default to ElevenLabs Voice Design for reporter/native-video ads** — user rejected the generated reporter voices as fake. Use model-native audio first; use generated external voices only when explicitly requested.
+- **Prompt Replicate p-video with subtitles, lower-thirds, news graphics, or verbose instructions** — it can hallucinate baked text and camera drift. Use short fixed-camera prompts with explicit "no screen text, no graphics, no labels, no logos."
 - **Use quote-framing in dialogue** ("And it said…", "She's like…") — Veo sometimes renders the framing as a separate off-screen narrator voice. Drop the framing.
 - **End a noun list with an em-dash before the next clause** (e.g., "…Cook County, St. Charles, or Harrisburg — I need…") — Veo invents a noun to complete the list ("Coast Center"). Use a preposition + closing comma: `"locked up in [list], I need…"`.
 - **Include "Black man" in Veo prompts paired with sensitive-topic dialogue** (sexual abuse, juvenile center, lawsuit) — deterministic moderation block. Use a skin-tone descriptor only: `"man, medium-dark skin tone"`. Same applies to specific commercial settings ("Chicago corner store"), in-car settings + young Black male persona, and neck-tattoo descriptors. See "Veo content-moderation triggers".
 - **Retry voice_changer with higher stability to fix big pitch drift** — STS preserves source pitch by design. If F0 delta from ref clip is >40Hz, re-roll the source via Veo instead. Bumping `stability=0.5 → 0.7` only moves sim ~0.03 (0.724 → 0.752 — still under 0.85 threshold).
 - **Skip `voice_consistency.py` when user reports voice changes** — `audio_match.py`'s ±20% centroid tolerance is too loose to catch what humans hear. Always run both detectors.
 - **Dissect multiple `clip1.mp4` files in one run** — they all overwrite `outputs/clip1/`. Copy to unique stems first: `outputs/illinois_jdc_<slug>_clip${idx}.mp4`.
+- **Reject/re-roll clips on RAW exact-word transcript matching** — canonicalize both sides first (Scribe renders amounts as digits, swaps got to/gotta + an/a, inserts hyphenated reactions) and check hyphen/stutter defects only inside the kept span. Raw matching false-rejected 3 of 7 K-Veo beats ~9 generations' worth; all passed first-try after the fix. See "Transcript word-matching QA" section + `_prep`/`_prep_ts` in `scripts/podcast_omni_produce.py`.
 - **Keep submitting Poyo after 10min timeouts on known-good payloads** — that's a Poyo-wide outage. Switch to `kie_client.generate_veo` at $0.30/clip instead of burning budget on retries.
 - **Present video file paths as plain text** — the user's chat client only renders a clickable inline preview when the path is wrapped in `` `backticks` ``. Plain text paths, paths inside markdown table cells, paths in markdown link syntax `[label](path)`, `file:///` URLs, and `http://localhost:<port>/` URLs all FAIL to trigger the preview. Every video file (generated clip, source upload, b-roll, composite, stitched final, aspect variant) must be backticked. See the "Presenting videos in chat" section above.
 - **Use Veo 3.1 Quality (`veo3`) on KIE** — HARD RULE: NEVER. Always start with Veo 3.1 Lite (`veo3_lite`). Only fall back to Veo 3.1 Fast (`veo3_fast`) after 2-3 Lite failures on the same prompt for the same failure mode. If Fast also fails, stop and escalate to the user — do NOT use Quality. Memory: `feedback_veo_tier_routing.md`.
 - **Call `admachin_client.launch_ad` / `POST /launches` without the `--launch` gate** — launching SPENDS REAL MONEY on Facebook. Always go through `scripts/admachin_push.py`; launch is gated behind `--launch` + confirmation (`type LAUNCH`, or `--yes` for automation). No TTY and no `--yes` = refuse, never silently spend. See "Publishing to AdMachin".
 - **Commit the `ADMACHIN_PAT` or `admachin_targets/`** — the PAT lives in gitignored `.env` (+ `~/.claude.json` for MCP); the per-campaign FB targeting configs are gitignored. Never hardcode the PAT or paste it into a tracked file.
+- **Create AdMachin copy rows or assemble ads before the user has approved the FULL text verbatim in chat** — a template walkthrough or hook-list pick is not approval. Present every headline + primary final-form first. See "Copy approval gate".
+- **Verify background stillness from a single frame** — door swings/drum spins are events in time; use the `fps=6` dense tile grid over the whole clip. See "Background stillness".
+- **Give a video clip more duration than its dialogue fills** (~2.4wps; ≤10 words → 4s) — Veo fills the void with invented, potentially defamatory monologue. See "Underfilled clips".

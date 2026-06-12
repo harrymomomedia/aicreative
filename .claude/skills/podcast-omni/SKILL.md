@@ -98,6 +98,16 @@ A single mid-clip frame MISSES this — the start of a clip usually matches the 
 
 To fix a video made before the short recipe: build a contact sheet of all its clip mid-frames, **visually identify which clips' background differs from the reference**, and **re-roll ONLY those** with the short recipe (skip-if-exists keeps the good ones). Don't re-run the whole video — that wastes credits.
 
+## Veo 3.1 Lite low-priority variant (FREE path) — verified on K, 2026-06
+
+The same producer runs on the free google-flow model: `POD_MODEL=veo-3.1-lite-low-priority .venv/bin/python scripts/podcast_omni_produce.py <LETTER>` → outputs tagged `_veo` (`<L>_<persona>_veo_la/`, `<L>_veo_full.mp4`). Everything below differs from omni-flash — do not carry omni assumptions over:
+
+- **I2V (`startImage`) ONLY — never R2V.** On this model, R2V (`referenceImage_1` / MULTI_REFERENCE_NO_STYLE) is **8s-only** (4s/6s → instant HTTP 400) AND re-imagines the background per clip. `startImage` allows 6s/8s and locks the persona PNG's background perfectly. `REF_PARAM` switches automatically via `IS_VEO`.
+- **Chunk FULLER beats, never split.** Veo chunks are 13–23 words (curated per letter in `VEO_CHUNKS`), `dur_for` = 6 if ≤14 words else 8. Tiny clips (a 4-word "Sis, listen") fail the guardrail MORE on this model; a failing Veo chunk is dropped, not split (`do_chunk` enforces). Underfilled clips invite improv — match words to duration.
+- **clean-verify MUST canonicalize both sides (the false-reject epidemic).** Veo Lite's podcast register systematically appends trailing improv ending in a hyphen ("…prison- …and they-") and inserts reactions; Scribe renders spoken amounts as DIGITS ("a hundred and sixteen million dollars" → "$116 million") and swaps `got to↔gotta`, `an↔a`. Raw exact-word checks falsely rejected 3 of 7 K beats (hook, facility list, $116M) × 3 attempts each ≈ 9 wasted generations. Fix (in `_prep`/`_prep_ts`): strip reaction-token chains, fold colloquials, fold number phrases to one `#num#` token; check hyphen/false-start + stutter **only inside the kept span** (trailing/leading improv is trimmed at assembly anyway). The jump-cut matcher uses the SAME canonicalization with timestamps, so the trim still lands precisely after the last intended word. After this fix all 3 dropped beats cleared FIRST attempt — when several beats fail the same `clean()` reason on a new model, suspect the checker before burning re-rolls: read the actual rejected transcripts first.
+- **Watermark: the free tier ALWAYS burns "Veo" bottom-right.** Remove ONCE on the assembled file (before captions), ratio-preserving — center-crop `675:1200` (= 9:16 exactly; drops the bottom ~80px) → `scale=720:1280` (uniform 16/15× both axes). **User-locked: never stretch, never per-clip.**
+- **Pacing QA:** delivered wps = intended words ÷ trimmed `_jt` span. K landed mean ~2.9 wps, spread 0.8 across clips — acceptable; the word-count duration ladder is what keeps the spread tight.
+
 ## Related
 
 - `caption-disclaimer` — the burn-in step (run AFTER the user approves the clean cut): subtitle-only, disclaimer-only, or combo. Routes to `caption_hormozi3.py` + `burn_disclaimer.py`.
