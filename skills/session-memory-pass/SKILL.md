@@ -41,6 +41,9 @@ If a live skill is updated, mirror the same change into the repo `skills/` copy 
 ## Git Hygiene
 
 - Inspect `git status` before staging.
+- Re-check branch + status again immediately before pushing. In this repo, concurrent Codex sessions can checkout branches, commit the same dirty files, or push while a memory pass is in progress.
+- If expected dirty files disappear or the branch changes mid-task, stop and inspect `git status`, recent `git log`, `git reflog`, and the relevant branch diff before staging or pushing. Another session may already have committed the work.
+- Run a secret scan over exactly what will be committed or pushed before publishing, especially when API tokens or ad-platform launch configs were discussed in the session.
 - Commit only memory, skill, rulebook, or learning-file changes.
 - Do not stage unrelated dirty files, generated outputs, secrets, or the user's unrelated work.
 - If a file has unrelated existing edits, stage only the memory hunk.
