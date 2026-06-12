@@ -65,3 +65,43 @@ Scripts: `scripts/cawp_r10_winner_gen.py`, `cawp_r10_assemble.py`, `cawp_r10_blu
   (15). Unused bench: l13, l15, l16, l18, l20. One persona = one facility/story across live ads.
 - Free-queue throughput reality: ~150+ clips/day works, but expect 403 retries and occasional
   run death + 429 holes late in the day — relaunch, sweep, done.
+
+## A–E story testimonials (2026-06, 4th format)
+
+Intimate single-persona confession arc, 6 clips × 8s (~42–44s): topic + "sexual abuse" by beat 1–2,
+compensation arrives NATURALLY mid-story (~beat 4), CTA close. Full "significant potential
+compensation". A=grooming ("the nice officer", latr8), B=retaliation ("punished me, not him", latr9),
+C=aftermath ("the flinch", latr1), D=counselor dismissal (latr10, parked car), E=social proof ($100M,
+latr3). Persona pool: approved Latina-rough `latr1/2/3/6/8/9/10` + new wide-variety batch `latr22–31`.
+
+- **Scripts:** `scripts/ccwf_gen.py` (FREE google-flow veo-3.1-lite-low-priority), `ccwf_personas.py`
+  (gpt-image-2 stills), `ccwf_finalize.py` (RAW-VEO-audio finalize: word-aware trim → watermark-crop
+  `664:1180:28:0→720×1280` → per-clip gain → concat → master limiter), `ccwf_voice_audition.py`.
+  **Naming slip — used `ccwf_`/`outputs/ccwf_story*` instead of the campaign's `cawp_` prefix; prefer
+  `cawp_` next time (see `feedback_naming_convention_campaign_persona`).**
+- **Voice = RAW VEO audio (user choice, no voice_changer).** Veo collapses every persona to ~one voice
+  (per-prompt voice variety is weak); user accepted raw Veo over VC-differentiating "for now". If
+  differentiation is ever needed, the ElevenLabs account has ~8 distinct Latina/Hispanic women voices
+  (Hispanic 50/53/54/55/60, Latina_F_55, Hazel) — VC each ad to a distinct one; `ccwf_voice_audition.py`
+  auditions them on one clip.
+- **Veo PARKED-CAR must not move (story D):** i2v adds DRIVING motion to night-car scenes (streetlights
+  slide past, reads as driving). Fix = aggressive lock in the prompt's `extra` field ("PARKED, ENGINE
+  OFF, locked-off shot, the world through every window is a FROZEN still image, NOTHING outside moves")
+  **+ generate 2 takes and auto-pick the one with the least window-region frame-diff** (measure right-side
+  motion across sampled frames). Prompt alone is not enough; the 2-take pick is what nailed it.
+- **Veo "X and Y" between two proper nouns → "X in Y"** (Chowchilla **and** Chino rendered as Chowchilla
+  **in** Chino — conflates two separate prisons). Two re-rolls both did it. Fix = rewrite to the "at
+  Chowchilla **or** Chino" qualifier (renders clean, matches B/C/D). General: don't join two proper nouns
+  with "and"; use "or" / restructure.
+- **Finalize trim gotcha:** Scribe reformats spoken numbers ("a hundred and three" → "103"), so the
+  word-aware trim's leading subsequence match starts AFTER the number and chops it (E clip04 lost "103
+  women"). Fixed in `ccwf_finalize.py`: when the first intended word is unmatched, back up over leading
+  non-improv transcript words to keep the spoken number.
+- **AdMachin:** 5 combo deliverables (Nick captions + Pulaski/Jones disclaimer) → Tort/Women's Prison;
+  5 draft ads = headline `c53d1ea3` ("Chowchilla Survivors May Qualify") + primary `79fe1553`. **A LAUNCHED
+  ad (#361, creative #654 = story E) had the WRONG juvie primary #465 — launched ads are IMMUTABLE, so
+  the fix is "create one more" (a new draft ad with the correct primary), never edit the live one.**
+  Subproject now resolvable by NAME (`list_subprojects(project_id, search="women")` → `acf1b974`).
+- **Both internal caption engines produced for this set:** `caption_nick.py` (Nick) and
+  `caption_hormozi3.py` (Hormozi 3), each combo'd with `burn_disclaimer.py`. NOTE: `caption_nick.py` +
+  the `nick-subtitle` skill already existed from a prior session — check before rebuilding a caption engine.
