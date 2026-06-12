@@ -10,6 +10,19 @@ Durable notes for Tort / IL JDC legal lead-gen work.
 - Recent tort testimonial creative rows include `#641`-`#649`.
 - Final ad rows from the storytime batch include `#337`-`#343`; later tort rows
   include `#348`-`#356`.
+- Standard "final ad" copy to REUSE for new tort/IL JDC ads: headline
+  `33205221-a2d0-4566-a132-f63452023344` = "TAP TO SEE IF YOU QUALIFY";
+  primary `280018ee-3326-4c11-b50d-3773e5607ed7` = the full "Were you sexually
+  abused as a kid while locked up in an Illinois juvenile detention center?…"
+  body. The most recent ads use headline + primary only (no description). Find
+  the last-used copy by `list_ads` (most recent row) → reuse its `headline_id` /
+  `primary_id`.
+- Assemble ads with `compose_ad_with_copy(creative_id, [headline_id, primary_id],
+  project_id, subproject_id)` — it auto-routes each copy to its slot by type.
+  Upload + assembly are FREE drafts (`is_launched:false`); LAUNCHING spends real
+  money and is gated — never launch without explicit confirmation. The 2nd tort
+  batch (#6 peer6 / #7 num7 / #8 scroll8 / #11 cost11 / #24 list24, Matt-L1
+  captioned) was uploaded + assembled as drafts on 2026-06-04.
 
 ## Wording Rules
 
@@ -45,6 +58,24 @@ Durable notes for Tort / IL JDC legal lead-gen work.
   wording matters. Submagic can alter legal wording (`SA'ed` risked bad STT).
 - Hormozi 3 Submagic-match captions are available for creator-style videos, but
   avoid flashy per-word styles by default on trauma/legal ads unless requested.
+- Submagic CUSTOM caption themes ARE usable via the API — but by **ID, not name**.
+  Pass `userThemeId` (a UUID), NOT `templateName` (which only matches the ~45
+  built-ins; an unknown name **silently falls back to "Sara"** with no error, so
+  it looks like it worked but didn't). `scripts/submagic_client.py --theme-id
+  <uuid>` applies it; `themename <uuid>` resolves a theme ID → its name (via a 1s
+  throwaway project, no export = no credit). There is **no list-themes endpoint**
+  (all 404), so the user supplies the ID once — get it in the app: open a project
+  → select the theme → pencil/edit icon → "Theme ID". The Submagic multipart
+  UPLOAD fails inside the Bash sandbox (`OSError 34 'Result too large'`) — run
+  caption jobs with the sandbox DISABLED (polling/download are fine sandboxed).
+  IL JDC custom theme **`Matt L1` = `de96476a-c235-410a-a3db-fa52a9265537`**
+  (white text + blue active-word highlight, Position-Y dragged below the chin —
+  the look the user approved for tort2). Full how-to:
+  `caption-disclaimer` skill → `references/external-caption-apis.md`.
+- Submagic auto-transcribes, so always spot-check the recovery phrase on output:
+  it kept "significant compensation" / "may qualify" / "sexually abused" intact,
+  but made cosmetic slips ("in there"→"in their", "nine hundred"→"900").
+  Cosmetic, not a compliance break — but verify the recovery phrase every time.
 
 ## Podcast / Winner-Style Learnings
 
