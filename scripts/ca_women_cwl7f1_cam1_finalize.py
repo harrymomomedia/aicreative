@@ -24,8 +24,9 @@ INTENDED = {
 }
 
 # ── special overrides: set if dissect reveals a trailing improv that needs exact cut ──
-# CLIP_TRIM_END = {3: 7.950}   # add if needed after reviewing dissect transcripts
-CLIP_TRIM_END = {}
+CLIP_TRIM_END = {
+    3: 7.92,   # trailing "So-" at 7.94s after intended "now." (7.90s end)
+}
 
 
 def run(cmd, label=""):
