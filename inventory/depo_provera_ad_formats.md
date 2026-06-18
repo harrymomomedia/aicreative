@@ -238,3 +238,30 @@ Then expand into Eligibility Board (#2), Symptom Self-Check (#5), Official Notic
 - Visual lane (photoreal-woman+clinical vs bold text-card vs faux-news/native-UI — varies by format).
 - Aspect ratios (default 1:1 + 4:5 for FB feed; add 9:16 for Stories/Reels).
 - Landing/CTA destination + whether to burn the disclaimer or leave for post.
+
+## Video testimonial track — DELIVERED (2026-06-15/18)
+
+First video format produced for this campaign: **diagnosis-first first-person testimonial**
+(messenger = ordinary **Black woman ~45**, the long-term-Depo/meningioma demographic). 7-clip
+~45s arc: meningioma-diagnosis hook → not-your-fault → Depo link → never-warned/not-alone →
+"may qualify for significant compensation" → kill objections (free, no court, confidential) → CTA.
+
+- **Scripts:** `depo_testimonial_personas.py` (6 distinct Black-woman ~45 anchors, explicit
+  anthropometry per persona), `depo_testimonial_gen.py` (7-clip i2v on useapi Lite, dialogue +
+  eye-color + no-text locks), `depo_testimonial_finalize.py` (word-aware trailing trim → loudness
+  match → stitch; NO watermark crop — user OK'd the Veo corner), plus the clip01-timeout fixes
+  `depo_p5clip01_fix.py` / `depo_lite_fix.py` / `depo_poyo_fix.py` / `depo_p5clip01_hipri.py`.
+- **Personas picked:** p4 = `persona_04_porch_angular_locs`, p5 = `persona_05_couch_full_headwrap`.
+  Deliverables: `outputs/depo_testimonial/p{4,5}_*/depo_testimonial_p{4,5}_{final,captioned}.mp4`.
+  Captions = **Hormozi 3 `--no-emoji`** (no emojis on a sensitive medical/legal ad).
+- **AdMachin (Tort → "Depo Provera" subproject `9cfb5b76-1dd3-4e07-b037-2dda178ac266`):** uploaded
+  the two CAPTIONED cuts → draft ads **#514** (p4) + **#515** (p5), copy headline #679 "Diagnosed
+  With a Meningioma?" + primary #680. **NOT launched** (gated). `ad_type` has a DB allowlist —
+  custom values 400 (`ads_ad_type_allowed`); omit it.
+- **Gotchas (full detail in memories):** generation is ALWAYS useapi google-flow Lite
+  (`feedback_veo_always_useapi_lite`); a deterministic per-clip Veo TIMEOUT was fixed by changing
+  INPUTS not tiers (`feedback_veo_deterministic_timeout`); NO disclaimer lingo in copy or
+  on-creative (`feedback_no_disclaimer_lingo_in_copy`).
+- **Open:** clip03 (both) — Lite renders "Depo" as **"depot"** (positional; clip07 says it fine).
+  Ship vs. rewrite clip03 to "that birth control shot". Image-ad batch (20 formats,
+  `depo_ads_gen.py`) still pending — strip its `ATTY`/`DRAMA` footers per the no-disclaimer rule.
