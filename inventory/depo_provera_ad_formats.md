@@ -116,9 +116,13 @@ Most competitors run **non-compliant payout language** we must NOT copy:
   **may** be available", "see if you qualify", "free, confidential case review", "no cost to
   check", "results not guaranteed". (Mirrors our locked tort phrasing; women's-prison lines use
   the fuller "significant **potential** compensation" — Depo phrase to be confirmed with user.)
-- ✅ Always include: **"Attorney Advertising"** + (for any human image) **"Dramatization. Not
-  an actual client."** + "Prior results do not guarantee a similar outcome." Competitors who do
-  it right: Keller Postman (#249), Morgan & Morgan (#367), #221.
+- ❌ **NO disclaimer lingo in the ad copy or on the creative** (user-LOCKED — memory
+  `feedback_no_disclaimer_lingo_in_copy`): do NOT add "Attorney Advertising",
+  "Dramatization / not an actual client", or "prior results…" to FB primary text, headlines, or
+  on-image footers. The "Attorney Advertising" seen in competitor swipe ads is a page-name
+  artifact, NOT a disclaimer to copy; required disclaimers live on the landing/advertiser page.
+  (This REVERSES an earlier draft of this doc that wrongly said "always include" — that guidance
+  shipped disclaimer footers onto all 20 creatives + primaries before the rule was applied.)
 - Keep the **explicit "meningioma / brain tumor" + "Depo-Provera" + eligibility window** on the
   creative (filters intake). Don't tell anyone to stop a prescribed medication (#371 wording).
 
