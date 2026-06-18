@@ -82,3 +82,61 @@ def scribe_whisper_compat(audio_path, biased_keywords=None, language_code="en"):
         "segments": [{"words": words}] if words else [],
         "language": raw.get("language_code", language_code),
     }
+
+
+QUEUE_BASE = "https://queue.fal.run"
+
+
+def remove_background(video_path, out_path, variant="fast", output_codec="vp9",
+                      subject_is_person=True, poll_interval=6, timeout=1800):
+    """VEED video background removal via fal — user-locked matting path (2026-06-10).
+
+    variant: "fast" (default, ~$0.012/30 frames) | "" (standard, edge refinement) | "green-screen".
+    output_codec "vp9" → single webm WITH ALPHA. Composite with plain ffmpeg overlay
+    (decode with `-c:v libvpx-vp9` before the input to preserve alpha) — no chromakey needed.
+    Returns out_path.
+    """
+    import time as _t
+
+    model = "veed/video-background-removal" + (f"/{variant}" if variant else "")
+    # fal validates video_url as a URL (max 2083 chars) — data URIs are REJECTED here
+    # (unlike fal's ElevenLabs audio endpoints). Host local files via KIE file-stream-upload.
+    if video_path.startswith("http"):
+        video_url = video_path
+    else:
+        from kie_client import upload_file
+        video_url = upload_file(video_path)
+    payload = {
+        "video_url": video_url,
+        "output_codec": output_codec,
+        "subject_is_person": subject_is_person,
+    }
+    r = requests.post(f"{QUEUE_BASE}/{model}", headers=HEADERS, json=payload, timeout=300)
+    r.raise_for_status()
+    sub = r.json()
+    req_id = sub.get("request_id")
+    status_url = sub.get("status_url") or f"{QUEUE_BASE}/{model}/requests/{req_id}/status"
+    resp_url = sub.get("response_url") or f"{QUEUE_BASE}/{model}/requests/{req_id}"
+    t0 = _t.time()
+    while _t.time() - t0 < timeout:
+        s = requests.get(status_url, headers={"Authorization": f"Key {KEY}"}, timeout=60).json()
+        st = s.get("status")
+        if st == "COMPLETED":
+            break
+        if st in ("FAILED", "ERROR"):
+            raise RuntimeError(f"veed bg removal failed: {s}")
+        _t.sleep(poll_interval)
+    else:
+        raise RuntimeError(f"veed bg removal timed out after {timeout}s")
+    out = requests.get(resp_url, headers={"Authorization": f"Key {KEY}"}, timeout=120).json()
+    files = out.get("videos") or out.get("video") or out.get("files") or []
+    if isinstance(files, dict):
+        files = [files]
+    if not files:
+        raise RuntimeError(f"veed bg removal: no output files in {str(out)[:300]}")
+    data = requests.get(files[0]["url"], timeout=600)
+    data.raise_for_status()
+    with open(out_path, "wb") as f:
+        f.write(data.content)
+    print(f"  veed bg-removal saved: {out_path} ({len(data.content)//1024}KB)")
+    return out_path
