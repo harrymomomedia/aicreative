@@ -44,10 +44,12 @@ def generate_veo(prompt, image_path=None, image_mgid=None, duration=8, seed=None
     for a in range(1, attempts + 1):
         payload = {"prompt": prompt, "model": model,
                    "duration": duration, "count": 1,
-                   # user-set order (2026-07-08, "capsolver is not working really"): funded fast
-                   # solvers first, flaky CapSolver demoted 3rd, slow free-credit SolveCaptcha last.
-                   # Comma-separated STRING (array 400s); REPLACES captchaRetry (mutually exclusive).
-                   "captchaOrder": "AntiCaptcha,YesCaptcha,CapSolver,SolveCaptcha",
+                   # DATA-DRIVEN order (GET /accounts/captcha-stats, 2026-07-08, n=10k):
+                   # CapSolver 39.6% > YesCaptcha 33.5% > AntiCaptcha 23.8%; UserProvided 93.4%
+                   # (captchaToken is the escalation path). Repeats allowed (max 10); zero-balance
+                   # providers ABORT the attempt so SolveCaptcha is excluded. String, not array;
+                   # mutually exclusive with captchaRetry.
+                   "captchaOrder": "CapSolver,YesCaptcha,AntiCaptcha,CapSolver,YesCaptcha,AntiCaptcha,CapSolver,YesCaptcha,CapSolver,YesCaptcha",
                    "seed": (seed if seed is not None else (abs(hash(prompt)) % 9000)) + a * 31}
         if aspect_ratio:  # omit to let I2V inherit the input image's aspect (free tier can't OVERRIDE aspect)
             payload["aspectRatio"] = aspect_ratio
