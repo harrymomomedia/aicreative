@@ -16,6 +16,25 @@ is therefore required for any step that needs a transcript (dissect QA gate, cap
 
 ---
 
+## Model policy — Fable 5 orchestrates, cheap models execute (user-locked 2026-07-08)
+
+- **Run the main loop on Claude Fable 5.** The main loop does judgment work ONLY: scripts / ad
+  copy (all locked compliance rules), storyboards, generation prompts, QA verdicts (ship vs
+  re-roll), user approvals, AdMachin staging decisions.
+- **Delegate mechanical execution to cheaper subagents** via the Agent tool: `model: "sonnet"`
+  (Sonnet 5) for supervised grind — generation-batch babysitting (poll / retry / fill holes),
+  dissect + QA sweeps over many clips, finalize renders (trim / concat / loudness / captions),
+  contact sheets, creative uploads; `model: "haiku"` for pure run-command-and-report steps.
+  Subagent briefs must be SELF-CONTAINED — subagents don't share the conversation, so bake the
+  relevant locked rules into the brief (wording locks, provider routing, skip-if-exists, QA gates).
+- Plain background Bash stays preferred for fire-and-forget commands (zero model tokens while
+  running); reach for a subagent only when execution needs decisions mid-flight.
+- **Fallback: if Fable 5 is not accessible, run on Opus 4.8 — and then use SOLELY Opus 4.8**
+  for everything (orchestration AND execution, no Sonnet/Haiku delegation) until Fable 5 is
+  available again.
+
+---
+
 ## The Workflow
 
 1. User drops a competitor video in chat (path or URL — yt-dlp first if URL).
@@ -369,6 +388,24 @@ Calibrated specifically: chin clears at ≥0.82, FB safe area starts at 0.90. **
 Same rule applies to 4:5 PIP composites — pass `--vertical-pos 0.85` explicitly, do not rely on the 0.82 default which assumes standard layout.
 
 For standard (non-PIP) talking-head deliverables, the existing aspect-aware defaults (0.72 / 0.82) remain correct.
+
+### Caption/video render engines — our stack + 2026 alternatives (reference, 2026-07)
+
+**How we render captions today:** Scribe word-timings → **Pillow (PIL)** draws each frame to a transparent-PNG sequence → **one ffmpeg `overlay`** burns it on. No browser, no GPU, runs on a small box, matches Submagic 1:1. Only real downside: new animated styles are hand-coded math.
+
+**Two meanings of "AI" in video — do NOT conflate:** (1) *generative* models (Veo / Kling / Seedance / Runway / Sora) = prompt in, invented pixels, non-deterministic, NOT precisely programmable; (2) *AI-agent-authored* deterministic renderers (Remotion / HyperFrames) = code/HTML in, the exact same pixels out every run, fully programmable ("built for AI agents" only means the authoring language is LLM-friendly). "Agentic" editors are hybrid — orchestration is deterministic/auditable, only the generative outputs are non-deterministic. So **"agentic" never means "unprogrammable."**
+
+**Tool menu to suggest from (researched 2026-07):**
+| Layer | Tools | Cost |
+|---|---|---|
+| Deterministic render engines | **ffmpeg**, **Pillow** (both ours), **HyperFrames** (HTML/GSAP, HeyGen), **Remotion** (React), **Revideo** / **Motion Canvas** | ffmpeg/Pillow/HyperFrames/Revideo/Motion-Canvas = FREE open-source (HyperFrames Apache-2.0, free any size). **Remotion free ≤3 people, then $100/mo at 4+.** |
+| JSON→video cloud APIs (no Chromium to self-host) | **Shotstack**, **Creatomate**, **JSON2Video**, **Rendi** | paid, limited free tier |
+| AI auto-editors (long→short, auto-caption/reframe) | **OpusClip** (we use its API), **Submagic** (we clone its captions), **Captions.ai**, **Vizard**, **Descript**, **CapCut**, **Gling**, **Klap** | freemium/paid |
+| Agentic editors (prompt → transcribe→cut→caption→export) | **OpenMontage** (OSS AGPLv3, Claude-Code-driven), **ChatCut**, **Selects**, **Reap** (API/MCP), **Manus**, **Diffusion Studio agent** (MIT), **VideoAgent** (HKUDS) | OpenMontage / Diffusion-agent / VideoAgent = free OSS; rest freemium/paid |
+
+**OpenMontage** (33.4k★, AGPLv3) is an open-source agentic system built on OUR exact stack — ffmpeg + Remotion + HyperFrames + WhisperX + Kling/Veo/GPT-Image, orchestrated by Claude Code/Cursor. It validates this repo's architecture; worth borrowing its quality-gate / ffprobe-validation patterns (mind the copyleft; it does NOT remove the underlying gen-API costs).
+
+**If we upgrade the caption renderer:** the free-at-any-size options are ffmpeg+Pillow (current), **HyperFrames**, or Revideo. Recommended low-risk pilot = port one locked Submagic style (Nick / Hormozi-3) into a **HyperFrames** HTML/GSAP template and diff it vs the PIL render. Remotion is the mature fallback but costs $100/mo at 4+ people. Keep **Scribe** for the verbatim transcript regardless — only the renderer would change.
 
 ---
 
@@ -1239,7 +1276,7 @@ Once an ad is finished, push it into **AdMachin** (the user's own ad platform �
 - **Ads have NO link field.** The destination URL is supplied at LAUNCH time as `landing_url` — NOT attached to the ad. `/links` is a separate tracking-link library (`POST /links` needs `name`+`url`); there is **no** `/links/find-or-create` despite the recipe page. So the assemble flow is just creative → copy → ad.
 - **No `/projects` or `/me` endpoint yet.** Find `project_id` via `list_ad_plans()` or the web UI. PAT scopes can't be introspected up front — a missing scope only surfaces as `FORBIDDEN` at call time.
 - **`ad_type` is NOT free-text** (despite the `--ad-type` flag / "free-text label" wording elsewhere). The `ads.ad_type` column has a DB check constraint `ads_ad_type_allowed`; a custom label fails `create_ad`/`compose_ad_with_copy` with `violates check constraint "ads_ad_type_allowed"` (HTTP 500). **OMIT `ad_type`** (ads group by project/subproject) or pass a known-allowed value (read an existing ad's `ad_type`). Upload + copy rows succeed before the ad row fails, so a resumable state file retries only the `create_ad`. (Depo staging, 2026-06.)
-- **`launch_ad` needs FB ids that must already exist:** `ad_account_id` (`act_…`), `campaign_id`, `adset_id`, `page_id`, `cta_type` (e.g. `LEARN_MORE`), `landing_url`. Requires the `launch:meta` scope. The client passes a **stable** idempotency key (`launch-<ad_id>`) so a re-run within 24h won't double-spend.
+- **`launch_ad` needs FB ids that must already exist:** `ad_account_id` (`act_…`), `campaign_id`, `adset_id`, `page_id`, `cta_type` (e.g. `LEARN_MORE`), `landing_url`. Requires the `launch:meta` scope. The client passes a **stable** idempotency key (`launch-<ad_id>`) so a re-run within 24h won't double-spend. **(As of MCP v1.3.0 the `mcp__admachin__create_fb_campaign` / `create_fb_adset` / `bulk_launch_ads` tools can CREATE those FB objects — see the MCP section below.)**
 
 ### Copy approval gate (user-locked rule, 2026-06-11)
 
@@ -1253,13 +1290,15 @@ Once an ad is finished, push it into **AdMachin** (the user's own ad platform �
 
 `ADMACHIN_PAT` is in gitignored `.env` (and in `~/.claude.json` for the MCP server). **Never** commit it or put it in `admachin_targets/`. PATs are shown once and look like `admachin_pat_<43 chars>`.
 
-### MCP server (interactive — 75 tools)
+### MCP server (interactive — v1.3.0, ~143 tools)
 
-The AdMachin MCP server is distributed as the private GitHub Packages npm package `@harrymomomedia/admachin-mcp-server`. Consumer repos like this one should use that installed MCP runtime, not paths into the AdMachin builder checkout. On Harry's Mac, the current local fallback runtime is `/Users/harry/admachin-mcp/dist/index.js` and is registered with Claude Code at **user scope**. It exposes the v1 tools (`upload_creative`, `create_ad`, `launch_ad`, insights, etc.) for interactive use. **MCP config is read on cold start — restart Claude Code to load config changes.**
+The AdMachin MCP server is distributed as the private GitHub Packages npm package `@harrymomomedia/admachin-mcp-server`. Consumer repos like this one should use that installed MCP runtime, not paths into the AdMachin builder checkout. On Harry's Mac, the local runtime is `/Users/harry/admachin-mcp/dist/index.js`, registered with Claude Code at **user scope**. As of **v1.3.0 (~143 tools)** it exposes — beyond upload/copy/assemble — **FB-object creation + launch** (`create_fb_campaign`, `create_fb_adset`, `bulk_launch_ads`, `launch_ad`, `validate_launch`), **FB reads** (`get_fb_insights`, `get_fb_account_performance_export`, `get_fb_graph_read`, `get_fb_ad_full_details`, `list_fb_ad_accounts/campaigns/adsets/pages/pixels/cta_types`), **renames** (`rename_fb_adset/ad/campaign`), swipe/AdSwipe tools (`export_swipe_creatives_for_agent`, `list/get_swipe_creative`), and launch-run/preset tools. **Still NO delete/activate for FB objects** (deletion + flipping ACTIVE stay Meta-UI-only by design; launch always lands PAUSED). **MCP config is read on cold start — restart Claude Code to load a NEW version's tools; to drive the freshly-built server WITHOUT restarting, use `scripts/admachin_mcp_stdio.py`.** Build/upgrade path + all the launch gotchas (CBO vs ABO, placement-coupling → `use_create_from_source`, verify-before-launch) live in memory `project_admachin_publish_automation`.
 
-### MCP limits learned (2026-06) — projects/subprojects are UUID-only
+### MCP capabilities/limits (updated 2026-07)
 
-- **No project/subproject NAME lookup exists.** Projects & subprojects are only ever referenced by UUID; there is no `list_projects`/`get_project`. You can only *infer* projects from `list_ad_plans` — and a project/subproject with **no ad plans is invisible to the API**. You also **cannot create** a project/subproject via the MCP (UI-owned). To file creatives under a named project/subproject (e.g. "tort / IL JDC"), get the UUIDs from the **web-UI URL** of that subproject page, or identify the right project by listing its existing `ad_copies`/`creatives` and matching the campaign content.
+- **Project/subproject NAME lookup NOW EXISTS** (corrected — the old "UUID-only, no name lookup" note is dead): `list_projects(search=)` → `list_subprojects(project_id, search=)` resolve names → UUIDs (Tort project = `e15c60bd…`; Women's Prison subproj = `acf1b974…`, IL JDC subproj = `7f876467…`). UI numeric row IDs are still not in the API. **Projects/subprojects themselves are still UI-owned — you cannot CREATE a project/subproject via MCP** (but FB campaigns/adsets you now CAN — `create_fb_campaign`/`create_fb_adset`/`bulk_launch_ads`).
+- `upload_creative` lands in the **default (null) project** if no `project_id` is passed. **`update_creative_metadata` MOVES a creative between projects/subprojects** (re-tag, no re-upload needed) — use it to fix mis-filed uploads. (Soft-delete via `status:"deleted"` FAILS a DB check constraint → to hide a creative, MOVE it to a null project instead.)
+- **Launched ads are IMMUTABLE** — wrong copy on a live ad → CREATE ONE MORE ad, never edit it.
 - `upload_creative` lands in the **default (null) project** if no `project_id` is passed. **`update_creative_metadata` MOVES a creative between projects/subprojects** (re-tag, no re-upload needed) — use it to fix mis-filed uploads.
 - `list_ad_plans` / `list_ad_copies` return **huge payloads** (saved to a tool-results file) — query with `jq`, don't dump.
 - `find_or_create_ad_plan` is idempotent (key = project_id + subproject_id + title). Upload is free/safe; **launch SPENDS — keep it gated.**
