@@ -19,8 +19,23 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from googleflow_client import generate_veo, upload_asset, download   # FREE veo-3.1-lite-low-priority
 
 OUT = Path("outputs/depo_tt")
+MODEL = "omni-flash"   # user-picked (2026-07-08): cheapest omni on google-flow, startImage i2v,
+                       # native 480p-class output, supports SHORT durations (4/6/8/10s)
 PRON = ('"meningioma" = "men-in-jee-OH-muh". "Depo" = "DEP-oh" with a short e like in "deck", '
         'NOT "dee-po", NOT "depot" (no T sound).')
+
+
+def dur_for(line):
+    """Match clip duration to speech length at ~2.4wps — never leave >2s unscripted room
+    (underfilled clips => Veo/omni improvises). 10s exists but none of our lines need it."""
+    w = len(line.split())
+    if w <= 10:
+        return 4
+    if w <= 14:
+        return 6
+    if w <= 19:
+        return 8
+    return 10
 
 ADS = {
     5: dict(
@@ -107,7 +122,8 @@ def gen(ad_n, ad, idx, line, mgid):
     out.parent.mkdir(parents=True, exist_ok=True)
     if out.exists() and out.stat().st_size > 50000:
         return "cached"
-    r = generate_veo(prompt=P(ad, line), image_mgid=mgid, duration=8, aspect_ratio="portrait")
+    r = generate_veo(prompt=P(ad, line), image_mgid=mgid, duration=dur_for(line),
+                     aspect_ratio="portrait", model=MODEL, ref_param="startImage")
     if r.get("status") != "success" or not r.get("urls"):
         return "FAIL: " + str(r.get("raw"))[:160]
     download(r["urls"][0], str(out))
