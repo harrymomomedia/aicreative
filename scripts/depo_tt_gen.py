@@ -43,6 +43,19 @@ ADS = {
                 "choice about the meningioma. This part is a choice. Two minutes, right where "
                 "you're sitting, right now. See if you qualify. Everybody else already scrolled. "
                 "You stayed. That means it's you. Go."),
+        # hand-segmented: auto-split glued the tail into a 23-word clip (>8s of speech — Veo
+        # rushes/cuts). Explicit clips keep every line 11-18w. Trailing improv on the shorter
+        # closers gets removed by the word-aware trim at finalize.
+        clips=[
+            "If you don't have a meningioma, keep scrolling. Bye. This is not for you. Okay.",
+            "Now that it's just us. You have a meningioma. Did you ever take the Depo shot?",
+            "Even years ago? Then listen to me. You may qualify for significant compensation. That's it. That's the filter.",
+            "The diagnosis plus the shot. I had both and nobody told me they were connected. Nobody.",
+            "Checking took me two minutes. It's free. A few questions. One attorney, total privacy, zero courtrooms.",
+            "We didn't get a choice about the meningioma. This part is a choice.",
+            "Two minutes, right where you're sitting, right now. See if you qualify.",
+            "Everybody else already scrolled. You stayed. That means it's you. Go.",
+        ],
     ),
 }
 
@@ -111,7 +124,7 @@ def main():
     ad = ADS[ad_n]
     if persona_override:
         ad["persona"] = persona_override
-    clips = segment(ad["script"])
+    clips = ad.get("clips") or segment(ad["script"])
     print(f"[ad{ad_n:02d} {ad['slug']}] {len(clips)} clips, persona={ad['persona']}", flush=True)
     mgid = upload_asset(str(OUT / ad["persona"]))
     if mode == "test":
