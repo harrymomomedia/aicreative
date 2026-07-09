@@ -67,38 +67,61 @@ def stills():
     return out
 
 
+import subprocess
+
+
+def animate(slug, path):
+    """One clip. Returns (slug, status, note). Model = omni-flash: it's video-first and does
+    NOT run Veo's speech-audio filter, so the random AUDIO_GENERATION_FILTERED failure that
+    plagued veo-3.1-fast/lite never fires (verified 2026-07-09: 3/3 clinical stills passed
+    first try, no retries). Cheapest model too. We STRIP the audio track (-an) on download so
+    the b-roll is truly silent — nobody is talking in b-roll."""
+    dest = f"{OUT}/{slug}.mp4"
+    if os.path.exists(dest) and os.path.getsize(dest) > 50000:
+        return slug, "cached", ""
+    w, h = Image.open(path).size
+    aspect = "portrait" if h >= w else "landscape"
+    key = slug[:3] if slug.startswith("v") and slug[1:3].isdigit() else slug
+    prompt = (HINT.get(key, HINT.get(slug, "")) + " " + BASE).strip()
+    try:
+        mgid = upload_asset(path)
+        r = generate_veo(prompt=prompt, image_mgid=mgid, duration=8,
+                         aspect_ratio=aspect, model="omni-flash", attempts=4)
+        if r.get("status") == "success" and r.get("urls"):
+            tmp = f"{OUT}/.{slug}_raw.mp4"
+            download(r["urls"][0], tmp)
+            subprocess.run(["ffmpeg", "-y", "-i", tmp, "-c:v", "copy", "-an", dest],
+                           capture_output=True)
+            os.remove(tmp)
+            return slug, "ok", ""
+        return slug, "FAIL", str(r.get("raw"))[:120]
+    except Exception as e:
+        return slug, "EXC", str(e)[:120]
+
+
 def main():
+    from concurrent.futures import ThreadPoolExecutor, as_completed
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", default="")
+    ap.add_argument("--workers", type=int, default=5)
     args = ap.parse_args()
     todo = stills()
     if args.only:
         want = {s.strip() for s in args.only.split(",")}
         todo = [(s, f) for s, f in todo if s in want]
-    print(f"{len(todo)} stills to animate", flush=True)
-    for slug, path in todo:
-        dest = f"{OUT}/{slug}.mp4"
-        if os.path.exists(dest) and os.path.getsize(dest) > 50000:
-            print(f"  {slug} cached", flush=True)
-            continue
-        w, h = Image.open(path).size
-        aspect = "portrait" if h >= w else "landscape"
-        key = slug[:3] if slug.startswith("v") and slug[1:3].isdigit() else slug
-        hint = HINT.get(key, HINT.get(slug, ""))
-        prompt = (hint + " " + BASE).strip()
-        try:
-            mgid = upload_asset(path)
-            r = generate_veo(prompt=prompt, image_mgid=mgid, duration=8,
-                             aspect_ratio=aspect, model="veo-3.1-fast", attempts=2)
-            # switched lite->fast (2026-07-09): lite i2v content-rejected most clinical stills
-            # ("Generation job finished with state: FAILED"); fast passes the same content.
-            if r.get("status") == "success" and r.get("urls"):
-                download(r["urls"][0], dest)
-                print(f"  {slug} -> ok", flush=True)
-            else:
-                print(f"  {slug} -> FAIL: {str(r.get('raw'))[:90]}", flush=True)
-        except Exception as e:
-            print(f"  {slug} -> EXC: {str(e)[:90]}", flush=True)
+    pending = [(s, f) for s, f in todo
+               if not (os.path.exists(f"{OUT}/{s}.mp4") and os.path.getsize(f"{OUT}/{s}.mp4") > 50000)]
+    print(f"{len(todo)} stills, {len(pending)} pending, {args.workers} workers", flush=True)
+    ok, fail = [], []
+    with ThreadPoolExecutor(max_workers=args.workers) as ex:
+        futs = {ex.submit(animate, s, f): s for s, f in pending}
+        for fut in as_completed(futs):
+            slug, status, note = fut.result()
+            print(f"  {slug} -> {status} {note}".rstrip(), flush=True)
+            (ok if status in ("ok", "cached") else fail).append(slug)
+    print(f"\nDONE: {len(ok)} ok, {len(fail)} failed", flush=True)
+    if fail:
+        print("FAILED: " + ",".join(sorted(fail)), flush=True)
 
 
 if __name__ == "__main__":
