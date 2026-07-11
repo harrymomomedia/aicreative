@@ -47,18 +47,30 @@ CONFIGS = {
 def toks(s): return re.findall(r"[a-z]+", s.lower())
 
 def align(words, turns):
-    def wtext(w): return (w.get("word") or w.get("text") or "")
+    """Find each turn's start via its first 1-2 words (anchor), advancing a cursor. Robust to a
+    mispronounced/missing word MID-turn (which the old every-word matcher choked on -> it let one
+    turn eat the whole clip, so the crop never switched speakers)."""
+    def norm(w): return re.sub(r"[^a-z]", "", (w.get("word") or w.get("text") or "").lower())
     tw = [w for w in words if w.get("type","word") == "word"]
-    segs, ti = [], 0
+    if not tw: return []
+    starts, pos = [], 0
     for spk, text in turns:
-        if ti >= len(tw): break
-        exp = toks(text); ei = 0; start = tw[ti]["start"]; j = ti
-        while ei < len(exp) and j < len(tw):
-            if re.sub(r"[^a-z]","",wtext(tw[j]).lower()) == exp[ei]:
-                ei += 1
-            j += 1
-        end = tw[j-1]["end"] if j > ti else tw[ti]["end"]
-        segs.append([spk, round(start,2), round(end,2)]); ti = j
+        exp = toks(text); a0 = exp[0]; a1 = exp[1] if len(exp) > 1 else None
+        found = None
+        for j in range(pos, len(tw)):
+            if norm(tw[j]) == a0 and (a1 is None or (j+1 < len(tw) and norm(tw[j+1]) == a1)):
+                found = j; break
+        if found is None:                                    # relax to single-word anchor
+            for j in range(pos, len(tw)):
+                if norm(tw[j]) == a0: found = j; break
+        if found is None: found = pos
+        starts.append(found)
+        pos = max(found + 1, found + len(exp) - 2)           # advance past most of this turn
+    segs = []
+    for k, (spk, text) in enumerate(turns):
+        s = tw[starts[k]]["start"]
+        e = tw[starts[k+1]]["start"] if k+1 < len(starts) else tw[-1]["end"]
+        segs.append([spk, round(s,2), round(e,2)])
     return segs
 
 def main():

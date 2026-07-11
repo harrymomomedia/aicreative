@@ -47,8 +47,8 @@ for i, c in enumerate(clips):
     factor = 1.0
     if n and dur > 0:
         wps = n / dur
-        if wps < TARGET_WPS - 0.3:
-            factor = min(1.8, TARGET_WPS / wps)
+        if wps < 1.5:                      # only rescue genuinely dragging clips, gently
+            factor = min(1.35, 2.0 / wps)
     to = ["-to", str(round(e, 2))] if e else []
     vf = f"crop={CROP_W}:{H}:{x}:0,scale=720:1280,setsar=1,setpts=PTS/{factor:.3f},fps=30"
     af = f"atempo={factor:.3f}"

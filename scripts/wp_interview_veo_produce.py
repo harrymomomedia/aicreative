@@ -16,14 +16,14 @@ TURNS = [
  (1,"L","Nearly 500 women who were incarcerated in California's prisons are coming forward. You were at Chowchilla. What happened in there?"),
  (2,"R","The guards crossed the line. Sexually. And back then, nobody would have believed us."),
  (3,"L","A lot of women think that because they never reported it, it is too late."),
- (4,"R","That is exactly what I thought. I thought it was my fault."),
+ (4,"R","That is exactly what I thought. I honestly believed that it was somehow my own fault."),
  (5,"L","Under California law, a woman in prison cannot consent to a guard. So women like you may qualify for significant potential compensation."),
- (6,"R","Wait. Even after all these years?"),
+ (6,"R","Wait. Even after all these years? I honestly never thought that this was still possible."),
  (7,"L","Even now. It is free to check, completely confidential, and you never go to court."),
- (8,"R","If I had only known that sooner."),
+ (8,"R","If I had only known that sooner. So many of us just tried to forget it happened."),
  (9,"L","If you were at Chowchilla, Valley State, or Folsom, there is a private two-minute form."),
- (10,"R","So anyone who was in there should check?"),
- (11,"L","Yes. Tap below and see if you qualify."),
+ (10,"R","So any woman who spent time in there should go and check if she qualifies?"),
+ (11,"L","Yes. Just tap the link below, answer a few quick questions, and see if you qualify."),
 ]
 
 def prompt_for(spk, line):
