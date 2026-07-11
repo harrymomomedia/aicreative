@@ -18,6 +18,7 @@ Disclaimer is a separate layer — run scripts/burn_disclaimer.py on the output 
   .venv/bin/python scripts/caption_nick.py <in.mp4> --out <out.mp4> --font arial --biased ""
 """
 import argparse
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -74,8 +75,17 @@ def run(cmd):
     return subprocess.run(cmd, capture_output=True, text=True)
 
 
+# Linux fallbacks (metric-compatible with Helvetica/Arial) when the macOS paths are absent
+_LINUX_FALLBACK = {
+    "helvetica": "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    "arial":     "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+}
+
+
 def _font(name, px):
     path, idx = FONTS[name]
+    if not os.path.exists(path):
+        path, idx = _LINUX_FALLBACK.get(name, path), None
     return ImageFont.truetype(path, px, index=idx) if idx is not None else ImageFont.truetype(path, px)
 
 
