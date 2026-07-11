@@ -40,21 +40,25 @@ def prompt_for(spk, line):
      "DIALOGUE LOCK: English only, no filler, no 'um/uh', no extra or trailing words, stop after the "
      f"final word. SPOKEN DIALOGUE (verbatim): \"{line}\". No on-screen text, no captions.")
 
-url = upload_file(ANCHOR)
-only = int(sys.argv[1]) if len(sys.argv) > 1 else None
+def _main():
+    url = upload_file(ANCHOR)
+    only = int(sys.argv[1]) if len(sys.argv) > 1 else None
 
-def gen(item):
-    idx, spk, line = item
-    if only and idx != only: return None
-    dst = OUT / f"t{idx:02d}_{spk}.mp4"
-    if dst.exists(): return f"[skip] t{idx}"
-    r = generate_veo(prompt_for(spk, line), image_urls=[url, url], aspect_ratio="16:9",
-                     resolution="720p", generation_type="frame")
-    if r.get("urls"):
-        dst.write_bytes(requests.get(r["urls"][0], timeout=300).content); return f"[done] t{idx}"
-    return f"[FAIL] t{idx} {str(r.get('raw'))[:120]}"
+    def gen(item):
+        idx, spk, line = item
+        if only and idx != only: return None
+        dst = OUT / f"t{idx:02d}_{spk}.mp4"
+        if dst.exists(): return f"[skip] t{idx}"
+        r = generate_veo(prompt_for(spk, line), image_urls=[url, url], aspect_ratio="16:9",
+                         resolution="720p", generation_type="frame")
+        if r.get("urls"):
+            dst.write_bytes(requests.get(r["urls"][0], timeout=300).content); return f"[done] t{idx}"
+        return f"[FAIL] t{idx} {str(r.get('raw'))[:120]}"
 
-with cf.ThreadPoolExecutor(max_workers=6) as ex:
-    for res in ex.map(gen, TURNS):
-        if res: print(res, flush=True)
-print("VEO INTERVIEW PRODUCE DONE")
+    with cf.ThreadPoolExecutor(max_workers=6) as ex:
+        for res in ex.map(gen, TURNS):
+            if res: print(res, flush=True)
+    print("VEO INTERVIEW PRODUCE DONE")
+
+if __name__ == "__main__":
+    _main()
