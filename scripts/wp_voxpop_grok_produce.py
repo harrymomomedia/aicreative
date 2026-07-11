@@ -19,6 +19,7 @@ COMMON = (
  "on the LEFT (denim jacket) is warm and friendly; the woman on the RIGHT (grey hoodie) is older, "
  "weathered, honest. ~2.4 words/sec.\n" + PRON +
  "DIALOGUE LOCK: English only, no filler, no extra words, follow the exact lines and speaker order.\n"
+ "AUDIO: clean spoken dialogue only, natural street ambience, NO background music, NO song, NO score.\n"
  "No on-screen text, no captions, no subtitles.\n"
 )
 
@@ -33,7 +34,7 @@ CLIPS = {
  "clip2_B": {
    "anchor": "v2_profile_B.png", "duration": "15",
    "dialogue":
-     "INTERVIEWER: \"Have you heard about what is coming out of Chowchilla?\"\n"
+     "INTERVIEWER: \"Have you heard what happened to the women at Chowchilla?\"\n"
      "WOMAN: \"Yeah. I did time in there. What those guards did to us, nobody listened back then.\"\n"
      "INTERVIEWER: \"You may qualify for significant potential compensation now.\"\n"
      "WOMAN: \"For real? After all these years?\"\n" },
