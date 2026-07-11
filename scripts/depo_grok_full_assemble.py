@@ -36,22 +36,24 @@ BEATS = [
 
 # Per-beat b-roll: each listed beat shows ~BROLL_INTRO s of the speaker, then cuts to its b-roll
 # clips while that beat's audio (their line) plays underneath, then the next beat returns to faces.
-CL = Path("outputs/depo_interview/broll_clips")   # new answer-beat clips
+CL = Path("outputs/depo_interview/broll_clips")     # my generated answer-beat clips
+LIB = Path("outputs/depo_interview/admachin_lib")   # EXISTING AdMachin B-Roll library clips
 def bclip(name):
-    for d in (BR, CL):
+    for d in (LIB, BR, CL):   # prefer the existing library
         p = d / f"{name}.mp4"
         if p.exists(): return p
     raise FileNotFoundError(f"b-roll clip {name}")
 
+# Uses the EXISTING AdMachin B-Roll library (real Depo branding, matching persona, real post-op
+# recovery), plus a few of my generated clips where the library has no match. No empty phone form.
 BEAT_BROLL = {
- 0: ["scan_lightbox", "incision_bw", "recovery_surv"],  # meningioma question
- 3: ["study_pages", "depo_vial"],                        # "showed me the studies... the Depo shot"
- 4: ["depo_injection"],                                  # "nobody ever warned me"
- 5: ["women_group"],                                     # "you are not alone... other women"
- 6: ["legal_docs"],                                      # "there is a federal lawsuit now"
- 8: ["phone_form"],                                      # "answer a few private questions online"
- 9: ["lawyer_review"],                                   # "a lawyer reviews it for free"
-}
+ 0: ["scan_lightbox_lib", "postop_dressing", "recovery_surv"],  # diagnosis -> post-op -> her recovering
+ 3: ["medical_records", "depo_syringe"],       # "showed me the studies... the Depo shot" (real vial)
+ 4: ["depo_inject_arm"],                        # "nobody ever warned me" (real Depo box)
+ 5: ["women_group"],                            # "you are not alone... other women" (no library match)
+ 6: ["legal_folders", "legal_sign"],           # "there is a federal lawsuit now"
+ 9: ["red_pen", "lawyer_review"],              # "a lawyer reviews it for free, confidential"
+}                                               # beat 8 ("questions online") stays on her face — no form clip
 BROLL_INTRO = 2.0      # seconds of the speaker shown before the b-roll cuts in
 
 def canon(w): return re.sub(r"[^a-z0-9]", "", w.lower())
