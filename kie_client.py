@@ -284,6 +284,27 @@ def generate_gpt_image(prompt, image_urls=None, aspect_ratio="auto", resolution=
     return _poll_jobs(task_id, "GPTImage2")
 
 
+def generate_grok(prompt, image_urls=None, duration="10", resolution="720p",
+                  aspect_ratio="16:9", mode="normal"):
+    """Grok Imagine (xAI) video on KIE via jobs/createTask. i2v if image_urls else t2v.
+    duration: string seconds; playground caps ~15s (docs say up to 30). resolution 480p|720p.
+    aspect_ratio: 2:3|3:2|1:1|16:9|9:16.  mode: fun|normal|spicy.  Native audio/speech (v1.5).
+    image_urls: up to 7. Returns {status, urls, raw}."""
+    model = "grok-imagine/image-to-video" if image_urls else "grok-imagine/text-to-video"
+    payload_input = {"prompt": prompt, "duration": str(duration),
+                     "resolution": resolution, "aspect_ratio": aspect_ratio, "mode": mode}
+    if image_urls:
+        payload_input["image_urls"] = image_urls
+    payload = {"model": model, "input": payload_input}
+    r = requests.post(JOBS_CREATE, headers=HEADERS, json=payload)
+    body = r.json()
+    task_id = (body.get("data") or {}).get("taskId")
+    if not task_id:
+        raise RuntimeError(f"Grok create failed: {body}")
+    print(f"  Grok taskId: {task_id}", flush=True)
+    return _poll_jobs(task_id, "GrokImagine")
+
+
 def generate_nano_banana(prompt, image_urls=None):
     """Nano Banana 2 (Gemini 3.1 Flash Image). Pass image_urls for edit/composition."""
     payload_input = {"prompt": prompt}
