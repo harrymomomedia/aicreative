@@ -34,9 +34,10 @@ BEATS = [
  ("gtalk_doc_cta","doc",None,"If you or someone you love has a brain meningioma and was ever on Depo, you may qualify for significant compensation. Tap below and take the two-minute check."),
 ]
 
-# b-roll bridge after beat index 0 (doc mentions meningioma): scan -> incision -> recovery in bed
+# b-roll overlays the survivor's FIRST answer (beat idx 1) — her VO keeps playing UNDER the
+# b-roll (scan -> incision -> recovery in bed). No silent bridge.
 BROLL = ["scan_lightbox", "incision_bw", "recovery_bed_bandaged_bw"]
-BROLL_PER = 2.1   # seconds per b-roll clip
+BROLL_OVER_BEAT = 1   # overlay b-roll on this beat index (survivor's first answer)
 
 def canon(w): return re.sub(r"[^a-z0-9]", "", w.lower())
 
@@ -80,43 +81,51 @@ def trim(name, line):
     print(f"  trim {name}: {a:.2f}-{b:.2f} = {dur}s")
     return out, dur
 
-def build_broll_bridge():
-    """3 silent b-roll clips, ~2.1s each, full-frame, with a soft hospital-ambient bed."""
+def broll_over_vo(tfile, dur, tag):
+    """B-roll montage (scan->incision->recovery) covering `dur`, with `tfile`'s AUDIO (the
+    survivor's voice) kept underneath. Full-frame 720x1280, stereo 48k. tag keeps stacked/cut
+    outputs separate."""
+    per = dur / len(BROLL)
     parts = []
     for i, name in enumerate(BROLL):
-        p = S / f"broll_{i}.mp4"
-        subprocess.run(["ffmpeg","-y","-ss","1.2","-i",str(BR/f"{name}.mp4"),"-t",f"{BROLL_PER}",
+        p = S / f"bvo_{tag}_{i}.mp4"
+        subprocess.run(["ffmpeg","-y","-ss","1.0","-i",str(BR/f"{name}.mp4"),"-t",f"{per:.3f}",
             "-vf","scale=720:1280,setsar=1,fps=30","-an",
             "-c:v","libx264","-crf","19","-pix_fmt","yuv420p",str(p),"-loglevel","error"])
         parts.append(p)
-    total = round(BROLL_PER*len(BROLL), 2)
-    # concat video, add a very soft low ambient bed (filtered noise) + short fades
-    lst = Path("/tmp/gf_broll.txt"); lst.write_text("".join(f"file '{p.resolve()}'\n" for p in parts))
-    out = S / "bridge.mp4"
+    lst = Path(f"/tmp/gf_bvo_{tag}.txt"); lst.write_text("".join(f"file '{p.resolve()}'\n" for p in parts))
+    vid = S / f"bvo_{tag}_v.mp4"
     subprocess.run(["ffmpeg","-y","-f","concat","-safe","0","-i",str(lst),
-        "-f","lavfi","-t",f"{total}","-i","anoisesrc=color=brown:amplitude=0.04,lowpass=f=600,highpass=f=90",
-        "-filter_complex",f"[0:v]fade=t=in:st=0:d=0.25,fade=t=out:st={total-0.3:.2f}:d=0.3[v];"
-        f"[1:a]volume=0.5,afade=t=in:st=0:d=0.3,afade=t=out:st={total-0.4:.2f}:d=0.4[a]",
-        "-map","[v]","-map","[a]","-c:v","libx264","-crf","19","-pix_fmt","yuv420p",
-        "-c:a","aac","-b:a","192k","-shortest",str(out),"-loglevel","error"])
-    print(f"  bridge: {total}s")
+        "-c:v","libx264","-crf","19","-pix_fmt","yuv420p",str(vid),"-loglevel","error"])
+    out = S / f"bvo_{tag}.mp4"
+    # b-roll video + survivor VO from tfile; fade the video edges only (audio stays her clean voice)
+    subprocess.run(["ffmpeg","-y","-i",str(vid),"-i",str(tfile),
+        "-filter_complex",f"[0:v]fade=t=in:st=0:d=0.2,fade=t=out:st={dur-0.25:.2f}:d=0.25[v];"
+        "[1:a]aformat=channel_layouts=stereo:sample_rates=48000[a]",
+        "-map","[v]","-map","[a]","-t",f"{dur}",
+        "-c:v","libx264","-crf","19","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k",
+        str(out),"-loglevel","error"])
+    print(f"  broll-over-VO ({tag}): {dur}s under survivor answer")
     return out
+
+AAUD = "aformat=channel_layouts=stereo:sample_rates=48000"  # force stereo 48k everywhere
 
 def stacked_seg(idx, talker, persona, listener, tfile, dur):
     seg = S / f"seg_{idx:02d}.mp4"
     if listener is None:  # CTA full-frame
         subprocess.run(["ffmpeg","-y","-i",str(tfile),"-vf","scale=720:1280,setsar=1,fps=30",
-            "-c:v","libx264","-crf","19","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k",
+            "-af",AAUD,"-c:v","libx264","-crf","19","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k",
             str(seg),"-loglevel","error"])
         return seg
     lfile = G / f"{listener}.mp4"
     if persona == "doc":   # doc talks(bottom), surv listens(top); audio=doc=input1
-        top, tcrop, bot, bcrop, aud = lfile, SURV_CROP, tfile, DOC_CROP, "1:a"
+        top, tcrop, bot, bcrop, aud = lfile, SURV_CROP, tfile, DOC_CROP, "[a1]"
     else:                  # surv talks(top), doc listens(bottom); audio=surv=input0
-        top, tcrop, bot, bcrop, aud = tfile, SURV_CROP, lfile, DOC_CROP, "0:a"
-    fc = f"[0:v]{tcrop}[t];[1:v]{bcrop}[b];[t][b]vstack[v]"
+        top, tcrop, bot, bcrop, aud = tfile, SURV_CROP, lfile, DOC_CROP, "[a0]"
+    asrc = "0:a" if aud == "[a0]" else "1:a"
+    fc = f"[0:v]{tcrop}[t];[1:v]{bcrop}[b];[t][b]vstack[v];[{asrc}]{AAUD}[aud]"
     subprocess.run(["ffmpeg","-y","-i",str(top),"-i",str(bot),"-filter_complex",fc,
-        "-map","[v]","-map",aud,"-t",f"{dur}",
+        "-map","[v]","-map","[aud]","-t",f"{dur}",
         "-c:v","libx264","-crf","19","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k",
         str(seg),"-loglevel","error"])
     return seg
@@ -140,42 +149,49 @@ def dur_of(p):
 
 def main():
     trims = {b[0]: trim(b[0], b[3]) for b in BEATS}
-    bridge = build_broll_bridge()
 
-    # ---- STACKED with b-roll bridge after beat 0 ----
+    # ---- STACKED; beat BROLL_OVER_BEAT shows b-roll over the survivor's VO ----
     segs = []
     for idx,(talker,persona,listener,line) in enumerate(BEATS):
         tfile,d = trims[talker]
-        segs.append(stacked_seg(idx,talker,persona,listener,tfile,d))
+        if idx == BROLL_OVER_BEAT:
+            segs.append(broll_over_vo(tfile, d, "stack"))
+        else:
+            segs.append(stacked_seg(idx,talker,persona,listener,tfile,d))
         print(f"  seg {idx:02d} {talker} built")
-        if idx == 0:
-            segs.append(bridge)  # b-roll bridge right after the meningioma question
     lst = Path("/tmp/gf_stack.txt"); lst.write_text("".join(f"file '{s.resolve()}'\n" for s in segs))
     stacked = E/"grok_full_stacked.mp4"
     subprocess.run(["ffmpeg","-y","-f","concat","-safe","0","-i",str(lst),
-        "-c:v","libx264","-crf","19","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k",
+        "-c:v","libx264","-crf","19","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k","-ar","48000","-ac","2",
         str(stacked),"-loglevel","error"])
     normalize(stacked, E/"grok_full_stacked_norm.mp4"); web(E/"grok_full_stacked_norm.mp4", E/"grok_full_stacked_web.mp4")
 
-    # ---- CUT (shot-reverse full-frame) with same bridge ----
+    # ---- CUT (shot-reverse full-frame); same b-roll-over-VO on the survivor's answer ----
     csegs = []
     for idx,(talker,persona,listener,line) in enumerate(BEATS):
         tfile,d = trims[talker]
+        if idx == BROLL_OVER_BEAT:
+            csegs.append(broll_over_vo(tfile, d, "cut"))
+            continue
         cf = S/f"cut_{idx:02d}.mp4"
         subprocess.run(["ffmpeg","-y","-i",str(tfile),"-vf","scale=720:1280,setsar=1,fps=30",
-            "-c:v","libx264","-crf","19","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k",
+            "-af",AAUD,"-c:v","libx264","-crf","19","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k",
             str(cf),"-loglevel","error"])
         csegs.append(cf)
-        if idx == 0: csegs.append(bridge)
     lst2 = Path("/tmp/gf_cut.txt"); lst2.write_text("".join(f"file '{s.resolve()}'\n" for s in csegs))
     cut = E/"grok_full_cut.mp4"
     subprocess.run(["ffmpeg","-y","-f","concat","-safe","0","-i",str(lst2),
-        "-c:v","libx264","-crf","19","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k",
+        "-c:v","libx264","-crf","19","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k","-ar","48000","-ac","2",
         str(cut),"-loglevel","error"])
     normalize(cut, E/"grok_full_cut_norm.mp4"); web(E/"grok_full_cut_norm.mp4", E/"grok_full_cut_web.mp4")
 
     for f in ["grok_full_stacked_norm.mp4","grok_full_cut_norm.mp4"]:
-        print(f"{f}: {dur_of(E/f)}s")
+        d = dur_of(E/f)
+        mv = subprocess.run(["ffmpeg","-hide_banner","-nostats","-i",str(E/f),"-af","volumedetect","-f","null","-"],
+            capture_output=True,text=True).stderr
+        import re as _re
+        m = _re.search(r"mean_volume: ([-0-9.]+) dB", mv)
+        print(f"{f}: {d}s  mean_volume {m.group(1) if m else '?'} dB")
 
 if __name__ == "__main__":
     main()
