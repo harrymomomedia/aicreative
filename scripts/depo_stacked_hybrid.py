@@ -18,7 +18,7 @@ for i,(talker,kind) in enumerate(BEATS):
              "[0:v]crop=720:640:0:110,setsar=1,fps=30[t];[1:v]crop=720:640:0:110,setsar=1,fps=30[b];[t][b]vstack[v]",
              "-map","[v]","-map","0:a","-t",f"{d:.2f}","-c:v","libx264","-crf","19","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k",str(seg),"-loglevel","error"]
     else:  # full-frame (survivor answer OR cta)
-        cmd=["ffmpeg","-y","-i",str(tf),"-vf","scale=720:1280,setsar=1,fps=30","-c:v","libx264","-crf","19","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k",str(seg),"-loglevel","error"]
+        cmd=["ffmpeg","-y","-i",str(tf),"-vf","scale=720:1280,setsar=1,fps=30,delogo=x=646:y=1222:w=72:h=48","-c:v","libx264","-crf","19","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k",str(seg),"-loglevel","error"]
     subprocess.run(cmd); segs.append(seg); print(f"seg {i:02d} {talker} {kind} {d:.2f}s")
 lst=Path("/tmp/hy.txt"); lst.write_text("".join(f"file '{s.resolve()}'\n" for s in segs))
 subprocess.run(["ffmpeg","-y","-f","concat","-safe","0","-i",str(lst),"-c:v","libx264","-crf","19","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k",str(E/"stacked_hybrid.mp4"),"-loglevel","error"])
