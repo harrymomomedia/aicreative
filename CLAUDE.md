@@ -1042,6 +1042,15 @@ Workflow chain:
 
 ## Presenting videos in chat — backticked paths only
 
+**STRICT — ALWAYS post a clickable path the moment ANY generation finishes (user-locked 2026-07-11).**
+Every time a generation completes — image, video, audio, composite, stitched final, aspect
+variant, b-roll, persona anchor, ANY asset — immediately show the user its file path wrapped in
+`` `backticks` `` so they can click it in chat. This is not optional and not "later after QA":
+post the link **as soon as the file lands**, before any dissect/QA/post-production. For images,
+ALSO Read them inline, but the backticked path MUST still be shown alongside so it's clickable.
+Batch generations: list EVERY output path (backticked), not just a sample. Never describe an
+asset as "done/generated/ready" without its clickable path in the same message.
+
 The user's chat client renders a video path as a **clickable inline preview ONLY when the path is wrapped in `` `backticks` ``** (markdown inline code). Any other format — plain text, table cell, markdown link syntax `[label](path)`, `file:///` URL, `http://localhost:<port>/` URL — does NOT trigger the preview.
 
 ```
