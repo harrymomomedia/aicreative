@@ -17,7 +17,7 @@ ROOM = REF / "bg_room_iph.png"
 
 PROMPT = (
     "Place the woman from the FIRST image seated in the cream armchair in the room from the SECOND "
-    "image, holding a small notepad. Keep her EXACT face, short gray hair, thin wire glasses and "
+    "image, holding a small notepad. FRAMING: tight WAIST-UP medium close-up, like a locked-off interview camera — her head and torso fill the frame, do NOT show her legs or knees, do NOT go wide. Keep her EXACT face, short gray hair, thin wire glasses and "
     "light chambray shirt — do NOT change her appearance. CRITICAL GAZE: she turns her head to HER "
     "OWN RIGHT so her eyes look toward the LEFT edge of the frame (the viewer's left / screen-left), "
     "at an off-camera person seated just past the left edge of the frame. She must NOT look toward "
@@ -45,5 +45,5 @@ def gen(name):
 
 
 with cf.ThreadPoolExecutor(max_workers=2) as ex:
-    list(ex.map(gen, ["doc_iphL_v1", "doc_iphL_v2"]))
+    list(ex.map(gen, ["doc_iphL_v3", "doc_iphL_v4"]))
 print("ALL DONE")

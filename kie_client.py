@@ -274,11 +274,14 @@ def generate_gpt_image(prompt, image_urls=None, aspect_ratio="auto", resolution=
     return _poll_jobs(task_id, "GPTImage2")
 
 
-def generate_nano_banana(prompt, image_urls=None):
-    """Nano Banana 2 (Gemini 3.1 Flash Image). Pass image_urls for edit/composition."""
+def generate_nano_banana(prompt, image_urls=None, aspect_ratio=None):
+    """Nano Banana 2 (Gemini 3.1 Flash Image). Pass image_urls for edit/composition.
+    aspect_ratio: optional (e.g. "9:16") — passed through to the API when set."""
     payload_input = {"prompt": prompt}
     if image_urls:
         payload_input["image_urls"] = image_urls
+    if aspect_ratio:
+        payload_input["aspect_ratio"] = aspect_ratio
     payload = {"model": "nano-banana-2", "input": payload_input}
     r = requests.post(JOBS_CREATE, headers=HEADERS, json=payload)
     body = r.json()
