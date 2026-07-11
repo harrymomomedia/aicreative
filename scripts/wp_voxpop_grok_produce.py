@@ -27,7 +27,7 @@ CLIPS = {
  "clip1_A": {
    "anchor": "v2_profile.png", "duration": "15",
    "dialogue":
-     "INTERVIEWER: \"Did you know women who were abused at Chowchilla may qualify for significant potential compensation?\"\n"
+     "INTERVIEWER: \"Did you know women who were sexually abused at Chowchilla may qualify for significant potential compensation?\"\n"
      "WOMAN: \"Wait, for real? My cousin was in there. She never told anybody what happened to her.\"\n"
      "INTERVIEWER: \"It is free and confidential to check.\"\n"
      "WOMAN: \"That is about time. Those women deserve that.\"\n" },
