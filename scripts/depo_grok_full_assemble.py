@@ -34,11 +34,25 @@ BEATS = [
  ("gtalk_doc_cta","doc",None,"If you or someone you love has a brain meningioma and was ever on Depo, you may qualify for significant compensation. Tap below and take the two-minute check."),
 ]
 
-# b-roll rides the interviewer's FIRST question (beat idx 0): show ~2s of interview, then cut to
-# the b-roll (scan -> incision -> survivor recovery) while her "brain meningioma" question plays under.
-BROLL = ["scan_lightbox", "incision_bw", "recovery_surv"]  # recovery = the survivor herself (i2i->Grok)
-BROLL_OVER_BEAT = 0    # beat the b-roll rides on
-BROLL_INTRO = 2.0      # seconds of interview shown before the b-roll cuts in
+# Per-beat b-roll: each listed beat shows ~BROLL_INTRO s of the speaker, then cuts to its b-roll
+# clips while that beat's audio (their line) plays underneath, then the next beat returns to faces.
+CL = Path("outputs/depo_interview/broll_clips")   # new answer-beat clips
+def bclip(name):
+    for d in (BR, CL):
+        p = d / f"{name}.mp4"
+        if p.exists(): return p
+    raise FileNotFoundError(f"b-roll clip {name}")
+
+BEAT_BROLL = {
+ 0: ["scan_lightbox", "incision_bw", "recovery_surv"],  # meningioma question
+ 3: ["study_pages", "depo_vial"],                        # "showed me the studies... the Depo shot"
+ 4: ["depo_injection"],                                  # "nobody ever warned me"
+ 5: ["women_group"],                                     # "you are not alone... other women"
+ 6: ["legal_docs"],                                      # "there is a federal lawsuit now"
+ 8: ["phone_form"],                                      # "answer a few private questions online"
+ 9: ["lawyer_review"],                                   # "a lawyer reviews it for free"
+}
+BROLL_INTRO = 2.0      # seconds of the speaker shown before the b-roll cuts in
 
 def canon(w): return re.sub(r"[^a-z0-9]", "", w.lower())
 
@@ -84,13 +98,13 @@ def trim(name, line):
 
 AAUD = "aformat=channel_layouts=stereo:sample_rates=48000"  # force stereo 48k everywhere
 
-def broll_video(dur, tag):
-    """Silent b-roll montage (scan->incision->survivor-recovery), full-frame 720x1280, length `dur`."""
-    per = dur / len(BROLL)
+def broll_video(names, dur, tag):
+    """Silent b-roll montage of the given clip `names`, full-frame 720x1280, total length `dur`."""
+    per = dur / len(names)
     parts = []
-    for i, name in enumerate(BROLL):
+    for i, name in enumerate(names):
         p = S / f"bvid_{tag}_{i}.mp4"
-        subprocess.run(["ffmpeg","-y","-ss","1.0","-i",str(BR/f"{name}.mp4"),"-t",f"{per:.3f}",
+        subprocess.run(["ffmpeg","-y","-ss","1.0","-i",str(bclip(name)),"-t",f"{per:.3f}",
             "-vf","scale=720:1280,setsar=1,fps=30","-an",
             "-c:v","libx264","-crf","19","-pix_fmt","yuv420p",str(p),"-loglevel","error"])
         parts.append(p)
@@ -100,36 +114,40 @@ def broll_video(dur, tag):
         "-c:v","libx264","-crf","19","-pix_fmt","yuv420p",str(vid),"-loglevel","error"])
     return vid
 
-def beat_with_broll_tail(talker, persona, listener, tfile, dur, mode, intro=2.0):
-    """Beat that shows the interview for `intro` seconds, then cuts to the b-roll montage for the
-    remainder, with the beat's own AUDIO (the interviewer's question) playing UNDER the whole thing.
+def beat_with_broll_tail(idx, talker, persona, listener, tfile, dur, mode, names, intro=2.0):
+    """Beat that shows the speaker for `intro` seconds, then cuts to the b-roll montage (`names`)
+    for the remainder, with the beat's own AUDIO (their line) playing UNDER the whole thing.
     mode: 'stack' (vstack panes) or 'cut' (full-frame talker) for the intro portion."""
+    tag = f"{idx}_{mode}"
     tail = max(0.5, dur - intro)
-    intro_v = S / f"b0intro_{mode}.mp4"
+    intro_v = S / f"b0intro_{tag}.mp4"
     if mode == "stack":
-        lfile = G / f"{listener}.mp4"   # doc talks(bottom), surv listens(top)
+        lfile = G / f"{listener}.mp4"
+        # survivor is ALWAYS the top pane (SURV_CROP); doc is ALWAYS bottom (DOC_CROP)
+        top = lfile if persona == "doc" else tfile   # surv clip on top
+        bot = tfile if persona == "doc" else lfile   # doc clip on bottom
         fc = f"[0:v]{SURV_CROP}[t];[1:v]{DOC_CROP}[b];[t][b]vstack[v]"
-        subprocess.run(["ffmpeg","-y","-i",str(lfile),"-i",str(tfile),"-filter_complex",fc,
+        subprocess.run(["ffmpeg","-y","-i",str(top),"-i",str(bot),"-filter_complex",fc,
             "-map","[v]","-t",f"{intro:.2f}","-an","-c:v","libx264","-crf","19","-pix_fmt","yuv420p",
             str(intro_v),"-loglevel","error"])
     else:
         subprocess.run(["ffmpeg","-y","-i",str(tfile),"-vf","scale=720:1280,setsar=1,fps=30",
             "-t",f"{intro:.2f}","-an","-c:v","libx264","-crf","19","-pix_fmt","yuv420p",
             str(intro_v),"-loglevel","error"])
-    tail_v = broll_video(tail, f"b0_{mode}")
+    tail_v = broll_video(names, tail, tag)
     # concat intro + b-roll tail into one silent video, then mux the beat's full audio over it
-    lst = Path(f"/tmp/gf_b0_{mode}.txt")
+    lst = Path(f"/tmp/gf_{tag}.txt")
     lst.write_text(f"file '{intro_v.resolve()}'\nfile '{tail_v.resolve()}'\n")
-    combo_v = S / f"b0combo_{mode}.mp4"
+    combo_v = S / f"b0combo_{tag}.mp4"
     subprocess.run(["ffmpeg","-y","-f","concat","-safe","0","-i",str(lst),
         "-c:v","libx264","-crf","19","-pix_fmt","yuv420p",str(combo_v),"-loglevel","error"])
-    out = S / f"b0_{mode}.mp4"
+    out = S / f"bbeat_{tag}.mp4"
     subprocess.run(["ffmpeg","-y","-i",str(combo_v),"-i",str(tfile),
         "-filter_complex",f"[0:v]fade=t=out:st={dur-0.25:.2f}:d=0.25[v];[1:a]{AAUD}[a]",
         "-map","[v]","-map","[a]","-t",f"{dur}",
         "-c:v","libx264","-crf","19","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k",
         str(out),"-loglevel","error"])
-    print(f"  beat0 b-roll tail ({mode}): {intro:.1f}s interview + {tail:.1f}s b-roll under the question")
+    print(f"  beat {idx} b-roll tail ({mode}): {intro:.1f}s face + {tail:.1f}s b-roll [{','.join(names)}]")
     return out
 
 def stacked_seg(idx, talker, persona, listener, tfile, dur):
@@ -176,8 +194,8 @@ def main():
     segs = []
     for idx,(talker,persona,listener,line) in enumerate(BEATS):
         tfile,d = trims[talker]
-        if idx == BROLL_OVER_BEAT:
-            segs.append(beat_with_broll_tail(talker,persona,listener,tfile,d,"stack",BROLL_INTRO))
+        if idx in BEAT_BROLL:
+            segs.append(beat_with_broll_tail(idx,talker,persona,listener,tfile,d,"stack",BEAT_BROLL[idx],BROLL_INTRO))
         else:
             segs.append(stacked_seg(idx,talker,persona,listener,tfile,d))
         print(f"  seg {idx:02d} {talker} built")
@@ -192,8 +210,8 @@ def main():
     csegs = []
     for idx,(talker,persona,listener,line) in enumerate(BEATS):
         tfile,d = trims[talker]
-        if idx == BROLL_OVER_BEAT:
-            csegs.append(beat_with_broll_tail(talker,persona,listener,tfile,d,"cut",BROLL_INTRO))
+        if idx in BEAT_BROLL:
+            csegs.append(beat_with_broll_tail(idx,talker,persona,listener,tfile,d,"cut",BEAT_BROLL[idx],BROLL_INTRO))
             continue
         cf = S/f"cut_{idx:02d}.mp4"
         subprocess.run(["ffmpeg","-y","-i",str(tfile),"-vf","scale=720:1280,setsar=1,fps=30",
