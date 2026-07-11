@@ -6,24 +6,42 @@ Usage: python scripts/wp_voxpop_reframe.py [out.mp4]
 """
 import sys, subprocess, json, re, pathlib
 
-D = pathlib.Path("outputs/wp_voxpop/grok_ad")
 CROP_W, H = 405, 720
 X_L, X_R = 120, 740
 LEAD, TRAIL = 0.05, 0.25
-ORDER = ["clip1_A", "clip2_B", "clip3_C"]
 
-TURNS = {
- "clip1_A": [("L","Did you know women who were sexually abused at Chowchilla may qualify for significant potential compensation"),
-             ("R","Wait for real My cousin was in there She never told anybody what happened to her"),
-             ("L","It is free and confidential to check"),
-             ("R","That is about time Those women deserve that")],
- "clip2_B": [("L","Have you heard what happened to the women at Chowchilla"),
-             ("R","Yeah I did time in there What those guards did to us nobody listened back then"),
-             ("L","You may qualify for significant potential compensation now"),
-             ("R","For real After all these years")],
- "clip3_C": [("L","If you were at Chowchilla would you come forward"),
-             ("R","I would Those women waited too long for somebody to finally listen"),
-             ("L","It is free confidential and there is no court")],
+# ---- format configs (dir, clip order, per-clip turns: L=interviewer/reporter, R=respondent) ----
+CONFIGS = {
+ "voxpop": {
+  "dir": "outputs/wp_voxpop/grok_ad",
+  "order": ["clip1_A", "clip2_B", "clip3_C"],
+  "turns": {
+   "clip1_A": [("L","Did you know women who were sexually abused at Chowchilla may qualify for significant potential compensation"),
+               ("R","Wait for real My cousin was in there She never told anybody what happened to her"),
+               ("L","It is free and confidential to check"),
+               ("R","That is about time Those women deserve that")],
+   "clip2_B": [("L","Have you heard what happened to the women at Chowchilla"),
+               ("R","Yeah I did time in there What those guards did to us nobody listened back then"),
+               ("L","You may qualify for significant potential compensation now"),
+               ("R","For real After all these years")],
+   "clip3_C": [("L","If you were at Chowchilla would you come forward"),
+               ("R","I would Those women waited too long for somebody to finally listen"),
+               ("L","It is free confidential and there is no court")]}},
+ "interview": {
+  "dir": "outputs/wp_voxpop/interview_ad",
+  "order": ["clip1", "clip2", "clip3"],
+  "turns": {
+   "clip1": [("L","Nearly 500 women who were incarcerated in California's prisons are coming forward You were at Chowchilla What happened in there"),
+             ("R","The guards crossed the line Sexually And back then nobody would have believed us"),
+             ("L","A lot of women think that because they never reported it it is too late"),
+             ("R","That is exactly what I thought I thought it was my fault")],
+   "clip2": [("L","But under California law a woman in prison cannot consent to a guard So women like you may qualify for significant potential compensation"),
+             ("R","Wait Even after all these years"),
+             ("L","Even now It is free to check completely confidential and you never go to court"),
+             ("R","If I had only known that sooner")],
+   "clip3": [("L","If you were at Chowchilla Valley State or Folsom there is a private two minute form"),
+             ("R","So anyone who was in there should check"),
+             ("L","Yes Tap below and see if you qualify")]}},
 }
 
 def toks(s): return re.findall(r"[a-z]+", s.lower())
@@ -44,7 +62,10 @@ def align(words, turns):
     return segs
 
 def main():
-    out = sys.argv[1] if len(sys.argv) > 1 else str(D / "voxpop_9x16.mp4")
+    setname = sys.argv[1] if len(sys.argv) > 1 else "voxpop"
+    cfg = CONFIGS[setname]
+    D = pathlib.Path(cfg["dir"]); ORDER = cfg["order"]; TURNS = cfg["turns"]
+    out = sys.argv[2] if len(sys.argv) > 2 else str(D / f"{setname}_9x16.mp4")
     pieces, concat_lines = [], []
     idx = 0
     for slug in ORDER:
