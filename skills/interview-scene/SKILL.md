@@ -108,6 +108,23 @@ anchors: `outputs/depo_interview/reference/surv_face_v1.png` + `doc_alone_v1_L.p
 - **One speaker per clip.** Two voices in one Veo clip collapse to the same pitch (CLAUDE.md Veo
   gotcha). So generate each person's **talking** clips AND **listening/reacting** clips separately
   from their anchor.
+- **SILENT listening clips are the hard part — QA them by dissecting at 5fps (user-locked).** Veo
+  is a talking-head model and animates the mouth even when you prompt "listening / mouth closed":
+  - The **free google-flow Veo Lite tier ALWAYS talks** (and "no audio / silent" prompts trip
+    `AUDIO_GENERATION_FILTERED`) — it cannot produce a silent listener. Omni-flash is a *podcast
+    talking* model, so it's worse, not better.
+  - **Poyo Veo 3.1 Fast holds a calm face's mouth closed** with a hard lock ("MOUTH STAYS CLOSED,
+    does not speak/open/mouth words; only nods+blinks; makes NO vocal sound") — but an **expressive
+    face still talks/smiles** on every take.
+  - **Robust fix that respects "no frozen frames":** generate ~2 generic listen takes per person,
+    dissect each at **5fps** (`fps=5 … tile`), find a continuous **closed-mouth window** (~1–2s,
+    ideally containing a natural blink), extract it, **ping-pong loop** it (`[0:v]reverse` +
+    `concat`) and `-stream_loop -1 -t <dur>` to fill each beat. Real blinks/breathing, no talking,
+    no hard freeze. One loop per person, reused across all beats. Reference:
+    `scripts/depo_listen_poyo.py` + `scripts/depo_stacked_rebuild.py`.
+  - A moving listener's lips WILL part slightly (breathing) — that reads as listening. Zero mouth
+    movement only exists in a true freeze, which the user rejects; the loop is the accepted floor.
+  - The **CUT (shot-reverse) layout sidesteps this entirely** — it only uses talking clips.
 - **Stacked top/bottom:** always show both panes; when A talks, B's pane runs a listening clip.
   **Cut both panes on the SAME beat boundaries** so they jump together (clips are ~8s; pick jump
   points on natural speech breaks so the reaction lands at the right moment).
