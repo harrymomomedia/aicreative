@@ -1133,6 +1133,7 @@ These auto-surface on relevant user phrases. Don't need to invoke manually — C
 | `nick-subtitle` | "Nick subtitle", "Submagic Nick", "dark pill captions", "Nick captions" | `caption_nick.py` — sentence-case white bold sans on a dark rounded box, ~2 words/card, no emoji, no color accent. Use for calmer legal/talking-head captioning with exact transcript control. |
 | `pulaski-jones-disclaimer` | "the disclaimer", "Pulaski/Jones disclaimer", "Chowchilla disclaimer", "CCWF disclaimer" | Verbatim legal text + on-screen styling for the women's-prison campaign. **DO NOT paraphrase** — regulated. |
 | `feed-4x5` | "make it 4:5", "feed version", "Instagram feed crop", "Reels to feed" | `crop_4x5.py` invocation + the letterbox-detection rationale. |
+| `interview-scene` | "interview video", "documentary/podcast interview", "two-person interview", "interviewer + subject", "someone being interviewed" | Two-person reverse-angle chest-up talking-head interview: same-room/opposite-wall backdrops, exact-face i2i (`input_urls`, minimal prompt), iPhone-video look, podcast 3/4 gaze, facing-each-other via composite-flip + text-free backdrop, no foreground blob, then one-speaker-per-clip stacked stitch. All 10 locked rules from the Depo build. |
 
 ---
 
