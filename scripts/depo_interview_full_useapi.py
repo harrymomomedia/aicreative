@@ -36,12 +36,12 @@ def listen(persona):
     if persona == "surv":
         return ("A weary middle-aged Black woman listening to an interviewer off-camera on her "
                 "right.\nGAZE: on the interviewer to her right.\nBODY: quiet attentiveness, a "
-                "slight thoughtful nod, weary natural blinks, a soft breath. She stays quiet and "
-                "does not talk.\nSoft natural room ambience.\n" + NOTEXT)
+                "slight thoughtful nod, weary natural blinks, a soft breath, a faint 'mm' of "
+                "acknowledgement.\nSoft natural room ambience.\n" + NOTEXT)
     return ("A warm documentary interviewer listening intently to the person off-camera on her "
             "left.\nGAZE: on the speaker to her left.\nBODY: attentive stillness, slow empathetic "
-            "nods, soft micro-expressions, natural blinks, may glance at her notepad. She stays "
-            "quiet and does not talk.\nSoft natural room ambience.\n" + NOTEXT)
+            "nods, soft micro-expressions, natural blinks, may glance at her notepad, a faint "
+            "'mm-hmm' of acknowledgement.\nSoft natural room ambience.\n" + NOTEXT)
 
 MEN = 'PRONUNCIATION LOCK: "meningioma" = "men-in-jee-OH-muh".\n'
 
@@ -52,17 +52,17 @@ TALK_BEATS = [
     ("surv_talk_1", "surv", SURV, talk("surv","R","resigned, matter-of-fact, she believed it for years",
         "No. Bad luck, they kept saying. Over and over. And for a long time, I believed that.")),
     ("doc_talk_2", "doc", DOC, talk("doc","L","gently probing",
-        "So what changed?")),
+        "So what changed your mind about it just being bad luck?")),
     ("surv_talk_2", "surv", SURV, talk("surv","R","quiet, steady, a little disbelief",
         "A lawyer showed me the studies. Women on the Depo shot for over a year were up to five times more likely to get one.")),
     ("surv_talk_3", "surv", SURV, talk("surv","R","firm, wounded, plain",
         "Five times. That is not bad luck. And nobody ever warned me.")),
     ("doc_talk_3", "doc", DOC, talk("doc","L","warm, reassuring",
-        "And you are not alone in this.")),
+        "And you are not alone in this. So many other women are finding out the very same thing.")),
     ("surv_talk_4", "surv", SURV, talk("surv","R","steady, connected, resolve",
         "Not even close. Thousands of women. Same diagnosis, same shot. There is a federal lawsuit now.")),
     ("doc_talk_4", "doc", DOC, talk("doc","L","practical, gentle",
-        "So what can someone actually do?")),
+        "So what can someone actually do about it? Where would a person even start?")),
     ("surv_talk_5", "surv", SURV, talk("surv","R","helpful, calm, encouraging",
         "You answer a few private questions online. Your diagnosis, how long you were on Depo. It takes about a minute.")),
     ("surv_talk_6", "surv", SURV, talk("surv","R","warm, reassuring, low-key",
