@@ -260,7 +260,9 @@ def generate_gpt_image(prompt, image_urls=None, aspect_ratio="auto", resolution=
     """
     if image_urls:
         model = "gpt-image-2-image-to-image"
-        payload_input = {"prompt": prompt, "image_urls": image_urls, "aspect_ratio": aspect_ratio, "resolution": resolution}
+        # CRITICAL: the i2i model reads "input_urls" — "image_urls" is silently IGNORED
+        # (task still succeeds as pure t2i; verified via fake-URL probe 2026-07-11).
+        payload_input = {"prompt": prompt, "input_urls": image_urls, "aspect_ratio": aspect_ratio, "resolution": resolution}
     else:
         model = "gpt-image-2-text-to-image"
         payload_input = {"prompt": prompt, "aspect_ratio": aspect_ratio, "resolution": resolution}
