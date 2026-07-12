@@ -8,7 +8,9 @@ Run: .venv/bin/python scripts/depo_grok_full_assemble.py
 import re, subprocess, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from elevenlabs_client import scribe
+from face_crop import pane_crop
 
 G = Path("outputs/depo_interview/clips_grok")
 BR = Path("outputs/depo_interview/admachin_broll/clips")
@@ -190,6 +192,9 @@ def dur_of(p):
         "default=nk=1:nw=1",str(p)],capture_output=True,text=True).stdout.strip()
 
 def main():
+    global SURV_CROP, DOC_CROP
+    SURV_CROP = pane_crop(G/'gtalk_surv_1.mp4'); DOC_CROP = pane_crop(G/'gtalk_doc_1.mp4')
+    print(f'  SURV_CROP={SURV_CROP}\n  DOC_CROP={DOC_CROP}')
     trims = {b[0]: trim(b[0], b[3]) for b in BEATS}
 
     # ---- STACKED; beat BROLL_OVER_BEAT shows b-roll over the survivor's VO ----
