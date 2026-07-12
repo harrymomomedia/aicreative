@@ -1,13 +1,13 @@
 ---
-name: interview
-description: The GENERAL cross-cutting patterns for ANY two-person interview UGC video, whatever the format — the shared rules that both `street-interview` (outdoor sidewalk vox-pop) and `stacked-documentary-interview` (indoor seated stacked) build on. Its centerpiece is SPEAKER MATCHING (the two hard problems: making two speakers in one piece sound DISTINCT, and keeping ONE speaker CONSISTENT across clips), plus one-speaker-per-clip routing, face/identity anchoring, gaze geometry, dialogue locks, the QA gates (Scribe + F0 + speaker-embedding), and the reusable assembly primitives (word-anchored turn alignment, word-aware trim, the stereo-concat rule, static-gain loudness). Read this FIRST for any interview video; then read the format-specific skill for the pipeline. Use when the user asks about "interview video/ad" patterns, "matching between speakers", "two speakers sound the same", "voice consistency across clips", "interviewer and subject", or is producing any interview format. Learned across the Chowchilla/CCWF vox-pop and Depo-Provera stacked builds (2026-07).
+name: video-style-interview
+description: The GENERAL cross-cutting patterns for ANY two-person interview UGC video, whatever the format — the shared rules that both `video-style-street-interview` (outdoor sidewalk vox-pop) and `video-style-stacked-documentary-interview` (indoor seated stacked) build on. Its centerpiece is SPEAKER MATCHING (the two hard problems: making two speakers in one piece sound DISTINCT, and keeping ONE speaker CONSISTENT across clips), plus one-speaker-per-clip routing, face/identity anchoring, gaze geometry, dialogue locks, the QA gates (Scribe + F0 + speaker-embedding), and the reusable assembly primitives (word-anchored turn alignment, word-aware trim, the stereo-concat rule, static-gain loudness). Read this FIRST for any interview video; then read the format-specific skill for the pipeline. Use when the user asks about "interview video/ad" patterns, "matching between speakers", "two speakers sound the same", "voice consistency across clips", "interviewer and subject", or is producing any interview format. Learned across the Chowchilla/CCWF vox-pop and Depo-Provera stacked builds (2026-07).
 ---
 
 # Interview Video — general patterns (read this first, then the format skill)
 
 Two format skills sit on top of this one:
-- **`street-interview`** — outdoor sidewalk vox-pop: reporter + mic, wide 16:9 → punch-in to 9:16.
-- **`stacked-documentary-interview`** — indoor seated: subject + documentarian, reverse-angle
+- **`video-style-street-interview`** — outdoor sidewalk vox-pop: reporter + mic, wide 16:9 → punch-in to 9:16.
+- **`video-style-stacked-documentary-interview`** — indoor seated: subject + documentarian, reverse-angle
   chest-up, stacked top/bottom + b-roll.
 
 Everything below applies to **both**. The format skills carry only what's specific to their pipeline.

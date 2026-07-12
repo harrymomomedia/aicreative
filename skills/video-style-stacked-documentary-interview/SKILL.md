@@ -1,6 +1,6 @@
 ---
-name: stacked-documentary-interview
-description: Produce a two-person STACKED documentary / podcast INTERVIEW UGC ad — a subject (survivor / patient / claimant) answering an off-camera-ish documentarian (NOT a news reporter), shot as reverse-angle chest-up talking heads that read as the SAME ROOM, delivered with the subject on TOP and the interviewer on BOTTOM (both panes visible, cut on the same beats) with b-roll cut over the voice. Covers the whole pipeline end-to-end: the two same-room anchor images (exact-face i2i, iPhone-video look, chest-up, 3/4 gaze, facing each other via flip + text-free backdrop), Grok clips for clean talkers AND genuine silent listeners, the stacked/cut assembly (stereo-concat rule, static-gain loudness, watermark delogo, hybrid fallback), b-roll over the VO, and the AdMachin B-Roll library. Use when the user asks for a "stacked interview", "stacked podcast", "documentary interview ad", "podcast-style interview", "two-person interview ad with b-roll", "interview stacked top and bottom", "subject + interviewer testimonial", or wants more videos in this format. For the OUTDOOR sidewalk vox-pop format (reporter with a mic, wide-16:9 punched-in to 9:16) use `street-interview` instead. Learned on the Depo-Provera meningioma build (2026-07).
+name: video-style-stacked-documentary-interview
+description: Produce a two-person STACKED documentary / podcast INTERVIEW UGC ad — a subject (survivor / patient / claimant) answering an off-camera-ish documentarian (NOT a news reporter), shot as reverse-angle chest-up talking heads that read as the SAME ROOM, delivered with the subject on TOP and the interviewer on BOTTOM (both panes visible, cut on the same beats) with b-roll cut over the voice. Covers the whole pipeline end-to-end: the two same-room anchor images (exact-face i2i, iPhone-video look, chest-up, 3/4 gaze, facing each other via flip + text-free backdrop), Grok clips for clean talkers AND genuine silent listeners, the stacked/cut assembly (stereo-concat rule, static-gain loudness, watermark delogo, hybrid fallback), b-roll over the VO, and the AdMachin B-Roll library. Use when the user asks for a "stacked interview", "stacked podcast", "documentary interview ad", "podcast-style interview", "two-person interview ad with b-roll", "interview stacked top and bottom", "subject + interviewer testimonial", or wants more videos in this format. For the OUTDOOR sidewalk vox-pop format (reporter with a mic, wide-16:9 punched-in to 9:16) use `video-style-street-interview` instead. Learned on the Depo-Provera meningioma build (2026-07).
 ---
 
 # Stacked Documentary / Podcast Interview + B-Roll (full pipeline)
@@ -10,13 +10,13 @@ A two-person documentary interview delivered as **both panes stacked vertically*
 on the same beats, with **b-roll cut in over the speaker's voice**. One person speaks per clip; the
 other listens/reacts. Also ship a **CUT** (shot-reverse full-frame) version from the same clips.
 
-> **Read the general `interview` skill first** — it carries the cross-cutting patterns (speaker
+> **Read the general `video-style-interview` skill first** — it carries the cross-cutting patterns (speaker
 > matching, one-speaker-per-clip, model routing, gaze, dialogue locks, QA gates, assembly
 > primitives). This skill covers only what's specific to the STACKED pipeline.
 >
 > Every rule below was a specific correction on the Depo-Provera meningioma build
 > (`claude/ugc-video-style-q4vcfx`, 2026-07). Follow them up front instead of re-deriving.
-> For the OUTDOOR sidewalk vox-pop format use the **`street-interview`** skill.
+> For the OUTDOOR sidewalk vox-pop format use the **`video-style-street-interview`** skill.
 
 Reference scripts (that branch): anchors — `depo_interview_set_iphone.py`, `depo_interview_facing.py`,
 `depo_doc_notext.py`, `depo_doc_alone.py`; clips — `depo_grok_talk.py` + `depo_grok_talk_rest.py`,

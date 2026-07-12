@@ -1,6 +1,6 @@
 ---
-name: street-interview
-description: Produce a STREET-INTERVIEW / VOX-POP UGC ad — a reporter with a handheld mic stops people on a sidewalk and one turns out to be affected (a survivor / claimant), delivering the hook and CTA through a candid back-and-forth. Covers the whole pipeline learned on the Chowchilla / CCWF women's-prison vox-pop build (2026-07): street-casual personas, the two-shot composite anchor (interviewer + respondent) via identity-preserving i2i, Grok-vs-Veo speaker routing, the wide-16:9 → punch-in-to-9:16 reframe, word-timing trim + assemble, and the Chowchilla pronunciation lock. Use when the user asks for a "street interview", "vox pop", "man on the street", "sidewalk interview", "reporter with a mic asking people", "person on the street interview ad", or wants more videos in this format. For the INDOOR seated two-person documentary/podcast format (reverse-angle chest-up talking heads stacked top/bottom) use `interview-scene` + `stacked-podcast-broll` instead.
+name: video-style-street-interview
+description: Produce a STREET-INTERVIEW / VOX-POP UGC ad — a reporter with a handheld mic stops people on a sidewalk and one turns out to be affected (a survivor / claimant), delivering the hook and CTA through a candid back-and-forth. Covers the whole pipeline learned on the Chowchilla / CCWF women's-prison vox-pop build (2026-07): street-casual personas, the two-shot composite anchor (interviewer + respondent) via identity-preserving i2i, Grok-vs-Veo speaker routing, the wide-16:9 → punch-in-to-9:16 reframe, word-timing trim + assemble, and the Chowchilla pronunciation lock. Use when the user asks for a "street interview", "vox pop", "man on the street", "sidewalk interview", "reporter with a mic asking people", "person on the street interview ad", or wants more videos in this format. For the INDOOR seated two-person documentary/podcast format (reverse-angle chest-up talking heads stacked top/bottom) use `video-style-stacked-documentary-interview` instead; for the cross-cutting patterns read `video-style-interview` first.
 ---
 
 # Street Interview / Vox-Pop (man-on-the-street UGC ad)
@@ -18,7 +18,7 @@ Two shapes of the same format:
 - **Conversational street interview (one pair):** one reporter + one survivor, a **multi-clip
   back-and-forth** (Q → A → follow-up → CTA). One two-shot anchor reused across all clips.
 
-> **Read the general `interview` skill first** — it carries the cross-cutting patterns (speaker
+> **Read the general `video-style-interview` skill first** — it carries the cross-cutting patterns (speaker
 > matching, one-speaker-per-clip, model routing, gaze, dialogue locks, QA gates, assembly
 > primitives). This skill covers only what's specific to the STREET pipeline.
 >
