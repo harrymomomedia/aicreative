@@ -7,7 +7,9 @@ Run: .venv/bin/python scripts/insider_assemble.py
 import re, subprocess, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent))   # for face_crop
 from elevenlabs_client import scribe
+from face_crop import pane_crop   # face-aware chin-safe crop
 
 G  = Path("outputs/depo_figured/clips_grok")
 LIB = Path("outputs/depo_interview/admachin_lib")
@@ -145,6 +147,10 @@ def web(src,dst):
 def dur_of(p): return subprocess.run(["ffprobe","-v","error","-show_entries","format=duration","-of","default=nk=1:nw=1",str(p)],capture_output=True,text=True).stdout.strip()
 
 def main():
+    global SURV_CROP, DOC_CROP
+    # face-aware chin-safe crops computed from the actual clips (matched face size, chin + margin)
+    SURV_CROP = pane_crop(G/"surv_1.mp4"); DOC_CROP = pane_crop(G/"doc_0.mp4")
+    print(f"  SURV_CROP={SURV_CROP}\n  DOC_CROP={DOC_CROP}")
     trims={b[0]:trim(b[0],b[3]) for b in BEATS}
     segs=[]
     for idx,(talk,persona,listener,line) in enumerate(BEATS):
