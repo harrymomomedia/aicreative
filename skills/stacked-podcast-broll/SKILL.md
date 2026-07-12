@@ -179,6 +179,20 @@ Endpoint gotchas (baked into the client):
   only be **moved to a null project** (`PATCH project_id=null`).
 - Give every clip a descriptive **title** + tags + `clip_category` so it's findable in the library.
 
+## 5.5 Captions — LAYOUT-AWARE position (user-locked 2026-07)
+
+Caption position must follow the layout PER CLIP, not one fixed value:
+- **STACKED two-pane parts → caption in the SEAM** between the panes (`--vertical-pos 0.50`) so it
+  sits in the gap, over neither face.
+- **FULL-FRAME parts (b-roll tails + the CTA) → caption at the BOTTOM** (~0.82), clear of the face
+  and above the Reels UI cut. A seam-position caption on a full-frame CTA lands on the mouth (flagged).
+- **CUT (shot-reverse) version → all bottom** (~0.80).
+Implement with `caption_hormozi3.py --vpos-map <json>` (per-time-range vpos); build the map from the
+assembly's full-frame ranges with `scripts/build_caption_vpos.py <insider|figured> <out.json>`.
+Style: Hormozi word-highlight, **`--no-emoji`** for somber medical/legal testimonials (emojis read
+playful), `--biased "Depo,meningioma"` for accurate proper-noun transcription. Captions are a
+separate post step — only when asked (default is no burned captions).
+
 ## 6. Surfacing (cloud) & deliverables
 
 - **Cloud/web session:** surface every asset with **`SendUserFile` (`display:"render"`)** so it opens
