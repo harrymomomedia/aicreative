@@ -19,8 +19,10 @@ def analyze(path, line):
     matched_idx = []; ei = 0
     for j, t in enumerate(trans):
         if ei < len(exp) and t == exp[ei]: matched_idx.append(j); ei += 1
-    ok = ei >= 0.7 * len(exp) and len(trans) <= len(exp) * 1.8 + 4
-    reason = "ok" if ok else f"bad ({ei}/{len(exp)}, {len(trans)}w)"
+    # accept when the intended line is (mostly) present; trailing/extra improv is trimmed to the
+    # matched span below, so length alone doesn't fail a clip — only MISSING words do.
+    ok = ei >= 0.8 * len(exp)
+    reason = "ok" if ok else f"missing ({ei}/{len(exp)}, {len(trans)}w)"
     if ok and "chowchilla" in line.lower():
         full = " ".join(wt(w).lower() for w in scribe(path).get("words", []))
         if "chauch" in full or "chochil" in full: ok, reason = False, "Chowchilla mispron"
