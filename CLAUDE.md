@@ -1062,9 +1062,31 @@ Workflow chain:
 
 ---
 
-## Presenting videos in chat — backticked paths only
+## Presenting videos in chat
 
-The user's chat client renders a video path as a **clickable inline preview ONLY when the path is wrapped in `` `backticks` ``** (markdown inline code). Any other format — plain text, table cell, markdown link syntax `[label](path)`, `file:///` URL, `http://localhost:<port>/` URL — does NOT trigger the preview.
+### CLOUD / remote sessions (Claude Code on the web) — OFFICIAL METHOD (user-locked 2026-07-12)
+
+Backticked paths do NOT render previews in cloud sessions. **Present every video via the
+SendUserFile tool, `display: "render"`, ONE FILE PER CALL, with the FILENAME at the start of the
+caption** so the user always knows which video they're looking at:
+
+```
+SendUserFile(files=["outputs/.../FINAL_kids_web.mp4"], display="render", status="normal",
+             caption="📹 FINAL_kids_web.mp4 — I Never Told My Kids (59s, series ③)")
+```
+
+- Never batch multiple videos into one SendUserFile call with a single caption — the user can't
+  tell which is which. One call per video, filename first in the caption.
+- **Always show the preview whenever presenting a video/idea** — generated clip, re-roll, final,
+  variant. Don't just name files in prose.
+- For a BATCH overview, additionally build a gallery HTML (poster thumbnail + filename + summary +
+  play link per video) and send it with `display: "render"` — pattern: the wp_final_gallery page.
+  Public ~24h stream links via `kie_client.upload_file(path)` when the user needs URLs outside chat.
+- Send `_web.mp4` versions (crf 26) to keep delivery fast; keep masters in outputs/.
+
+### Local / desktop sessions — backticked paths
+
+The desktop chat client renders a video path as a **clickable inline preview ONLY when the path is wrapped in `` `backticks` ``** (markdown inline code). Any other format — plain text, table cell, markdown link syntax `[label](path)`, `file:///` URL, `http://localhost:<port>/` URL — does NOT trigger the preview.
 
 ```
 ✅ Source ad: `/Users/harry/Desktop/ad.mp4`
