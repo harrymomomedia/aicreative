@@ -25,7 +25,7 @@ TALK = [
  ("doc_0", DOC, "6", doc("When you were diagnosed with a brain meningioma, did anyone ever tell you why?", "Warm, gentle, curious.")),
  ("surv_1", SURV, "8", surv("No. Not one doctor. They said sometimes these things just happen. I believed that for two years.", "Quiet, resigned, weathered.")),
  ("doc_2", DOC, "6", doc("So how did you find out it might not be random?", "Gently probing.")),
- ("surv_3", SURV, "14", surv("I was scrolling one night and saw a lawsuit. Women on the Depo shot for over a year were up to five times more likely to get a meningioma. My stomach dropped.", "Quiet, then a jolt of realization.")),
+ ("surv_3", SURV, "14", surv("I was scrolling one night and saw a lawsuit. Women on the Depo shot for over a year were up to five times more likely to get a meninjioma. My stomach dropped.", "Quiet, then a jolt of realization.")),  # respell meningioma->meninjioma (TTS slurred it)
  ("surv_4", SURV, "6", surv("Because that was me. Same shot, for years. And nobody had ever said a word.", "Wounded, plain.")),
  ("doc_5", DOC, "6", doc("Most women are finding out the exact same way, on their own.", "Warm, knowing.")),
  ("surv_6", SURV, "10", surv("Nobody calls you. I pieced it together myself. Thousands of women are doing the same thing right now. There's a federal lawsuit.", "Steady, resolved.")),
@@ -35,7 +35,7 @@ TALK = [
  ("doc_cta", DOC, "11",
    "The woman sits in the armchair and looks DIRECTLY INTO the camera lens, speaking straight to the "
    "viewer, warm and sincere with a small caring nod. She says: \"If you or someone you love has a "
-   "brain meningioma and was ever on Depo, you may qualify for significant compensation. Tap below "
+   "brain meningioma and was ever on Deppo, you may qualify for significant compensation. Tap below "  # Depo->Deppo (TTS said 'Depot')
    "and take the two-minute check.\" " + AMB),
 ]
 # subject listeners only (doc listeners reused from The Insider)
