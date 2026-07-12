@@ -709,6 +709,10 @@ Veo's TTS varies dramatically between generations on the SAME prompt:
 
 **No prompt fix exists.** The canonical normalization is ElevenLabs voice changer — see "Audio normalization" section.
 
+### Wrong-GENDER voice / a 2nd speaker slips in — ALWAYS verify voice gender per clip (user-locked, 2026-07-12)
+Veo's TTS non-deterministically renders a **male voice** (or injects a **second, male speaker**) on a clip whose anchor is clearly a woman — most often in **underfilled clips** (a short line in a long clip; Veo fills the void with an invented, often male, voice) and on interviewer question-openers. The face still looks right, so a visual-only QA misses it. This shipped a women's-prison interview where the opening question came out in a man's voice.
+**Add a voice-gender check to the per-clip Veo QA gate** (alongside the transcript check): measure the fraction of voiced frames in the male pitch range (F0 < 160 Hz) via `librosa.pyin`; for an all-female cast, **reject any clip with >~22% male-range frames** (that also catches a two-voice clip — female + male reads as a bimodal/high male fraction) and **re-roll** it. Median F0 alone hides it (a mostly-female clip with a male segment still medians ~180 Hz) — use the *fraction below 160 Hz*, not the median. Reference: `male_frac()` gate in `scripts/wp_series2_finalize.py` (`MALE_MAX = 0.22`) + the standalone probe pattern. First defense is still to **match clip duration to the line** (adaptive 4/6/8s) so there's no void to fill — see the google-flow adaptive-duration note. This complements `voice_consistency.py` (which catches speaker *drift* between clips, not a single clip rendering the wrong gender).
+
 ### Watermark is random
 Veo sometimes (~30-50% of generations) burns a "Veo" watermark in the bottom-right corner. Same payload can produce a clean clip or a watermarked one. **No flag exposed via KIE.** Mitigations:
 - Re-roll until clean
