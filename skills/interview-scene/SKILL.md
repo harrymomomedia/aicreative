@@ -114,6 +114,15 @@ Resolution: **2K default** (user pref; 4K for the establishing empty room is fin
    (render) for approval. Every clip inherits the anchor's angle, so fixing it here is free and
    fixing it later means re-generating the whole clip set.
 
+7. **CLOSE-UP FACE FRAMING — never cut the chin (user-locked 2026-07).** The panes are wide-ish
+   (~720x640), so a tight/low anchor + a blind fixed crop clips the chin. (a) Compose the anchor as a
+   **MEDIUM close-up** — head AND shoulders, HEADROOM above the hair, space BELOW the chin (face
+   ~40–50% of frame height, upper-middle), NOT a tight face-filling crop (ask for medium-CU AND the
+   3/4 turn together). (b) Crop each pane **FACE-AWARE**, never blind: `scripts/face_crop.py`
+   `pane_crop(clip)` detects the face and keeps the whole face with **chin inside + ≥6% margin**,
+   eyeline in the **upper third**, and a **matched face-fill** across both panes. Verify on a rendered
+   stacked frame (no chin within ~6% of a pane edge; heads same size). Needs `opencv-python-headless<5`.
+
 Reusable scripts (Depo build): `scripts/depo_interview_set_iphone.py` (room+composite iPhone),
 `scripts/depo_interview_facing.py` (opposite 3/4 gazes), `scripts/depo_doc_notext.py` (text-free
 backdrop → composite → flip), `scripts/depo_doc_alone.py` (no foreground → flip). Approved Depo

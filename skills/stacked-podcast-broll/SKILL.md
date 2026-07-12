@@ -61,6 +61,21 @@ looking-room on the right"), and use the flip trick for the opposite side (gener
 easy way, flip one — over a TEXT-FREE backdrop). **Do NOT spend a single Grok generation until the
 anchors pass** — every talking/listening clip inherits the anchor's angle.
 
+## 0.6 CLOSE-UP FACE FRAMING — never cut the chin (user-locked 2026-07)
+
+The stacked panes are ~720x640 (wide-ish), so a tight/low anchor + a blind fixed crop **clips the
+chin** (caught on Figured-It-Out). Two-part rule:
+- **Anchor = MEDIUM close-up, not tight:** head AND shoulders, clear HEADROOM above the hair and
+  space BELOW the chin (face ~40–50% of frame height, upper-middle). Prompt it explicitly; i2i tends
+  to frame too tight/low. This leaves room to crop. (Balancing act with the 3/4 turn — ask for BOTH
+  in one prompt: "medium close-up with headroom AND clearly angled three-quarter toward the RIGHT…".)
+- **Pane crop = FACE-AWARE, never blind:** use `scripts/face_crop.py` `pane_crop(clip)` — it detects
+  the largest face (OpenCV Haar) and computes a crop that keeps the WHOLE face with the **chin inside
+  + ≥6% margin**, eyeline in the **upper third**, and a **consistent face-fill** so BOTH stacked
+  panes match in head size. `scripts/figured_assemble.py` computes `SURV_CROP`/`DOC_CROP` this way.
+  Needs `opencv-python-headless<5` (v5 stripped `CascadeClassifier`).
+- **Verify on a rendered stacked frame:** no chin within ~6% of a pane edge; both heads same size.
+
 ## 1. Video generation — GROK IMAGINE for everything (locked)
 
 Use **Grok Imagine on KIE** (`grok-imagine/image-to-video`) for BOTH the talking clips AND the
