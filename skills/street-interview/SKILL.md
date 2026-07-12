@@ -18,6 +18,10 @@ Two shapes of the same format:
 - **Conversational street interview (one pair):** one reporter + one survivor, a **multi-clip
   back-and-forth** (Q → A → follow-up → CTA). One two-shot anchor reused across all clips.
 
+> **Read the general `interview` skill first** — it carries the cross-cutting patterns (speaker
+> matching, one-speaker-per-clip, model routing, gaze, dialogue locks, QA gates, assembly
+> primitives). This skill covers only what's specific to the STREET pipeline.
+>
 > Every rule below was a specific fix on the Chowchilla/CCWF women's-prison vox-pop build
 > (`claude/womens-prison-video-xvzdh8`, 2026-07). Follow them up front instead of re-deriving.
 > Reference scripts (that branch): `scripts/wp_voxpop_personas.py`, `wp_voxpop_twoshot.py` +

@@ -10,6 +10,10 @@ A two-person documentary interview delivered as **both panes stacked vertically*
 on the same beats, with **b-roll cut in over the speaker's voice**. One person speaks per clip; the
 other listens/reacts. Also ship a **CUT** (shot-reverse full-frame) version from the same clips.
 
+> **Read the general `interview` skill first** — it carries the cross-cutting patterns (speaker
+> matching, one-speaker-per-clip, model routing, gaze, dialogue locks, QA gates, assembly
+> primitives). This skill covers only what's specific to the STACKED pipeline.
+>
 > Every rule below was a specific correction on the Depo-Provera meningioma build
 > (`claude/ugc-video-style-q4vcfx`, 2026-07). Follow them up front instead of re-deriving.
 > For the OUTDOOR sidewalk vox-pop format use the **`street-interview`** skill.
