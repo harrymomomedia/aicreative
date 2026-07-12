@@ -27,7 +27,7 @@ TURNS = [
  (10,"S","The truth was a guard was sexually assaulting me, and I could not make it stop."),
  (11,"I","That was never on you. Women sexually abused by staff at Chowchilla may qualify for significant potential compensation."),
  (12,"I","It is confidential, there is no court, and it costs nothing to find out."),
- (13,"C","If it happened to you too, please don't wait like I did. Go and see if you qualify."),
+ (13,"C","If it happened to you, don't wait like I did. See if you qualify."),
 ]
 
 def prompt_for(spk, line):
