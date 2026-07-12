@@ -1298,6 +1298,25 @@ Keep a **cold / muted / desaturated** block for dark beats and a separate **BRIG
 
 Once an ad is finished, push it into **AdMachin** (the user's own ad platform — `github.com/harrymomomedia/admachin`, REST v1 at `https://admachin.com/api/v1`). Two ways in, both wired up:
 
+### How to connect to the AdMachin API (user-locked 2026-07-12 — do NOT ask again)
+
+The connection is already wired — **never ask the user to paste the key or how to connect.**
+- **Auth:** Bearer token from the **`ADMACHIN_PAT`** secret (gitignored `.env`, also in the agent runtime secret store). `admachin_client.py` reads it via `load_dotenv()` and sends `Authorization: Bearer $ADMACHIN_PAT` on every call. **Base URL:** `https://admachin.com/api/v1` (`ADMACHIN_API_BASE` override supported). If `ADMACHIN_PAT` is genuinely missing at runtime, ask the user to add it to the agent runtime secret store — do NOT ask them to paste it into chat or a file.
+- **Reference docs:** OpenAPI at `https://admachin.com/api/v1/openapi.json`; an agent-oriented capability map at **`GET /agent/schema`** (entities, scopes, profiles, filters). Read these first when a new endpoint shape is unknown.
+- **Writes:** every POST/PATCH auto-sends an **`Idempotency-Key`** (client handles it; server dedups 24h). On **429**, honor `Retry-After`.
+- **Confirmation:** ALWAYS get explicit user confirmation before any **paid / launch / delete / pause** call (launch spends real money). Read-only GETs (`list_*`, `get_*`, `/fb/graph-read`, `/launches/validate`) are safe to call freely — validate does NOT spend.
+- **Meta launch discovery flow (read-only, no spend):** resolve Page via `connection_id` + `ad_account_id` (`/fb/pages` or `list_fb_pages`), find the campaign/adset ids (`/fb/graph-read` on the adset id returns its full config), then **`POST /launches/validate`** to check the body before `POST /launches`. See the launch gotchas below.
+
+### Launch via adset duplication — `POST /launches` field shape (verified 2026-07-12)
+
+To launch ads into a **new adset duplicated from an existing one** (the Bad Luck → adset "42" from "41" case), the validated body shape is:
+- `ad_set_mode: "duplicate"` (allowed: `duplicate` | `existing` | `new` | `bulk`; NOT `"create"`), plus `source_adset_id` (the FB numeric adset id to clone) and `use_create_from_source: true`.
+- **`new_adset_params` must carry the FULL adset shape even in duplicate mode** — the validator requires `name`, a budget, `billing_event`, `optimization_goal`, `bid_strategy`, and `targeting`. Pull them from the source adset via `/fb/graph-read` (fields `name,daily_budget,billing_event,optimization_goal,bid_strategy,targeting,promoted_object,attribution_spec`) and mirror them, overriding only `name` + budget.
+- **`new_adset_params.daily_budget` is in DOLLARS** (validator caps it **$1–$300**) — even though the raw FB adset stores cents (`40000` = $400). Pass `100` for $100/day, NOT `10000`.
+- **Validator-supported targeting subset** (source adsets may carry more that the launch validator rejects): `publisher_platforms` may NOT include `threads`; `facebook_positions` must exclude `biz_disco_feed, facebook_reels_overlay, profile_feed, notification`; `instagram_positions` must exclude `explore_home`; `attribution_spec` entries must all be `CLICK_THROUGH` (drop `VIEW_THROUGH` / `ENGAGED_VIDEO_VIEW`).
+- **UTM: do NOT hardcode / override `utm_template`.** The API/MCP default applies the `{{ }}` template (incl. `am_mb={{media_buyer_code}}`) — Meta fills the placeholders. Only set `landing_url` (the base HTTPS URL).
+- Reusable gated script: **`scripts/depo_launch_badluck.py`** (validate-only by default; `--go` to launch). Iterate validation with `POST /launches/validate` until `passed: true` before any real launch.
+
 ### Python client + push script (the automation)
 
 - **`admachin_client.py`** — thin REST wrapper, mirrors the other `*_client.py` modules. Reads `ADMACHIN_PAT` + `ADMACHIN_API_BASE` from `.env`. Auto-sends an `Idempotency-Key` on every POST/PATCH (server dedups 24h). Raises `AdMachinError` with `.code` (`FORBIDDEN` = PAT missing a scope, `UNAUTHENTICATED` = bad token, etc.). Functions: `upload_creative`, `create_ad_copy`, `create_ad`, `generate_combos`, `create_link`, `launch_ad`, `pause_launch`, `resume_launch`, plus read helpers (`list_workspaces`, `list_ad_plans`, `list_creatives`, `get_creative`, `get_ad`, `get_launch`).
