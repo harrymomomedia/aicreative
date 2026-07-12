@@ -35,6 +35,9 @@ def bulk_body(confirm=False):
     # use_create_from_source=True clones adset 41's full targeting/optimization via Meta
     # (so we do NOT hand-specify targeting; it mirrors 41 exactly). daily_budget in DOLLARS (max 300).
     # utm_template OMITTED -> API default {{ }} template + am_mb={{media_buyer_code}} applies.
+    # NATIVE Meta duplicate (/copies) — do NOT set use_create_from_source (that path stalls).
+    # This is the same fast "Duplicate" mode the web wizard uses; it copies adset 41 as-is,
+    # overriding only budget + name.
     b = {
         "ad_grouping": [AD_IDS],
         "source_adset_id": SOURCE_ADSET,
@@ -46,7 +49,6 @@ def bulk_body(confirm=False):
         "connection_id": CONNECTION_ID,
         "daily_budget": 100,
         "adset_names": ["42"],
-        "use_create_from_source": True,
     }
     if confirm:
         b["confirm"] = True
@@ -98,8 +100,8 @@ def main():
     if not a.go:
         print("Validate-only. Re-run with --go to launch (real spend).")
         return
-    print("\n⚠ LAUNCHING via /launches/bulk (real spend) ...")
-    r = _post("/launches/bulk", json=bulk_body(confirm=True), idem_key="launch-badluck-adset42")
+    print("\n⚠ LAUNCHING via /launches/bulk (native duplicate, real spend) ...")
+    r = _post("/launches/bulk", json=bulk_body(confirm=True), idem_key="launch-badluck-adset42-v2", timeout=180)
     print(json.dumps(r, indent=2)[:4000])
 
 if __name__ == "__main__":
