@@ -98,9 +98,16 @@ def _gen(prompt, spk, local_path):
         url = upload_file(local_path)
         return kie_veo(prompt, image_urls=[url, url], model="veo3_fast",
                        mode="IMAGE_2_VIDEO", aspect_ratio="9:16")
-    # googleflow (free Veo 3.1 Lite, startImage i2v) — takes a LOCAL path, auto-uploads
+    # googleflow (free Veo 3.1 Lite, startImage i2v) — takes a LOCAL path, auto-uploads.
+    # Match clip duration to the line length (~2.4 wps) so a short line doesn't leave a void the
+    # Lite tier fills with improv. google-flow allows only 4/6/8s.
     from googleflow_client import generate_veo as gf_veo
-    return gf_veo(prompt, image_path=local_path, duration=8, aspect_ratio="portrait")
+    import re as _re
+    m = _re.search(r'SPOKEN DIALOGUE \(verbatim\): "([^"]*)"', prompt)
+    nwords = len(_re.findall(r"[A-Za-z0-9']+", m.group(1))) if m else 18
+    est = nwords / 2.4
+    dur = 4 if est <= 4.0 else (6 if est <= 6.2 else 8)
+    return gf_veo(prompt, image_path=local_path, duration=dur, aspect_ratio="portrait")
 
 def _main():
     video = sys.argv[1]
