@@ -9,6 +9,7 @@ from poyo_client import generate_veo
 OUT = pathlib.Path("outputs/wp_interview2/niceone"); OUT.mkdir(parents=True, exist_ok=True)
 IV = "outputs/wp_interview2/reference/interviewer_mic.png"    # interviewer (looks right, matched mic)
 SV = "outputs/wp_interview2/reference/survivor_mic.png"       # survivor (looks left, matched mic)
+SV_CAM = "outputs/wp_interview2/reference/survivor_cam_b.png" # survivor holds mic, looks INTO camera (closer)
 PRON = ("PRONUNCIATION: 'Chowchilla' = three English syllables chow (rhymes with cow) + chill + uh, "
         "stress the middle syllable, one fluid word, never Spanish. ")
 
@@ -26,7 +27,7 @@ TURNS = [
  (10,"S","The truth was a guard was sexually assaulting me, and I could not make it stop."),
  (11,"I","That was never on you. Women sexually abused by staff at Chowchilla may qualify for significant potential compensation."),
  (12,"I","It is confidential, there is no court, and it costs nothing to find out."),
- (13,"S","After all this time. Maybe I will."),
+ (13,"C","If it happened to you too, please don't wait like I did. Go and see if you qualify."),
 ]
 
 def prompt_for(spk, line):
@@ -34,6 +35,10 @@ def prompt_for(spk, line):
         who = ("The woman holding the small podcast microphone speaks to the person she is "
                "interviewing off to her right, warm, calm, everyday tone, gentle. Gaze off-camera "
                "to her right.")
+    elif spk == "C":   # closer: survivor holds the mic herself, direct to camera
+        who = ("The older woman holds the microphone in her own hand near her mouth and speaks "
+               "STRAIGHT INTO the camera lens, directly to the viewer, heartfelt and steady, urging "
+               "them. Gaze locked on the camera lens.")
     else:
         who = ("The older woman speaks candidly to the interviewer off to her left, weathered, "
                "honest, quietly emotional, measured. Gaze off-camera to her left.")
@@ -47,12 +52,12 @@ def prompt_for(spk, line):
 
 def _main():
     only = int(sys.argv[1]) if len(sys.argv) > 1 else None
-    iv_url = upload_file(IV); sv_url = upload_file(SV)
+    iv_url = upload_file(IV); sv_url = upload_file(SV); cam_url = upload_file(SV_CAM)
     for idx, spk, line in TURNS:
         if only and idx != only: continue
         dst = OUT / f"t{idx:02d}_{spk}.mp4"
         if dst.exists(): print(f"[skip] t{idx}"); continue
-        url = iv_url if spk == "I" else sv_url
+        url = {"I": iv_url, "S": sv_url, "C": cam_url}[spk]
         r = generate_veo(prompt_for(spk, line), image_urls=[url, url], aspect_ratio="9:16",
                          resolution="720p", generation_type="frame")
         if r.get("urls"):
