@@ -2,10 +2,32 @@
 (<=MAX), trim each to its intended line, concat in order + loudnorm, Nick captions + Pulaski/Jones
 disclaimer. 9:16 out.  Usage: wp_series2_finalize.py <video>   (relationship|moved|kids)
 """
-import subprocess, re, sys, pathlib, os, shutil
+import subprocess, re, sys, pathlib, os, shutil, tempfile
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 from elevenlabs_client import scribe
 from wp_series2_produce import VIDEOS
+
+# --- voice-gender gate: every persona is female; flag any clip where a male voice appears
+# (Veo TTS non-deterministically renders a male voice or injects a 2nd speaker, esp. in
+# underfilled clips). male_frac = fraction of voiced frames in male pitch range (<160 Hz). ---
+MALE_MAX = 0.22
+def male_frac(mp4):
+    try:
+        import numpy as np, librosa
+    except Exception:
+        return 0.0
+    wav = tempfile.mktemp(suffix=".wav")
+    subprocess.run(["ffmpeg","-y","-i",mp4,"-ac","1","-ar","16000",wav], capture_output=True)
+    try:
+        y, sr = librosa.load(wav, sr=16000)
+    finally:
+        try: os.remove(wav)
+        except OSError: pass
+    import numpy as np, librosa
+    f0, _, _ = librosa.pyin(y, fmin=70, fmax=350, sr=sr)
+    v = f0[~np.isnan(f0)]
+    if len(v) == 0: return 0.0
+    return float(np.sum(v < 160) / len(v))
 
 MAX = 3; LEAD, TRAIL = 0.05, 0.25
 # number-word <-> digit + benign colloquial folds so Scribe's rendering ("11" for "eleven",
@@ -62,10 +84,13 @@ def analyze(path, line):
     i, j, matched = ts
     recall = matched / len(exp)
     reason = "ok" if recall >= 0.8 else f"low ({matched}/{len(exp)}, {len(trans)}w)"
-    if "chowchilla" in line.lower():
+    if recall >= 0.8 and "chowchilla" in line.lower():
         full = " ".join(wt(w).lower() for w in scribe(path).get("words", []))
         if "chauch" in full or "chochil" in full: reason = "Chowchilla mispron"; recall = 0.0
         elif "chowchill" not in full: reason = "Chowchilla unclear"; recall = 0.0
+    mf = male_frac(path)
+    if recall >= 0.8 and mf > MALE_MAX:
+        reason = f"MALE VOICE ({mf*100:.0f}%)"; recall = 0.0   # female persona -> reject male/2-voice
     span = (max(0, ws[i]["start"] - LEAD), ws[j]["end"] + TRAIL)
     return span, recall, reason
 
