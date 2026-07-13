@@ -21,13 +21,29 @@ PIXEL = "1345276490863660"
 LANDING = default_landing_url(WOMENS_PRISON_BASE)  # full {{ }} default UTM
 DAILY_BUDGET = 100                                 # dollars/day (endpoint is $, $300 cap)
 STAGE = json.load(open("outputs/wp_stage6_state.json"))
-STATE_P = pathlib.Path("outputs/wp_launch_state.json")
+STATE_P = pathlib.Path("outputs/wp_launch_state_v2.json")   # v2 = corrected manual-placement run
+KEY = "wpl2"                                                # fresh idempotency namespace
 
-# adset name -> [staged slugs] (2 unique scripts each)
+# MANUAL placements, Audience Network OFF (verified accepted by the create endpoint 2026-07-12).
+# Setting these EXPLICITLY is what keeps Audience Network off — dropping the block flips the adset
+# to Advantage+ automatic (which includes Audience Network). The endpoint rejects the source's
+# newer edge positions (threads/biz_disco_feed/facebook_reels_overlay/profile_feed/notification/
+# explore_home/ig_search), so those are omitted; the platform selection (no audience_network) holds.
+MANUAL_PLACEMENTS = {
+    "publisher_platforms": ["facebook", "instagram", "messenger"],   # NO audience_network
+    "device_platforms": ["mobile", "desktop"],
+    "facebook_positions": ["feed", "right_hand_column", "instream_video", "marketplace",
+                            "story", "search", "facebook_reels"],
+    "instagram_positions": ["stream", "story", "reels"],
+    "messenger_positions": ["story"],
+}
+
+# adset name -> [staged slugs] (2 unique scripts each). 45/46/47 so they don't collide with the
+# earlier (wrong, Advantage+) 42/43/44 adsets, which must be deleted in Meta UI.
 ADSETS = [
-    ("42 - interview street - 20-64",   ["voxpop-didyouknow", "niceone"]),
-    ("43 - interview reframe - 20-64",  ["omni-500women", "relationship"]),
-    ("44 - interview personal - 20-64", ["moved", "kids"]),
+    ("45 - interview street - 20-64",   ["voxpop-didyouknow", "niceone"]),
+    ("46 - interview reframe - 20-64",  ["omni-500women", "relationship"]),
+    ("47 - interview personal - 20-64", ["moved", "kids"]),
 ]
 
 import time
@@ -56,13 +72,14 @@ def save(s): STATE_P.write_text(json.dumps(s, indent=2))
 def main():
     state = load()
     src = gr(f"/{SRC_ADSET}", "targeting,promoted_object,attribution_spec,billing_event,optimization_goal,pacing_type")
-    # AdMachin create rejects some of the source's manual placements (threads + newer FB/IG
-    # positions). Drop 'threads' and the granular *_positions arrays -> Meta auto-places within the
-    # selected publisher_platforms (facebook/instagram/messenger). Same audience/geo/age/pixel.
+    # Duplicate the AUDIENCE (geo/age/gender/etc.) from source, but SET placements explicitly to the
+    # verified manual set (Audience Network OFF). Removing the source's newer edge positions is fine;
+    # the platform selection is what matters and it keeps Audience Network off.
     tg = src["targeting"]
     for k in ("publisher_platforms", "device_platforms", "threads_positions",
               "facebook_positions", "instagram_positions", "messenger_positions"):
-        tg.pop(k, None)   # -> Advantage+ automatic placements; audience (geo/age/gender) unchanged
+        tg.pop(k, None)
+    tg.update(MANUAL_PLACEMENTS)
     for name, slugs in ADSETS:
         st = state.setdefault(name, {})
         # 1. create the adset (PAUSED, no bid cap, $100/day) — duplicate targeting
@@ -78,7 +95,7 @@ def main():
                 "pacing_type": src.get("pacing_type", ["standard"]),
             }
             body = {"confirm": True, "ad_account_id": ACCT, "campaign_id": CAMP, "adset_params": ap}
-            code, resp = _req("POST", f"{BASE}/fb/adsets", json_body=body, idem=f"wpl-adset-v5-{name}")
+            code, resp = _req("POST", f"{BASE}/fb/adsets", json_body=body, idem=f"{KEY}-adset-{name}")
             if code >= 300:
                 print(f"[{name}] ADSET FAIL {code}: {resp}"); return
             d = resp.get("data", resp)
@@ -93,7 +110,7 @@ def main():
             body = {"confirm": True, "ad_id": ad_id, "ad_account_id": ACCT, "campaign_id": CAMP,
                     "adset_id": st["adset_id"], "page_id": PAGE, "cta_type": "LEARN_MORE",
                     "landing_url": LANDING, "pixel_id": PIXEL, "event_type": "LEAD"}
-            code, resp = _req("POST", f"{BASE}/launches", json_body=body, idem=f"wpl-launch-v4-{slug}")
+            code, resp = _req("POST", f"{BASE}/launches", json_body=body, idem=f"{KEY}-launch-{slug}")
             if code >= 300:
                 print(f"  [{slug}] LAUNCH FAIL {code}: {resp}"); return
             d = resp.get("data", resp)

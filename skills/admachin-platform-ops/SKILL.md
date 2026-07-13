@@ -64,6 +64,23 @@ https://<campaign>.justicecovered.com/?utm_source={{site_source_name}}&utm_mediu
   passing those straight into `adset_params`.
 - **Drop the bid cap** by setting `bid_strategy: "LOWEST_COST_WITHOUT_CAP"` and omitting `bid_amount`
   (source used `LOWEST_COST_WITH_BID_CAP` + `bid_amount`).
+- **PLACEMENTS — set them EXPLICITLY; never drop the block.** Omitting `publisher_platforms`/
+  `*_positions` flips the adset to **Advantage+ automatic, which turns Audience Network ON** — a
+  silent, wrong change. The create endpoint also REJECTS the newer position values live adsets carry
+  (`threads`, `biz_disco_feed`, `facebook_reels_overlay`, `profile_feed`, `notification`,
+  `explore_home`, `ig_search`), so you can't copy the source's list verbatim. Verified-accepted
+  **manual set, Audience Network OFF** (`MANUAL_PLACEMENTS` in `scripts/wp_launch_adsets.py`):
+  `publisher_platforms:[facebook,instagram,messenger]` (NO audience_network),
+  `device_platforms:[mobile,desktop]`, fb:`[feed,right_hand_column,instream_video,marketplace,
+  story,search,facebook_reels]`, ig:`[stream,story,reels]`, messenger:`[story]`. Copy the AUDIENCE
+  (geo/age/gender) from graph-read; SET placements from this constant.
+- **There is NO native adset copy in the REST API** — no `/fb/adsets/{id}/copy`/`/duplicate`, and
+  create-from-source fields (`source_adset_id`, `use_create_from_source`, `template_adset_id`, …)
+  are all "unknown field". The exact-clone `use_create_from_source` is an **MCP-server** feature
+  (local Mac), not available in a cloud/REST session — so in cloud you MUST reconstruct with the
+  explicit manual placements above. **No REST update/delete for adsets either** (all 401): a
+  wrong adset can't be edited or deleted via API — fix by creating a correct one and deleting the
+  wrong one in Meta UI.
 
 ## Launch & post-launch
 

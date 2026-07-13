@@ -37,18 +37,25 @@ NO bid cap** (LOWEST_COST_WITHOUT_CAP), duplicated audience from adset `12024840
 PAUSED — do NOT re-launch; activate in Meta UI.** Full default UTM (`admachin_utm.default_landing_url`)
 in landing_url.
 
+**CORRECT adsets (45/46/47) — manual placements, Audience Network OFF** (state
+`outputs/wp_launch_state_v2.json`):
+
 | Adset | FB adset id | Ads (launch ids) |
 |---|---|---|
-| 42 - interview street - 20-64 | `120252946177060281` | voxpop-didyouknow `3c22995e…` · niceone `fe5027c9…` |
-| 43 - interview reframe - 20-64 | `120252946395690281` | omni-500women `4469f755…` · relationship `4296320e…` |
-| 44 - interview personal - 20-64 | `120252946729910281` | moved `57770185…` · kids `13ee6cd1…` |
+| 45 - interview street - 20-64 | `120252949055100281` | voxpop-didyouknow `ed293043…` · niceone `8ec16bf7…` |
+| 46 - interview reframe - 20-64 | `120252949098090281` | omni-500women `83a39c8c…` · relationship `332a1bcb…` |
+| 47 - interview personal - 20-64 | `120252949131430281` | moved `3f1088da…` · kids `da745e91…` |
 
-Endpoint-forced deviations from the source adset (note for exact-match tweaks in Meta UI):
-placements → **Advantage+ automatic** (API rejected source's manual `threads`/`biz_disco_feed`/
-`facebook_reels_overlay`/etc.), attribution → **Meta default** (source's custom attribution_spec
-format rejected). Audience/geo/age(20-64)/gender(women)/pixel(`1345276490863660`→LEAD) identical.
-Meta code-6000 video-upload glitches on relationship/moved were transient (cleared on idempotent
-retry).
+⚠️ **DELETE the earlier WRONG adsets 42/43/44 in Meta UI** — they were created with Advantage+
+automatic placements (Audience Network ON, NOT intended) and REST has no delete: `120252946177060281`
+(42), `120252946395690281` (43), `120252946729910281` (44) + their 6 ads. Superseded by 45/46/47.
+
+Placement lesson (now in `admachin-platform-ops` skill): the create endpoint rejects the source's
+newer positions AND dropping the placement block silently flips to Advantage+/Audience-Network-ON —
+so SET placements explicitly to the verified manual set (`MANUAL_PLACEMENTS`, Audience Network off).
+REST has no native adset copy/update/delete (MCP-only). Attribution → Meta default (source's custom
+attribution_spec format rejected). Audience/geo/age(20-64)/gender(women)/pixel(`1345276490863660`
+→LEAD) identical to source. Meta code-6000 video-upload glitches are transient (idempotent retry).
 
 ## Production pipeline (what actually built these)
 
