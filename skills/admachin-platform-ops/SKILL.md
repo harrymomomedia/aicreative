@@ -31,6 +31,40 @@ These traps have each recurred across ≥3 campaigns. Full API contract details 
   get explicit approval BEFORE creating copy rows or assembling ads. A template walkthrough is not
   approval.
 
+## Default UTM (JusticeCovered) — REQUIRED on every launched ad
+
+Ads must launch with the full AdMachin "URL Parameters" default (the `{{ }}` macro guide) — a bare
+landing URL is wrong. The `/launches` endpoint does NOT accept a `url_tags`/`url_parameters` field,
+so the template is appended to **`landing_url`** itself (Facebook fills the macros at delivery; do
+NOT url-encode the `{{ }}`). Build it with `admachin_utm.default_landing_url(base, media_buyer)`:
+
+```
+https://<campaign>.justicecovered.com/?utm_source={{site_source_name}}&utm_medium=paid_social
+&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_id={{campaign.id}}
+&campaign_id={{campaign.id}}&campaign_name={{campaign.name}}&adset_id={{adset.id}}
+&adset_name={{adset.name}}&ad_id={{ad.id}}&ad_name={{ad.name}}&account_id={{account_id}}
+&placement={{placement}}&site_source_name={{site_source_name}}&am_mb=<media_buyer>
+```
+
+- Base domain is per-campaign (`womensprison` / `depop` / …). Women's-prison base =
+  `https://womensprison.justicecovered.com/`.
+- `utm_medium` is static `paid_social`; `am_mb` = media-buyer code (`hj` = Jordan-Jones/Pulaski desk).
+- Canonical source of truth: `admachin_utm.py` (`UTM_PARAMS`, `default_landing_url`). Since ads are
+  IMMUTABLE once launched, get this right at creation — a wrong/bare URL means recreating the ad.
+
+## FB adset create (duplicate settings, REST)
+
+- `POST /fb/adsets` needs: `confirm: true`, `Idempotency-Key` header, `ad_account_id`, `campaign_id`,
+  and `adset_params` (the FB fields). **`adset_params` must NOT include `status`/`campaign_id`/
+  account fields** (AdMachin controls those; new adsets land PAUSED).
+- `adset_params.daily_budget` is in **DOLLARS** (not cents) with a **$300/day hard safety cap** —
+  `$100/day` → `daily_budget: 100`. (The raw Meta `daily_budget` you read back via graph is cents.)
+- Duplicate targeting by reading the source adset via `GET /fb/graph-read?path=/<adset_id>&fields=
+  targeting,promoted_object,attribution_spec,billing_event,optimization_goal,pacing_type` and
+  passing those straight into `adset_params`.
+- **Drop the bid cap** by setting `bid_strategy: "LOWEST_COST_WITHOUT_CAP"` and omitting `bid_amount`
+  (source used `LOWEST_COST_WITH_BID_CAP` + `bid_amount`).
+
 ## Launch & post-launch
 
 - **Launched ads are IMMUTABLE.** Wrong copy on a live ad → CREATE ONE MORE ad (new draft), never
