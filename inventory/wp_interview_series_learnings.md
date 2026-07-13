@@ -29,6 +29,27 @@ Consent" · "They Moved You to Keep You Quiet" · "You Never Told Anyone. You Ma
 WIP iterations dropped from the roster (archived `outputs/wp_voxpop/wip/`): `FINAL_veo.mp4`
 (two-shot voice collapse), `FINAL_grok_voiceswap.mp4` (28% male-range flag, redundant variant).
 
+## LAUNCHED (PAUSED) 2026-07-12 — YJE-23 / WPA - Latina - HJ P1
+
+Launcher `scripts/wp_launch_adsets.py` (state `outputs/wp_launch_state.json`, gitignored). Account
+`act_885970616544640` (YJE-23), campaign `120242151877070281`. 3 NEW adsets, 2 ads each, **$100/day,
+NO bid cap** (LOWEST_COST_WITHOUT_CAP), duplicated audience from adset `120248405890960281`. **ALL
+PAUSED — do NOT re-launch; activate in Meta UI.** Full default UTM (`admachin_utm.default_landing_url`)
+in landing_url.
+
+| Adset | FB adset id | Ads (launch ids) |
+|---|---|---|
+| 42 - interview street - 20-64 | `120252946177060281` | voxpop-didyouknow `3c22995e…` · niceone `fe5027c9…` |
+| 43 - interview reframe - 20-64 | `120252946395690281` | omni-500women `4469f755…` · relationship `4296320e…` |
+| 44 - interview personal - 20-64 | `120252946729910281` | moved `57770185…` · kids `13ee6cd1…` |
+
+Endpoint-forced deviations from the source adset (note for exact-match tweaks in Meta UI):
+placements → **Advantage+ automatic** (API rejected source's manual `threads`/`biz_disco_feed`/
+`facebook_reels_overlay`/etc.), attribution → **Meta default** (source's custom attribution_spec
+format rejected). Audience/geo/age(20-64)/gender(women)/pixel(`1345276490863660`→LEAD) identical.
+Meta code-6000 video-upload glitches on relationship/moved were transient (cleared on idempotent
+retry).
+
 ## Production pipeline (what actually built these)
 
 - Anchors: `wp_voxpop_personas` / `wp_courthouse_personas` / `wp_series2_personas` (t2i, explicit
