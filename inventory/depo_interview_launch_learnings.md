@@ -39,6 +39,16 @@ two-pane, bottom 0.82 for full-frame b-roll tails / CTA) built via `scripts/buil
 - Pronunciation respells that stuck: meningioma → "meninjioma", Depo → "Deppo" (mid-line so the
   word-aware trim is unaffected).
 
+### B-roll direction the user locked (2026-07)
+- **NO symptom-hook b-roll** (blur/vision-loss, eye exam, headache mimes) — they pull **broad,
+  unqualified traffic**. The qualifier is the *diagnosis + Depo history*, not a symptom.
+- **Category D = credibility, and it must use REAL on-screen text** (the BMJ study headline, the MDL
+  docket) — "we should use the actual text for these, but if not, then let's not use it." A
+  credibility beat with fake/blank text is worse than none.
+- **Category E = emotional** (recovery, family, quiet resolve) is approved and works.
+- Reuse the existing B-Roll DB clips (post-op/recovery/scan) before generating new; build the
+  future-b-roll set "starting from gpt2" i2i. Don't use a phone-form clip with no visible text.
+
 ## LIVE LAUNCH STATE (Meta) — do NOT re-launch these
 
 Account **YJE-23** `act_885970616544640` · campaign **Depo - Pulaski HJ** `120251695982040281` ·
