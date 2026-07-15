@@ -16,7 +16,7 @@ Backdrop hard-cuts every --interval seconds, cycling the slug list. Each segment
 varied docu-zoom recipe (push-in / pull-back / left-bias / right-bias) so it never looks
 templated. Persona is anchored to --side (opposite the backdrop subjects so she never
 blocks them) and drifts subtly via sin() so she is not dead-still.
-Caption pass uses --vertical-pos 0.85 (PIP override).
+Caption pass uses Nick --vertical-pos 0.78 (PIP default, user-locked 2026-07-16).
 """
 import math
 import os

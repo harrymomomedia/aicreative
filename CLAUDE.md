@@ -702,6 +702,8 @@ Mix 4–6 different recipes across a 24s ad. Patterns in `scripts/jdc_a_docu_zoo
 
 A 720×1280 ad split 50/50: **top 720×640 = rotating static b-roll stills** (hard cuts, default 4.5s/slot), **bottom 720×640 = the persona talking-head**, **subtitle burned at the 50% seam** (`--vertical-pos 0.50`). The b-roll carries the topic; the persona reads as commentary. Builder: `scripts/cawp_stacked_assemble.py <LETTER>`. Produce this ALONGSIDE the regular full-frame cut — the user wants BOTH (memory `feedback_stacked_broll_format`).
 
+**These stacked settings are LOCKED DEFAULTS (user-locked 2026-07-16):** when the user asks for a "stacked" cut, apply the whole recipe automatically — 4.5s slots, auto per-persona head-top crop, hook-relevant rotation with per-letter offsets, Redwood at `--vertical-pos 0.50`, then disclaimer, plus the regular cut. Don't re-ask about these; still pilot one first.
+
 - **Curated `SEQUENCE` + per-letter `OFFSETS`** so a batch of ads doesn't all open on the same image. What LEADS the rotation is the hook (user rule): inmate-showing shots → guard–inmate interaction → facility signs/aerials → texture last. Real news frames woven throughout, not siloed.
 - **Auto per-persona face crop** (`detect_crop_y`): OpenCV Haar frontal-face over ~6 sampled frames → `crop_y = face_top − 0.36·face_h` so the head-top lands at the seam and the face fills the bottom. Personas frame very differently (measured crop_y 78–242 across 8 videos) — a fixed value leaves dead space above low-framed faces. `--crop-y N` overrides.
 - Pipeline per video: assemble → `caption_redwood.py --vertical-pos 0.50` → `burn_disclaimer.py`.
@@ -715,7 +717,9 @@ A third cut style (with regular full-frame + stacked): the **bg-removed persona 
 - **Backdrops are VERTICAL 9:16 stills** (`scripts/cawp_wp_broll_vert.py` → `outputs/cawp_broll_wp/vert/`, gpt-image-2 9:16 2K) — generating them 9:16 avoids the 4:3 blur-letterbox. The composite accepts a comma list and hard-cuts every `--interval`s with varied zoompan recipes. Keep the backdrop's action center/upper so the PIP corner doesn't cover it.
 - **MALE guards only** (user-locked): gpt-image-2 renders a female officer on a bare "correctional officer" — write "MALE" in every prompt + a STYLE clause, and delete+regenerate any that came out female.
 - **The user curates the backdrop per ad** — present a labeled board, let them pick a pool, then map one per script by angle and present the mapping.
-- Caption pass: Nick at `--vertical-pos 0.85` (PIP override) → `burn_disclaimer.py`.
+- Caption pass: Nick at `--vertical-pos 0.78` (PIP default — raised from 0.85 on 2026-07-16 so it clears the persona's face) → `burn_disclaimer.py`.
+
+**These PIP settings are LOCKED DEFAULTS (user-locked 2026-07-16):** when the user asks for a "PIP" cut, apply the whole recipe automatically — persona `--side right`, `--persona-h 700`, sin() drift, backdrop `--interval 5` with varied zoompan, Nick `--vertical-pos 0.78`, then disclaimer. Don't re-ask about these; the only per-ad input is which backdrops the user curates (still pilot one first).
 
 ---
 
