@@ -80,3 +80,30 @@ disposable burner pages — DON'T copy that; anchor to real checkable events (th
 - **omni = useapi** (`omni-flash-useapi`, google-flow). Poyo = video-only (no image gen).
 - Parallel i2v on omni-flash is fine (`ThreadPoolExecutor`, ~6 workers) — no audio-filter, so
   near-100% first-try; foreground 2-min tool timeout cuts long runs → run batches in background.
+
+## 6. Voice / TTS — the narrator bake-off (2026-07-09)
+
+- **Docu narration MUST be ElevenLabs `eleven_v3`, NOT `eleven_multilingual_v2`.** v2 reads FLAT —
+  the user flagged "emotion not realistic" and the fix was the MODEL, not the voice; v3 delivers
+  real emotion on the SAME voice. Picked narrator: **Jessica Anne Bogart** ("Narration VO Pro",
+  voice_id `lxYfHSkYm1EzQzGhdbfc`), stability 0.5, similarity 0.8. (Also `feedback_docu_voice_v3_captions`.)
+- **ElevenLabs Voice Design = the "voice creator"** (distinct from the v3 MODEL): describe a voice
+  in words → it generates a NEW one. `POST /v1/text-to-voice/create-previews {voice_description,
+  text}` → base64 previews + `generated_voice_id`; finalize via create-voice-from-preview.
+- **Alternative TTS providers** — audition when ElevenLabs emotion isn't enough. The pipeline is
+  voice-agnostic: `gen_docu.py` auto-rescales every beat to the ACTUAL VO mp3 duration (ffprobe →
+  scale = actual/hardcoded), so swapping narrators re-syncs the b-roll automatically.
+  - **MiniMax Speech-02** — best for emotion + cost; via **Replicate** `minimax/speech-02-hd`
+    (voices `Wise_Woman`/`Calm_Woman`/`Deep_Voice_Man`, an `emotion` param, ~$0.01-0.02/clip). Load
+    `REPLICATE_API_TOKEN` into env first — the `replicate` lib reads it from env (inline scripts
+    must set `os.environ`). Also on **fal** + MiniMax direct. **KIE has MiniMax VIDEO only, no TTS.**
+  - **OpenAI `gpt-4o-mini-tts`** — STEERABLE (an `instructions` field shapes tone/emotion), cheap,
+    voices ash/sage/nova/coral. Direct `POST /v1/audio/speech`. Needs a FUNDED OpenAI key (429 quota
+    until topped up — `/v1/models` 200 = key valid but no TTS credit).
+  - **Hume Octave** (emotion-first) + **Cartesia Sonic** — need their own keys (`HUME_API_KEY`,
+    `CARTESIA_API_KEY`); **Cartesia is NOT on fal** (404 "Application cartesia not found"); our local
+    `fal_client` only exposes bg-removal + Scribe, not generic TTS.
+- **Docu-montage captions = Reels LOWER-THIRD `--vertical-pos 0.78`** (NOT the top/forehead 0.30 —
+  that's for talking-head/PIP layouts). **Text cards render OVER b-roll + a dark gradient scrim**
+  (`.cardov`), never plain black cards — user: "black bg + text too weak." Reusable generator saved:
+  **`scripts/depo_docu_montage_gen.py`** (cards-over-broll + auto-rescale + beat maps for N1/N3/N6).
