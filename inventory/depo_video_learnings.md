@@ -78,3 +78,22 @@ Both ~40.4s, VO synced.
   null) or use an allowed value.
 - macOS has no `timeout` shim — `timeout 300 .venv/bin/python ...` aborts the run; drop it. (This is
   why the `depo_ads_gen.py` 20-format IMAGE batch never actually generated — only built.)
+
+## Docu-series (b-roll montage) session — 2026-07-08/10
+
+- **Narration = ElevenLabs `eleven_v3`, NOT `multilingual_v2`** — v2 read flat ("emotion not
+  realistic", user-flagged); the MODEL was the cause, not the voice. Narrator lock: **Jessica Anne
+  Bogart** (`lxYfHSkYm1EzQzGhdbfc`), stability 0.5, similarity 0.8. (Also in CLAUDE.md Voice section.)
+- **Muted b-roll i2v = `omni-flash`** — veo-lite CONTENT-rejects clinical stills, veo-lite/fast both
+  hit `AUDIO_GENERATION_FILTERED` RAI false-positives (5+2 events vs omni-flash 0/33); strip audio
+  with `-an` on download. (Full rule in CLAUDE.md "Silent b-roll i2v → omni-flash".)
+- **Captions on a b-roll MONTAGE = lower-third `--vertical-pos 0.78`** — NOT the 0.30 forehead-band
+  used for the PIP/talking-head composites. The two layouts have different caption homes.
+- **Docu text cards render OVER b-roll + a dark scrim** — plain black-background text cards were
+  rejected ("black bg + text too weak").
+- **Beat re-timing is voice-agnostic**: `depo_hf/gen_docu.py` auto-rescales every segment to the
+  actual VO mp3 duration (ffprobe scale = actual/hardcoded), so swapping narrators re-syncs the
+  b-roll cut automatically.
+- **AdMachin b-roll library rows #68–78** (scan_doctor + hospital) carry the generation-metadata
+  columns — REST PATCH flow + the provider/model vs bare-id format quirk in CLAUDE.md
+  "FB launch specifics".
