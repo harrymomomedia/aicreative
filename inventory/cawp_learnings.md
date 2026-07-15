@@ -105,3 +105,30 @@ latr3). Persona pool: approved Latina-rough `latr1/2/3/6/8/9/10` + new wide-vari
 - **Both internal caption engines produced for this set:** `caption_nick.py` (Nick) and
   `caption_hormozi3.py` (Hormozi 3), each combo'd with `burn_disclaimer.py`. NOTE: `caption_nick.py` +
   the `nick-subtitle` skill already existed from a prior session — check before rebuilding a caption engine.
+
+## Omni-yapper set + stacked format (2026-07-15)
+
+8 podcast-omni yapper videos on Google Flow (i2v/startImage): **P** (R11 "Pattern", v6 rooftop) +
+**S1–S7** (content-board ideas 2–8, each a distinct rugged/working-class Latina persona + bold
+static setting). Scripts wired in `scripts/podcast_omni_produce.py` SCRIPTS/PERSONAS/VOICES; compensation
+phrase lands naturally at 20–50% of each script, "sexual abuse" named early. Masters:
+`outputs/chowchilla_podcast/{P,S1..S7}_full.mp4`. Guard-pronunciation lock ("guard = GARD, hard American
+G") added to the Latina voice strings to kill the Spanish /gwa/ → "guarg" artifact.
+
+**Two deliverable cuts per script**, both Redwood-captioned + Pulaski/Jones disclaimer:
+- **Regular full-frame:** `<L>_full_redwood_disclaimer.mp4`.
+- **Stacked:** `<L>_stacked_male_redwood_disclaimer.mp4` — top half male-guard-heavy b-roll rotation
+  (real news frames + gpt-image-2), bottom half persona (auto head-top crop), subtitle at the 50% seam.
+  Builder `scripts/cawp_stacked_assemble.py` (per-letter OFFSETS so the 8 don't open identically).
+
+**B-roll library** `outputs/cawp_broll_wp/` → uploaded to AdMachin Women's Prison (rows 166–239, 74 imgs):
+- `gen/wp01–wp52` gpt-image-2 (generator `scripts/cawp_wp_broll_gen.py`): inmate life, facility int/ext,
+  guard-interaction, and a **male-guard** set (wp41–52). News-ENG documentary style anchor.
+- `clean/n01–n18` real news frames (ABC30 lawsuit segment has the CCWF monument sign; CIW audit footage
+  has the CIW signs/towers) — CROPPED top-76% to strip station chyron/logo.
+- Commons/CDCR photos: CCWF aerial, VSPW 24th-Ave sign, CIW aerials ×2, CIW stone sign.
+- **Folsom dropped for imagery** (almost nobody from Folsom applies) but KEPT in the ad-copy facility list.
+
+**16 draft ads staged** (`scripts/cawp_stacked_admachin_stage.py`, state `outputs/cawp_stacked_admachin_state.json`):
+8 scripts × 2 cuts, one headline+primary combo each, disclaimer appended to primary. Rows **#929–944**,
+all `is_launched:false`. NOT launched. Headline+primary copy approved verbatim in chat first.

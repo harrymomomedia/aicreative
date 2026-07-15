@@ -530,6 +530,7 @@ others per the provider-routing table.
 - Word limit ~100–260 for Seedance prompts. Kling allows 0–2500.
 - **Veo (Poyo / KIE)** accepts ~3,000+ characters comfortably — our standard Chowchilla per-clip prompts run ~3,100 chars / ~520 words with all locks (CHARACTER, SETTING, CAMERA, register, EYES_LOCK, MOUTH_LOCK_NEUTRAL, NO_TEXT_LOCK, PRONUNCIATION_LOCK, DIALOGUE_LOCK, SPOKEN DIALOGUE).
 - **Image-to-video prompts should be SHORT** — when an anchor is passed (FIRST_AND_LAST_FRAMES_2_VIDEO / frame / IMAGE_2_VIDEO modes), the scene/character/setting is already in the image. Don't re-describe them. Target **<100 words / <600 chars** per i2v prompt. REQUIRED fields (each <1 sentence): **GAZE** (where they're looking and how it changes), **BODY LANGUAGE** (head tilt, lean, blinks, micro-expressions), **VOICE STYLE** (pitch / age / register), **TONE** (emotional register — specific, not just "honest"), **SPEED** (target words-per-second). Plus boilerplate locks: AUDIO CRITICAL clause, PRONUNCIATION LOCK, DIALOGUE LOCK, NO-TEXT. DROP: character description, wardrobe, setting, framing, photo-realism boilerplate. Long prompts that re-describe in-image content sometimes confuse the model (it tries to reconcile prompt vs anchor and drifts). Long prompts are only needed for text-to-video (no anchor). Memory: `feedback_i2v_short_prompts.md`.
+  - **NO VISUAL OBJECT NOUNS anywhere in i2v prompts — including camera/technical boilerplate (user-locked 2026-07-15, Veo AND omni).** The model literalizes positively-stated nouns: "the camera is a completely locked-off **tripod**" spawned ACTUAL TRIPODS mid-clip (omni V/X selfie runs, same class as the "headphones on" lesson). Say the *behavior*, not the *object*: "the framing is completely locked / the background stays exactly as in the reference, frozen" — never "tripod", "still photograph", "on a stand", or posture lines that re-describe anchor props ("holding the small wireless mic"). **Negative locks are fine** ("no passing cars, no people walk by" held W's street still) — positives literalize, negatives don't. Reference: `build()`/`POSTURES` in `scripts/podcast_omni_produce.py`.
 - **Runway (Gen-4 / Aleph) hard-caps prompts at 2,500 characters.** When porting a Veo prompt over, compress in this order without losing fidelity: (1) consolidate EYES + MOUTH locks into one sentence, (2) trim adjectival redundancy in CHARACTER ("late 40s to early 50s" → "late 40s", "Throughout the entire clip" → drop), (3) shorten SETTING photo descriptions ("framed family photographs — a graduation portrait at left…" → "framed family photos — graduation at left…"), (4) drop the "no beauty mode, no retouching, no filter, no skin smoothing" tail if still over. **Never cut**: CHARACTER core identity, register, NO_TEXT_LOCK, PRONUNCIATION_LOCK, DIALOGUE_LOCK, SPOKEN DIALOGUE. Target ~2,300 chars to leave headroom. V2 clip 1 reference: 3,171 → 2,287 chars with all critical locks intact.
 - Reference images in Seedance prompts: `@(img1)`, `@(img2)` in order.
 - Reference elements in Kling prompts: `@element_name` (defined under `kling_elements`).
@@ -694,6 +695,17 @@ Stitching multiple still-image backdrops with identical zoom (e.g., always slow 
 | Intimate / detail | Push-in offset toward a specific element |
 
 Mix 4–6 different recipes across a 24s ad. Patterns in `scripts/jdc_a_docu_zoom.py` for IL JDC campaign.
+
+---
+
+## Stacked format — b-roll top / persona bottom (2026-07-15)
+
+A 720×1280 ad split 50/50: **top 720×640 = rotating static b-roll stills** (hard cuts, default 4.5s/slot), **bottom 720×640 = the persona talking-head**, **subtitle burned at the 50% seam** (`--vertical-pos 0.50`). The b-roll carries the topic; the persona reads as commentary. Builder: `scripts/cawp_stacked_assemble.py <LETTER>`. Produce this ALONGSIDE the regular full-frame cut — the user wants BOTH (memory `feedback_stacked_broll_format`).
+
+- **Curated `SEQUENCE` + per-letter `OFFSETS`** so a batch of ads doesn't all open on the same image. What LEADS the rotation is the hook (user rule): inmate-showing shots → guard–inmate interaction → facility signs/aerials → texture last. Real news frames woven throughout, not siloed.
+- **Auto per-persona face crop** (`detect_crop_y`): OpenCV Haar frontal-face over ~6 sampled frames → `crop_y = face_top − 0.36·face_h` so the head-top lands at the seam and the face fills the bottom. Personas frame very differently (measured crop_y 78–242 across 8 videos) — a fixed value leaves dead space above low-framed faces. `--crop-y N` overrides.
+- Pipeline per video: assemble → `caption_redwood.py --vertical-pos 0.50` → `burn_disclaimer.py`.
+- **B-roll images live in the AdMachin b-roll library** — `upload_broll` takes jpg/png with `image_generation_model="kie/gpt-image-2"` + prompt lineage (real-footage frames omit lineage). Real facility frames must be de-branded first: crop top-76% to drop the news chyron/logo. Sourcing + generator: memories `feedback_real_facility_broll_sourcing`, `feedback_admachin_broll_images`.
 
 ---
 
