@@ -132,3 +132,22 @@ G") added to the Latina voice strings to kill the Spanish /gwa/ → "guarg" arti
 **16 draft ads staged** (`scripts/cawp_stacked_admachin_stage.py`, state `outputs/cawp_stacked_admachin_state.json`):
 8 scripts × 2 cuts, one headline+primary combo each, disclaimer appended to primary. Rows **#929–944**,
 all `is_launched:false`. NOT launched. Headline+primary copy approved verbatim in chat first.
+
+## PIP composite cut — third format (2026-07-15)
+
+Persona (bg-removed) over a VERTICAL 9:16 documentary prison backdrop + docu zoom + Nick captions.
+Now THREE cuts per script: regular full-frame, stacked, PIP. Outputs `<L>_pip_nick_disclaimer.mp4`.
+
+- **Vertical backdrops** `scripts/cawp_wp_broll_vert.py` → `outputs/cawp_broll_wp/vert/` (gpt-image-2
+  9:16 2K): v01–v34 "day in the life" guards+inmates + intimate power-imbalance shots. **MALE guards
+  ONLY** (user: "female guards are not usable") — gpt-image-2 renders female on a bare "correctional
+  officer"; every prompt says "MALE" + STYLE clause "EVERY correctional officer in frame is MALE".
+  Deleted+regenerated the 9 female ones. Board `outputs/cawp_broll_wp/vert_board_all.jpg`.
+- **Composite** `scripts/cawp_pip_composite.py <L> <slug1,slug2,...>` — VEED/fal bg-removal
+  (`<L>_full_alpha.webm`, vp9 alpha; `-c:v libvpx-vp9` before the webm; audio from orig mp4),
+  persona anchored `--side` (default right) with sin() drift, backdrops hard-cut every `--interval`s
+  with varied zoompan recipes. Nick vpos 0.85 + `burn_disclaimer.py`.
+- **User curated backdrops from a pool.** Final P–S7 mapping: P=v04_count_tier, S1=v32_escort_back,
+  S2=v03_cell_doorway_guard, S3=v08_guard_over_seated, S4=v05_chow_line, S5=v26_ear_lean,
+  S6=v25_shoulder_hand, S7=v34_stairwell.
+- Not yet uploaded to AdMachin / not staged as a 3rd ad set (pending user go).

@@ -707,6 +707,16 @@ A 720×1280 ad split 50/50: **top 720×640 = rotating static b-roll stills** (ha
 - Pipeline per video: assemble → `caption_redwood.py --vertical-pos 0.50` → `burn_disclaimer.py`.
 - **B-roll images live in the AdMachin b-roll library** — `upload_broll` takes jpg/png with `image_generation_model="kie/gpt-image-2"` + prompt lineage (real-footage frames omit lineage). Real facility frames must be de-branded first: crop top-76% to drop the news chyron/logo. Sourcing + generator: memories `feedback_real_facility_broll_sourcing`, `feedback_admachin_broll_images`.
 
+## PIP composite — persona cut-out over a vertical documentary backdrop (2026-07-15)
+
+A third cut style (with regular full-frame + stacked): the **bg-removed persona reads as a commentator** over a documentary prison backdrop. `scripts/cawp_pip_composite.py <L> <slug1,slug2,...>` (memory `feedback_pip_composite_cawp`).
+
+- Persona **background-removed via VEED on fal** (`fal_client.remove_background` → vp9 **alpha** webm). Overlay anchored `--side` (default right) at height ~700 with a subtle sin() drift. Gotchas: `-c:v libvpx-vp9` MUST precede the webm input (else alpha is lost); VEED strips audio → mux from the original mp4.
+- **Backdrops are VERTICAL 9:16 stills** (`scripts/cawp_wp_broll_vert.py` → `outputs/cawp_broll_wp/vert/`, gpt-image-2 9:16 2K) — generating them 9:16 avoids the 4:3 blur-letterbox. The composite accepts a comma list and hard-cuts every `--interval`s with varied zoompan recipes. Keep the backdrop's action center/upper so the PIP corner doesn't cover it.
+- **MALE guards only** (user-locked): gpt-image-2 renders a female officer on a bare "correctional officer" — write "MALE" in every prompt + a STYLE clause, and delete+regenerate any that came out female.
+- **The user curates the backdrop per ad** — present a labeled board, let them pick a pool, then map one per script by angle and present the mapping.
+- Caption pass: Nick at `--vertical-pos 0.85` (PIP override) → `burn_disclaimer.py`.
+
 ---
 
 ## Veo 3 gotchas (learned the hard way)
