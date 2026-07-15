@@ -119,3 +119,38 @@ Durable notes for Tort / IL JDC legal lead-gen work.
   the rhyme-anchor trick whenever a short slang word mangles.
 - Delivery format: user wants **9:16 only** in the final delivery folder
   (`outputs/jdc_podcast_delivery/`); do not add 4:5 variants unless asked.
+
+## Performance findings — LIVE FB Ads Manager (analyzed 2026-06-27)
+
+Pulled live FB Insights (get_fb_account_performance_export + get_fb_insights). Method +
+rate-limit + leads-dedup gotchas → `inventory/fb_insights_analysis.md`. Bottom line for what to BUILD:
+
+- **IMAGE ads beat VIDEO on cost-per-lead, ~2x.** IL JDC-MJ-P1 (IMAGE, active acct
+  act_885970616544640): $9.3k spend, 37 leads, **CPL ~$250**. IL JDC-HJ-P1 (VIDEO, DISABLED acct
+  act_1670830793755816): $15.4k, 29 leads, **CPL ~$529**. Video gets CHEAPER landing-page-views
+  ($3.64 vs $5.70) but converts ~3x WORSE to leads (0.69% vs 2.3% LPV->lead) — image self-qualifies;
+  video pulls curiosity clicks that bounce. Use video for reach/retargeting, image for lead capture.
+- **The #1 winning format BY FAR is the NATIVE "doesn't look like an ad" mockup.** Top IL JDC ad = a
+  FAKE FACEBOOK POST with simulated comments ("Illinois is paying men who were abused in juvie as
+  kids... I didn't believe it either — but it's real" + comments "Dre W. Cook County '03 — took 2
+  minutes", "Tone — sharing this for my brother") -> **CPL $50**, ~3x better than anything else.
+  #2 = a FAKE iMESSAGE / text thread between friends.
+- **Sub-type CPL ranking (image):** native fake-social ($50) >> "You DON'T need..." objection-killer
+  checklist ($147) > empty-bunk facility photo + headline ($256) > dollar-sign designed banner ($309).
+  **Longform-text-ON-IMAGE is WEAK ($330)** — keep longform in the FB primary text + video, NOT
+  crammed onto the creative.
+- **ACTIONABLE:** build MORE native-social mockups (fake FB post + comments, fake texts/DMs, fake
+  Reddit threads) — proven top format and the gap vs what we've built (news-article + UGC testimonial
+  images). Keep our compliant phrasing ("may qualify for significant compensation"); a couple live
+  winners use stronger claims ("set aside funds", "no cost unless you win") that are the MJ partner's
+  copy, NOT our locks — don't copy those.
+- Historical top winners are the **MJ partner's** ads, not ones we built. Our 20 image ads (10 UGC
+  longform + 10 news-article) are `scripts/il_jdc_image_ads.py` + `il_jdc_news_ads.py`, staged as
+  DRAFTS via `scripts/il_jdc_imageads_stage.py`. User's preferred modern news style = #14 (full-bleed
+  photo + bottom kicker/headline/deck block).
+
+### Key FB IDs
+- Project Tort `e15c60bd-95c2-47b9-9730-c29fb5325461`, subproject IL JDC `7f876467-8262-4647-91b1-d56574976079`.
+- IL JDC-MJ-P1 (IMAGE, active): campaign `120251123995210281`, acct `act_885970616544640`.
+- IL JDC-HJ-P1 (VIDEO, disabled acct): campaign `120245956701110642`, acct `act_1670830793755816`.
+- Reuse headline `33205221-a2d0-4566-a132-f63452023344` = "TAP TO SEE IF YOU QUALIFY".
