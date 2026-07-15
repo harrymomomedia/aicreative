@@ -11,3 +11,11 @@ assets/emoji/
 
 # AdMachin per-campaign targeting configs (hold Facebook ad-account/campaign ids)
 admachin_targets/
+
+# HyperFrames vendor skill suite — installed/restored from skills-lock.json
+# (real files in .agents/skills, agent/ is a duplicate copy, skills/ + .claude/skills/
+# entries for these are symlinks into .agents/skills). ~110MB of re-installable
+# vendor assets; ignored so concurrent-session `git clean` can't wipe them and
+# the repo doesn't carry them. Re-install: hyperframes CLI skills install.
+.agents/
+agent/
