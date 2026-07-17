@@ -5,24 +5,32 @@ Source: MTM (Michael Orell) email chain + attachments, read 2026-07-17. Campaign
 
 ---
 
-## ⚠️ UNRESOLVED — the DX + usage dates conflict THREE WAYS. Do not guess. Ask MTM.
+## THE DATES — RESOLVED (verified against Gmail, 2026-07-17)
 
-The covering email says *"There was some confusion on the DX dates, and this will clear it up"* — but
-the two attached criteria docs **disagree with each other AND with the April 3 email**:
+# ✅ Diagnosed **1992 or later — NO upper bound.** Used product **1/1/1992 – 12/31/2019**.
 
-| Source | Diagnosed | Used product |
-|---|---|---|
-| `Depo_Criteria_DX_ONLY.docx` | **1992+** (no upper bound) | 1/1/**1992** – 12/31/2019 |
-| `Depo_Criteria_DX_ONLY (1).docx` | **1992 – 2019** | 1/1/**1992** – 12/31/2019 |
-| **Email, Michael Orell, Fri Apr 3 2026 1:54 PM** | **2005+** ("moving from 1992 to 2005, not 2010") | 1/1/**2000** – 12/31/2019 |
+Two files named `Depo_Criteria_DX_ONLY.docx` exist and say different things. Resolved by matching
+each download to its source email (thread `19e41f2d21bde626` + `19e1d645094e8a55`, download
+timestamps: the `(1)` copy came down inside the 25-second cluster with the FG/contract/HIPAA packet,
+which are **exclusive to the May 12 email**; the no-suffix copy came down 56s earlier and alone —
+May 19 carries exactly ONE attachment).
 
-The April 3 email explicitly says *"Please update all questionnaires, lead forms, and intake"* — but
-**neither attachment reflects it**. So either the attachments are stale, or the April 3 change was
-reverted. **This is worth real money — DX 1992+ vs DX 2005+ is a completely different audience and a
-completely different funnel.** Escalate to MTM before touching copy, brackets, or intake.
+| Dated | Source | Diagnosed | Used product |
+|---|---|---|---|
+| **Apr 3, 2026** | email (Orell → Cohn) | 2005+ *("from 1992 to 2005, not 2010")* | 1/1/**2000** – 12/31/2019 |
+| **May 12, 2026** | setup email → `…DX_ONLY (1).docx` | 1992 **– 2019** | 1/1/1992 – 12/31/2019 |
+| **May 19, 2026** ← **LATEST** | *"latest criteria… confusion on the DX dates, this will clear it up"* → `…DX_ONLY.docx` | **1992+** | 1/1/**1992** – 12/31/2019 |
 
-**Until resolved, assume the TIGHTER set (April 3 email is the most recent dated instruction):**
-diagnosed **2005+**, used **1/1/2000 – 12/31/2019**.
+**What the May 19 clarification actually changed:** the ONLY delta from May 12 → May 19 is the
+diagnosis date losing its 2019 cap. **The "confusion on the DX dates" was people conflating the USAGE
+end date (12/31/2019) with the DIAGNOSIS date.** MTM's answer: the diagnosis has **no upper bound**;
+**12/31/2019 applies to USAGE ONLY.**
+
+**The April 3 change to 2005 / 2000 did NOT survive.** Two criteria documents post-date it (May 12 AND
+May 19, six and seven weeks later) and both say **1992**. The document whose entire stated purpose was
+clarifying DX dates says 1992+. Treat Apr 3 as superseded. *(Residual risk: MTM never updated the
+docx template. Confidence is high, not certain — a one-line confirmation is cheap insurance on a
+criterion that drives the whole campaign. Do NOT re-target on the Apr 3 numbers without it.)*
 
 ---
 
@@ -41,8 +49,8 @@ LeadProvider = **"MoMo Media"**.
 2. **Diagnosed with brain/head meningioma AFTER the 1 year of use.** ⚠️ This means after the first
    year *accumulates* — **NOT** after use ends. A woman who started 2005, was diagnosed 2009, and
    stayed on it until 2015 qualifies: she banked 4+ shots by 2006. **The diagnosis can land mid-use.**
-3. **Diagnosis date** — ⚠️ see the conflict table above (1992+ / 1992–2019 / **2005+**).
-4. **Usage window** — ⚠️ see the conflict table above (1/1/1992 / **1/1/2000** – 12/31/2019).
+3. **Diagnosed 1992 or later — no upper bound.** (May 19 criteria; the 2019 date is NOT a DX cap.)
+4. **Used the product 1/1/1992 – 12/31/2019.** The 12/31/2019 cutoff is a **USAGE** cutoff only.
 5. **DX ONLY** — the program has moved to diagnosed-only. No "at-risk"/undiagnosed leads.
    (Consistent with `feedback_target_diagnosed_not_atrisk`.)
 6. **Intake questions must be OPEN-ENDED, not yes/no** — e.g. "What were you diagnosed with?",
@@ -133,17 +141,25 @@ Contact/OBO/emergency-contact fields also exist (`FirstName`, `LastName`, `CellP
 
 ## Gaps / questions for MTM
 
-1. **THE DATES.** Which governs — the attachments (DX 1992+/1992–2019, use from 1992) or the Apr 3
-   email (DX 2005+, use from 2000)? Everything downstream depends on this.
+1. **Confirm the dates** (low risk, high value): "Reading the May 19 criteria as operative —
+   diagnosed 1992+, no upper bound; used 1/1/1992–12/31/2019. The Apr 3 email's 2005 DX / 2000 usage
+   change is superseded. Correct?"
 2. **Does the ~10-year-from-last-injection latency rule apply?** It's standard across the wider
    litigation and absent from their criteria.
 3. **There is no API field for "physician / other healthcare provider / self-administered"** — the
-   Jul 17 email demands it but the FG has nowhere to put it. Which field? (`Custom4586` Medical
+   Jul 16 email demands it but the FG has nowhere to put it. Which field? (`Custom4586` Medical
    Notes?) Or is an FG update coming?
 4. **Imaging confirmation (MRI/CT)** is a common criterion and is absent from theirs — required?
 5. **Statute of limitations** — screened by them, or expected from us?
 6. **Non-contraceptive indications:** the criteria say "injectable *contraceptive*", but `Custom4651`
    allows Regulate Cycle / Endometriosis. Do those qualify?
+
+## Who runs the intake (the agents)
+
+The May 12 setup email routes intake through **Reciprocity / CaseOpp** — Ashley O'Hara
+(`ashley.ohara@caseopp.com`), *"give these to your intake partner… they will get you set up to
+deliver."* **So MTM's Dx/RX collection demands land on CaseOpp's call script, not on our funnel.**
+Any agent-script change below has to go to them.
 
 ---
 
@@ -155,8 +171,9 @@ retained. Add:
 
 - **Duration filter — the big one:** say **"a year or more"** / **"4 or more shots"** /
   **"every 3 months for at least a year"**.
-- **Date-window filter:** pending the conflict above — **either** "any time between 1992 and 2019"
-  **or** the tighter "between 2000 and 2019". **Don't ship either until MTM confirms.**
+- **Date-window filter:** **"if you were on it any time between 1992 and 2019"** — this is a USAGE
+  window. **Do NOT put a date bound on the diagnosis in copy** (a 2024/2025/2026 diagnosis qualifies
+  fine, and that's most of the audience). The Apr 3 "2005" number is superseded — don't ship it.
 - **Order of events:** "used it for a year or more, and were **later** diagnosed" — but remember the
   diagnosis may land *mid-use*, so don't imply she must have stopped first.
 - **Keep the wording locks:** still **"brain meningioma"**, still **never "tumor"**
