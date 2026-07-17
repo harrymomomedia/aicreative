@@ -1,27 +1,58 @@
-# Depo-Provera — LAW FIRM QUALIFICATION CRITERIA (source: MTM, 2026-07)
+# Depo-Provera ("Pulaski" leads) — QUALIFICATION CRITERIA + INTAKE SPEC
 
-Authoritative sign-up criteria from the firm. **Ad copy + scripts must pre-qualify against these**
-or we pay for leads that can't be retained. Campaign context: `project_depo_meningioma_campaign`.
+Source: MTM (Michael Orell) email chain + attachments, read 2026-07-17. Campaign context:
+`project_depo_meningioma_campaign`. Funnel: depop.justicecovered.com. FB campaign: "Depo - Pulaski HJ".
 
-## The 5 criteria
+---
 
-1. **1-year MINIMUM use of BRAND Depo-Provera** (injectable contraceptive) = **4+ shots**
-   (one every 3 months). *It is OK to sign if the client is unsure brand vs generic.*
-2. **DIAGNOSED with Brain Meningioma AFTER the 1 year of use.**
-3. **Diagnosed 1992 or later.**
-4. **Used the product between 1/1/1992 and 12/31/2019.**
-5. **Intake questions must be OPEN-ENDED, not yes/no** — e.g. "What were you diagnosed with?",
-   "Where is the injury located?" This weeds out fraud (a yes/no question tells the claimant the
-   answer we want).
+## ⚠️ UNRESOLVED — the DX + usage dates conflict THREE WAYS. Do not guess. Ask MTM.
 
-## Intake data the firm REQUIRES to sign a retainer (currently missing / "does not recall")
+The covering email says *"There was some confusion on the DX dates, and this will clear it up"* — but
+the two attached criteria docs **disagree with each other AND with the April 3 email**:
 
-- **Diagnosing doctor name + hospital**
-- **Prescribing doctor + pharmacy name**
-- Must be **POSTED VIA API** — the PDF is only a backup; the docket team can't open PDFs at volume.
-- This must be captured **at the intake level** for a cleaner, more qualified lead.
+| Source | Diagnosed | Used product |
+|---|---|---|
+| `Depo_Criteria_DX_ONLY.docx` | **1992+** (no upper bound) | 1/1/**1992** – 12/31/2019 |
+| `Depo_Criteria_DX_ONLY (1).docx` | **1992 – 2019** | 1/1/**1992** – 12/31/2019 |
+| **Email, Michael Orell, Fri Apr 3 2026 1:54 PM** | **2005+** ("moving from 1992 to 2005, not 2010") | 1/1/**2000** – 12/31/2019 |
 
-## Qualifying Depo products (any of these count)
+The April 3 email explicitly says *"Please update all questionnaires, lead forms, and intake"* — but
+**neither attachment reflects it**. So either the attachments are stale, or the April 3 change was
+reverted. **This is worth real money — DX 1992+ vs DX 2005+ is a completely different audience and a
+completely different funnel.** Escalate to MTM before touching copy, brackets, or intake.
+
+**Until resolved, assume the TIGHTER set (April 3 email is the most recent dated instruction):**
+diagnosed **2005+**, used **1/1/2000 – 12/31/2019**.
+
+---
+
+## Who the leads go to
+
+**Pulaski Kherkher, PLLC + BD Law, PLLC** (contract: `Depo_PK_BD_Hickory_28_12 Contract.doc`).
+40% contingency (28% Pulaski / 12% BD Law), $200 flat admin fee, minimum 90 days to evaluate a claim.
+Client must not already be represented. CRM CaseType = **"Depo - BD Hickory - MoMo Media"**;
+LeadProvider = **"MoMo Media"**.
+
+## The criteria — what makes a lead signable
+
+1. **1-year MINIMUM use of BRAND Depo-Provera** (injectable contraceptive) = **4+ shots**, one every
+   3 months. **"MINIMUM" = ≥1 year, so exactly 4 shots qualifies** — the line is 4 inclusive.
+   **It is OK to sign if she is unsure brand vs generic.**
+2. **Diagnosed with brain/head meningioma AFTER the 1 year of use.** ⚠️ This means after the first
+   year *accumulates* — **NOT** after use ends. A woman who started 2005, was diagnosed 2009, and
+   stayed on it until 2015 qualifies: she banked 4+ shots by 2006. **The diagnosis can land mid-use.**
+3. **Diagnosis date** — ⚠️ see the conflict table above (1992+ / 1992–2019 / **2005+**).
+4. **Usage window** — ⚠️ see the conflict table above (1/1/1992 / **1/1/2000** – 12/31/2019).
+5. **DX ONLY** — the program has moved to diagnosed-only. No "at-risk"/undiagnosed leads.
+   (Consistent with `feedback_target_diagnosed_not_atrisk`.)
+6. **Intake questions must be OPEN-ENDED, not yes/no** — e.g. "What were you diagnosed with?",
+   "Where is the injury located?" Weeds out fraud: a yes/no hands the claimant the answer.
+
+**No latency rule appears anywhere in MTM's criteria.** The wider litigation commonly requires a
+diagnosis within ~10 years of the last injection (Siddons, Drugwatch) — **MTM has never said this
+applies.** Do not design around it; ask them.
+
+## Qualifying Depo products (any of these)
 
 Depo Provera · Depo-Provera · DPCI · Depo Provera IM · DMPA · Depot medroxyprogesterone acetate ·
 Medroxyprogesterone Acetate · MPA · IM MPA · Depo-SubQ Provera 104 · Greenstone Medroxyprogesterone ·
@@ -29,42 +60,114 @@ Greenstone MPA · Prasco Medroxyprogesterone · Prasco MPA
 
 ## Qualifying brain/head meningioma variations
 
-Intracranial meningioma · Intercranial meningioma · Cranial meningioma · Brain meningioma ·
-Meninges tumor · **Arachnoid tumor (but NOT arachnoid cyst)** · Convexity meningioma ·
-Falcine meningioma · Parasagittal meningioma · Intraventricular meningioma · Skull base meningioma ·
-Sphenoid wing meningioma · Olfactory groove meningioma · Posterior fossa/petrous meningioma ·
-Suprasellar meningioma · Recurrent meningioma · Foramen magnum meningioma · Meningothelial
-meningioma · Fibrous meningioma · Psammomatous
+Intracranial · Intercranial · Cranial · Brain meningioma · Meninges tumor ·
+**Arachnoid tumor (but NOT arachnoid cyst)** · Convexity · Falcine · Parasagittal · Intraventricular ·
+Skull base · Sphenoid wing · Olfactory groove · Posterior fossa/petrous · Suprasellar · Recurrent ·
+Foramen magnum · Meningothelial · Fibrous · Psammomatous · **Angiomatous · Secretory**
+*(the last two are in the attachments but were missing from our earlier copy)*
+
+⚠️ **SPINAL meningioma does NOT qualify** — the criteria are brain/head only. Note the CRM's
+"Location of your meningioma(s)?" dropdown offers **Spine** as an option; capturing it is fine,
+but it is not a qualifying location.
+
+---
+
+## Data MTM REQUIRES to sign a retainer (the July escalations)
+
+**Email — Thu Jul 16 2026:** *"We are getting quite a few Depo intakes with important Dx/RX
+information missing, or the client 'does not recall'. We must have the diagnosing doctor
+name/hospital and the prescribing doctor/pharmacy name to sign a retainer. This has to happen at the
+intake level."* Plus: **must be posted via API — the PDF is mostly a backup**; opening PDFs is too
+slow for the docket team.
+
+**Email — Fri Jul 17 2026 (the newest, and the sharpest):**
+- **Must collect the RX facility / clinic / location ADDRESS.** *"Simply putting Walmart or Planned
+  Parenthood will not help us prove up usage."*
+- **"Generic pharmacy info doesn't help either because that is not where it was administered. We need
+  to know WHERE THE SHOT WAS GIVEN."**
+- **Ask whether it was done by a physician, another healthcare provider, or SELF-ADMINISTERED.**
+- *"We are getting the DX information needed; we need to make sure the RX detail is being collected."*
+
+**→ This confirms our own read: "which pharmacy" is the WRONG question.** Depo is administered
+in-clinic, not dispensed, so a pharmacy name is worthless for proving usage. The question that
+carries the RX data is **"where was the shot given — clinic name, full address, phone"**.
+(Self-administration is real for **Depo-SubQ Provera 104**, which is why they ask.)
+
+**⚠️ FIELD-NAMING TRAP:** the CRM's fields are called **"Usage N Pharmacy Name / Address / Phone"** —
+but per the Jul 17 email they must be filled with the **ADMINISTERING facility**, not a dispensing
+pharmacy. An agent who dutifully types "Walmart" into the Pharmacy field is generating a rejected
+lead. Brief the agents on this explicitly.
+
+---
+
+## The API — LawRuler (Pulaski)
+
+Spec: `Depo_Hickory_MOMO_FG.xlsx` (field guide).
+- **Endpoint:** `https://pulaski.lawruler.com/lawruler-parsing.aspx`
+- **Key:** in the FG spreadsheet. **NEVER commit it — reference the file, not the value.**
+- `LeadProvider = MoMo Media` · `CaseType = Depo - BD Hickory - MoMo Media` · `Hear = <intake>`
+- `Status = Signed Contract Intake Complete` | `Signed Contract Reject Letter Needed`
+
+**Field map (the qualification-relevant subset):**
+
+| Data | API field |
+|---|---|
+| Start / Stop date (overall) | `Custom4551` / `Custom4552` |
+| What were you taking Depo for? *(Birth Control · Regulate Cycle · Endometriosis · Unknown · Other)* | `Custom4651` |
+| Usage 1 — generic? / start / stop | `Custom4553` / `Custom4554` / `Custom4555` |
+| Usage 1 — "Pharmacy" name / **address** / phone → **the ADMINISTERING facility** | `Custom4556` / `Custom4557` / `Custom4558` |
+| Usage 2 — generic? / start / stop | `Custom4559` / `Custom4560` / `Custom4561` |
+| Usage 2 — "Pharmacy" name / **address** / phone → **the ADMINISTERING facility** | `Custom4562` / `Custom4563` / `Custom4564` |
+| Diagnosed with meningioma? / Diagnosis date | `Custom4565` / `Custom4566` |
+| How many meningiomas / Location *(Head·Brain·Spine·Other)* / Treatment *(Radiation·Surgery·Medication·Monitoring·Unknown)* | `Custom4652` / `Custom4653` / `Custom4654` |
+| **Prescribing** doctor / facility / address / phone | `Custom4567` – `Custom4570` |
+| **Diagnosing** doctor / facility / address / phone | `Custom4571` – `Custom4574` |
+| Treating doctor / facility / address / phone | `Custom4575` – `Custom4578` |
+| PCP name / address / phone | `Custom4579` – `Custom4581` |
+| Other doctor / facility / address / phone | `Custom4582` – `Custom4585` |
+| Medical notes / Notes | `Custom4586` / `Custom4587` |
+
+Contact/OBO/emergency-contact fields also exist (`FirstName`, `LastName`, `CellPhone`, `Email1`,
+`Address1`, `City`, `State`, `Zip`, `DOB`, `SSN`, `Custom4542`–`Custom4550`, `Custom4588`–`Custom4592`).
+**The CRM supports TWO separate usage periods** — a woman with two stints is fully capturable.
+
+## Gaps / questions for MTM
+
+1. **THE DATES.** Which governs — the attachments (DX 1992+/1992–2019, use from 1992) or the Apr 3
+   email (DX 2005+, use from 2000)? Everything downstream depends on this.
+2. **Does the ~10-year-from-last-injection latency rule apply?** It's standard across the wider
+   litigation and absent from their criteria.
+3. **There is no API field for "physician / other healthcare provider / self-administered"** — the
+   Jul 17 email demands it but the FG has nowhere to put it. Which field? (`Custom4586` Medical
+   Notes?) Or is an FG update coming?
+4. **Imaging confirmation (MRI/CT)** is a common criterion and is absent from theirs — required?
+5. **Statute of limitations** — screened by them, or expected from us?
+6. **Non-contraceptive indications:** the criteria say "injectable *contraceptive*", but `Custom4651`
+   allows Regulate Cycle / Endometriosis. Do those qualify?
+
+---
 
 ## CREATIVE IMPLICATIONS (what this changes in our ads)
 
 Our shipped Depo copy qualifies only on **"diagnosed with a brain meningioma after using the Depo
-shot"** — it does NOT filter on duration or the usage window, so we are paying for leads the firm
-cannot retain. Add these filters to copy/scripts:
+shot"** — it does NOT filter on duration or the usage window, so we pay for leads that can't be
+retained. Add:
 
 - **Duration filter — the big one:** say **"a year or more"** / **"4 or more shots"** /
-  **"every 3 months for at least a year"**. (Our docu VO already gestures at this — "the one given
-  every three months, for years" — but the FB primary/headline don't.)
-- **Date-window filter:** the shot must have been used **1992–2019**. Anyone whose only use is
-  2020+ does NOT qualify. Worth a plain line like "if you were on it any time between 1992 and 2019".
-- **Order of events:** the meningioma diagnosis must come **AFTER** the year of use — phrase as
-  "used it for a year or more, and were **later** diagnosed".
+  **"every 3 months for at least a year"**.
+- **Date-window filter:** pending the conflict above — **either** "any time between 1992 and 2019"
+  **or** the tighter "between 2000 and 2019". **Don't ship either until MTM confirms.**
+- **Order of events:** "used it for a year or more, and were **later** diagnosed" — but remember the
+  diagnosis may land *mid-use*, so don't imply she must have stopped first.
 - **Keep the wording locks:** still **"brain meningioma"**, still **never "tumor"**
-  (`feedback_meningioma_only_targeting`) — note the firm's own list contains "meninges tumor" /
-  "arachnoid tumor", but that is *their* intake vocabulary, NOT our ad-targeting vocabulary.
-- **Don't turn the ad into a yes/no quiz.** Criterion 5 is about the INTAKE form, but it rhymes with
-  our creative rule: the ad should state the qualifying facts, and let the open-ended intake do the
-  screening.
-
-**Not our surface:** the doctor/hospital/pharmacy capture + API posting is an **intake-form/CRM**
-job (justicecovered / whoever owns the form), not something ad creative controls. Flagged here so
-the ad side isn't blamed for a form gap — but our ads CAN reduce "does not recall" by setting the
-expectation ("you'll be asked who diagnosed you and where you got the shot") if the firm wants that
-trade-off (it costs conversion rate to gain lead quality — user's call).
+  (`feedback_meningioma_only_targeting`). The firm's own list contains "meninges tumor" /
+  "arachnoid tumor" — that is *their* intake vocabulary, NOT our ad-targeting vocabulary.
+- **Don't turn the ad into a yes/no quiz.** Criterion 6 is about the intake form, but it rhymes: the
+  ad states the qualifying facts and lets the intake screen.
 
 ---
 
-# AUDIT: the LIVE funnel at depop.justicecovered.com (walked 2026-07-09)
+# AUDIT: the LIVE funnel at depop.justicecovered.com (walked 2026-07-17)
 
 **The live form is 4 questions → contact details. It captures NONE of the data MTM requires.**
 
@@ -75,109 +178,78 @@ trade-off (it costs conversion rate to gain lead quality — user's call).
    3 or more years / Never took Depo-Provera**
 4. "Currently represented by an attorney?" → Yes/No → contact details → RECEIVE RESULTS
 
-| MTM requires | Live form |
-|---|---|
-| Diagnosing doctor + hospital | ❌ never asked |
-| Prescribing doctor + pharmacy | ❌ never asked |
-| Open-ended, not yes/no (criterion 5) | ❌ every question is yes/no or signposted MC |
-| Diagnosed 1992+ | ❌ never asked |
-| Used 1992–2019 | ❌ never asked (no start/stop years) |
-| 1 yr min / 4+ shots | ⚠️ asked but broken (below) |
-
-**The API-vs-PDF debate is moot — the Dx/Rx data is never collected, so there's nothing to post.**
-That is the root cause of "client does not recall": nobody ever asked.
+**The API-vs-PDF debate is moot for the FORM — the Dx/Rx data is never collected there, so there's
+nothing to post.** That data has to come from the agents (see the plan below); the API posting
+obligation is real and lands on whoever writes the CRM record.
 
 ### The three bugs
 
 1. **Q2 signposts the losing answer** — the option is literally labelled **"No injury (You do not
-   qualify)"**, and "Meningioma" is served as choice #1. It teaches every claimant which box to
-   avoid and which to pick. Catastrophic for fraud; zero-cost to fix.
+   qualify)"**, and "Meningioma" is served as choice #1. It teaches every claimant which box to avoid
+   and which to pick. Catastrophic for fraud; zero-cost to fix.
 2. **Q3 manufactures qualifying answers — the root of the unqualified intakes.** The LOWEST real
    option (**1 year**) **IS the qualifying minimum**. A woman who took it for 3 months has no honest
-   choice ("Never took Depo-Provera" is false), so she clicks "1 year." The form *generates* the
-   exact leads MTM is rejecting. It also never asks start/stop years → the 1992–2019 window is never
-   checked, and never asks shot count.
+   choice ("Never took Depo-Provera" is false), so she clicks "1 year." The form *generates* the exact
+   leads MTM is rejecting. **"1 year" is therefore a contaminated bucket** — it holds both the best
+   leads (genuine 4-shot users = MTM's exact line) and the worst. **You cannot qualify OR disqualify
+   on it.**
 3. **Q1 is a leading yes/no that names the drug** → free "yes" for anyone.
+
+### Also seen / unverified
+
+A question exists somewhere reading *"Have you or a loved one used Depo-Provera at least once in the
+12 month period prior to diagnosis?"* — **not encountered on the walked path** (may be conditional).
+If it is live and gates anything, **it is a leak**: "at least once" is a 1-shot bar (MTM wants 4+),
+and a 12-month recency window is far tighter than any MTM criterion — it would disqualify a woman who
+used 2005–2015 and was diagnosed 2018, who is a good claimant. Find what it's wired to.
 
 ---
 
-# THE PLAN — ADDITIVE ONLY (user-locked 2026-07-09)
+# THE PLAN — ADDITIVE ONLY (user-locked 2026-07-17)
 
 **Two hard constraints from the user:**
 1. **This is a MARKETING funnel, not a legal intake. Volume is the goal.** **NEVER ask doctor name /
-   hospital / pharmacy in the funnel** — typing + memory questions are where a form bleeds leads, and
-   **our agents ask them on the call**. *That is also the answer to MTM's "capture it at intake
-   level": **the agents ARE the intake.*** No post-capture enrichment step either — rejected as still
-   too long.
+   hospital / pharmacy / addresses in the funnel** — typing + memory questions are where a form bleeds
+   leads. **The AGENTS collect all of it on the call.** *That is the answer to MTM's "this has to
+   happen at the intake level": **the agents ARE the intake.*** No post-capture enrichment step either.
 2. **DO NOT touch the existing questions — UTM + pixel are tied to their conditions.** Reordering,
    rewording or re-optioning a tracked step breaks the pixel conditions and resets FB's learning on
-   the conversion event. **Everything below is ADDED manually; nothing existing is edited.**
+   the conversion event.
 
-## The trick: you don't fix the broken Q3 — you NEUTRALIZE it by adding a shot count
+**The form disqualifies NOBODY.** We already paid for the click; blocking her at the form recovers
+nothing, while a captured non-qualifier can still be re-qualified on the call, referred, or routed.
+**Capture everyone, score in the CRM.** Disqualification is a routing decision, not a form decision —
+which is exactly why the `"(You do not qualify)"` label is a bug: the form doing the CRM's job, and
+only teaching people to lie.
 
-The live duration question is structurally forced (its floor IS the qualifying minimum), so it will
-keep returning "1 year" from everyone. **Leave it.** Add a shot-count question next to it and it
-becomes harmless: **qualify on the shot count, ignore Q3's answer.** The bad data stays, the pixel
-stays, the truth arrives alongside it.
+## The whole form fix: ONE new option, zero new questions
 
-## What to ADD, in priority order
+**Add "Less than 1 year"** (and optionally "Not sure") **to the existing duration BUTTONS FIELD.**
+No new screen, existing options untouched, so any pixel condition keyed on "1 year" / "2 years" /
+"3 or more years" fires exactly as before. It gives the sub-1-year user somewhere honest to land, so
+"1 year" stops being a dumping ground and starts meaning **4 shots = MTM's exact line**. The question
+you already have starts doing its job.
 
-**ADD #1 — "About how many shots in total?"** 1 · 2 · 3 · 4–6 · 7–12 · 13–20 · More than 20 · Not sure
-→ **The single highest-value add.** MTM's real line is **4+ shots**; 4 sits **mid-list**, never at the
-floor, so it can't be gamed by elimination the way the live Q3 can. This alone converts the funnel
-from "manufactures unqualified leads" to "qualifies."
+**Check before saving:** what does the field's conditional logic do with an answer it doesn't
+recognise? If a condition enumerates the qualifying options, "Less than 1 year" falls to the else —
+make sure the else doesn't dead-end her. She continues to contact like everyone else.
 
-**ADD #2 — "When were you getting the Depo shot?"** ONE screen, two dropdowns: **first year** /
-**last year** (**1985 → 2026**, + *"Still getting them"*)
-→ The **1992–2019 usage window**, which is currently invisible. Also cross-checks duration.
+**Optional, not recommended:** a separate shot-count question (1·2·3·4–6·7–12·13–20·20+·Not sure).
+More precise than self-reported duration, but the gap is small and the agent catches it. Costs a screen.
 
-**ADD #3 — "What year were you diagnosed?"** dropdown **1985 → 2026**
-→ Criterion 3 (dx 1992+) + the sequence check (dx AFTER use). **Lowest value — cut this first if the
-funnel feels long.** Pre-1992 diagnoses are vanishingly rare and an agent can confirm the date.
+**Cut:** the usage-window question and the diagnosis-year question. The window barely bites, and the
+latency rule that would justify a DX-year question **isn't in MTM's criteria**. Revisit only if MTM
+confirms the dates (Q1) and the latency rule (Q2) above.
 
-## WHERE to insert (matters — don't shift tracked steps)
+## What the AGENT script must now capture (this is where MTM's demands land)
 
-**Safest: APPEND all new questions at the TAIL — after the attorney question, immediately before the
-contact form.** Every existing step keeps its position, its index, and its conditions. Nothing that
-the pixel or UTM logic keys on moves.
-- **If the platform keys conditions on question ID (not step index)**, ADD #1 can instead sit right
-  after the live duration question, where it reads more naturally. **Confirm which before inserting
-  mid-funnel** — if it keys on index, a mid-funnel insert shifts the attorney step and breaks it.
-- Trade-off of appending: the qualification data arrives last, so a drop between the attorney step
-  and capture loses it. Drop-off there is low (they're nearly done), and it's worth it to never
-  disturb the tracked path.
-
-## The one edit worth checking (label-only, no logic change)
-
-Q2's option is labelled **"No injury (You do not qualify)"** — it tells every claimant which box
-loses. **If the pixel condition keys on the option's VALUE or index (not its display text), editing
-the label to plain "No injury" is free** and costs zero conversion. Check first; if the condition
-matches on label text, leave it and let ADD #1 carry the qualification.
-
-## API fields (post all of it — PDF is backup only)
-
-`dx_condition` · `dx_year` · `rx_first_year` · `rx_last_year` · `rx_still_using` ·
-`rx_shot_count_bucket` · `has_attorney` · contact (`first_name` `last_name` `email` `phone` `consent`)
-Derived server-side: `rx_duration_years` (last−first) · `qualifies_duration` (≥1yr / ≥4 shots) ·
-`qualifies_window` (use within 1992–2019) · `qualifies_sequence` (dx_year ≥ first_year+1) ·
-`qualifies_dx_year` (≥1992).
-Agent-filled after the call (CRM, not the form): `dx_doctor_name` · `dx_hospital` ·
-`rx_provider_name` · `rx_provider_type` · `rx_city_state`.
-
-## What to tell MTM
-
-- **"Which pharmacy" is the wrong question — Depo is administered IN-CLINIC, not dispensed.** It
-  legitimately returns "none" for valid claimants. *"Who was giving you the shots"* (OB/GYN, family
-  doctor, health department, Planned Parenthood) is the question that actually carries the Rx data.
-- **"Does not recall" is a script problem, not a form problem.** A bare `Doctor name: ___` manufactures
-  it. Agents should scaffold down: provider TYPE → city/state → hospital → insurer at the time. Any
-  one of those lets the docket team find the provider; all are far easier to recall than a name from
-  2003.
-
-## Zero-conversion-cost fraud fixes (do these first)
-
-1. **Delete the "(You do not qualify)" label.** Never tell a claimant which answer loses.
-2. **Never put the qualifying threshold at the floor of an option list** (today's Q3 bug) — always
-   extend the options past the qualifying range on BOTH sides so the qualifying zone sits mid-list.
-3. **Don't name the drug in a yes/no.** Ask what they took / what they were diagnosed with; match
-   against the qualifying-product list server-side.
+- **DX:** diagnosing doctor name · facility name · **full address** · phone · diagnosis date ·
+  how many meningiomas · location (brain/head — flag spine) · treatment
+- **RX:** prescribing doctor · **and critically — WHERE THE SHOT WAS GIVEN**: clinic/facility name,
+  **full street address**, phone. **"Walmart" / "Planned Parenthood" alone = a rejected lead.**
+- **Who administered it:** physician / other healthcare provider / **self-administered**.
+- **Per usage period** (the CRM holds two): generic? · start · stop.
+- **"Does not recall" is a call-script problem, not a form problem.** Scaffold down rather than
+  accepting the blank: provider TYPE → city/state → facility → insurer at the time. Any one of those
+  lets the docket team find the provider; all are far easier to recall than a name from 2003.
+- **Post via API, not PDF** (MTM, Jul 16).
