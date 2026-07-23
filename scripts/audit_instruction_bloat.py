@@ -53,6 +53,16 @@ def check_budget(
         )
 
 
+def skill_files(root: Path) -> dict[Path, Path]:
+    return {
+        path.relative_to(root): path
+        for path in root.rglob("*")
+        if path.is_file()
+        and "__pycache__" not in path.parts
+        and path.name != ".DS_Store"
+    }
+
+
 def main() -> int:
     errors: list[str] = []
 
@@ -98,15 +108,24 @@ def main() -> int:
 
     mirrored = 0
     for repo_skill in sorted((REPO / "skills").glob("*/SKILL.md")):
-        linked_agent_skill = REPO / ".agents/skills" / repo_skill.parent.name / "SKILL.md"
+        skill_name = repo_skill.parent.name
+        linked_agent_skill = REPO / ".agents/skills" / skill_name / "SKILL.md"
         if linked_agent_skill.exists():
             continue
-        live_skill = HOME / ".codex/skills" / repo_skill.parent.name / "SKILL.md"
-        if not live_skill.exists():
+        live_root = HOME / ".codex/skills" / skill_name
+        if not live_root.exists():
             continue
         mirrored += 1
-        if repo_skill.read_bytes() != live_skill.read_bytes():
-            errors.append(f"live skill mirror differs: {repo_skill.parent.name}")
+        repo_files = skill_files(repo_skill.parent)
+        live_files = skill_files(live_root)
+        if repo_files.keys() != live_files.keys():
+            errors.append(f"live skill mirror file set differs: {skill_name}")
+            continue
+        for relative_path, repo_path in repo_files.items():
+            if repo_path.read_bytes() != live_files[relative_path].read_bytes():
+                errors.append(
+                    f"live skill mirror differs: {skill_name}/{relative_path}"
+                )
 
     print(
         f"root={metrics(REPO / 'AGENTS.md')[1] + metrics(REPO / 'CLAUDE.md')[1]} bytes "

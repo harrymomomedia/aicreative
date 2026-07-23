@@ -46,6 +46,7 @@ Check root-manual budgets, active Claude memory, stale rules, and live skill mir
 - `voice_consistency.py`: speaker and pitch consistency
 - `trim_silence.py`: transcript-timed native-speed trimming
 - `crop_4x5.py`: letterbox-aware feed conversion
+- `reframe_interview.py`: frame-accurate landscape-master to vertical interview punch-ins
 - `caption_styled.py`, `caption_hormozi3.py`, `caption_nick.py`, `caption_redwood.py`: caption engines
 - `scan_burned_text.py`: unintended burned-text detection
 

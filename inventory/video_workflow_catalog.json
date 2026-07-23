@@ -413,7 +413,7 @@
       "Poyo",
       "Veo"
     ],
-    "lines": 127
+    "lines": 146
   },
   {
     "path": "scripts/build_ugc_copy_xlsx.py",
@@ -660,7 +660,7 @@
     "syntax_error": null,
     "techniques": [],
     "providers": [],
-    "lines": 395
+    "lines": 396
   },
   {
     "path": "scripts/cawp_card_highlights.py",
@@ -5072,6 +5072,21 @@
       "ffmpeg"
     ],
     "lines": 158
+  },
+  {
+    "path": "scripts/reframe_interview.py",
+    "role": "reusable-tool",
+    "status": "canonical",
+    "campaign": null,
+    "summary": "Cut a landscape interview master into fixed, frame-accurate vertical punch-ins.",
+    "syntax_error": null,
+    "techniques": [
+      "assembly"
+    ],
+    "providers": [
+      "ffmpeg"
+    ],
+    "lines": 362
   },
   {
     "path": "scripts/render_minimal_ad.py",

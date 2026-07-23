@@ -1,0 +1,4 @@
+interface:
+  display_name: "Interview Shotcraft"
+  short_description: "Choose and build reliable interview shot patterns"
+  default_prompt: "Choose the best Interview Shotcraft recipe for this video and carry it through generation, reframing, editing, and QA."

@@ -6,6 +6,8 @@ description: Produce natural podcast-style talking-head videos and ads, includin
 # Podcast Video
 
 Use `video-production` for the full job, `ai-video-generation` when creating the host or clips, and `video-post-production` for the edit.
+Load `interview-shotcraft` when two visible speakers, shared two-shots, or landscape-to-vertical
+speaker reframing are part of the format.
 
 ## Choose The Register
 

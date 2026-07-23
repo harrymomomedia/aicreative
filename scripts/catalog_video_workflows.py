@@ -100,6 +100,7 @@ GENERAL_STEMS = {
     "poyo_client",
     "rederive_emoji",
     "replicate_client",
+    "reframe_interview",
     "scan_burned_text",
     "style_test_seedance",
     "submagic_client",

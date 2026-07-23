@@ -22,9 +22,11 @@ belongs in skills; campaign facts belong in campaign memory or `inventory/`.
 | AdSwipe, performance ads, legal/tort copy, AdMachin | `admachin-video-ads` |
 | Primary text and headline structures | `ad-copy-formats` |
 | Podcast or interview creative | `podcast-video` |
+| Two-shot, street-interview, and wide-master reframing | `interview-shotcraft` |
 | PIP or stacked layouts | `pip-composite`, `hf-pip-composite`, `stacked-format` |
 | Caption treatment | the matching named caption skill |
 | Motion graphics | `hyperframes` and its routed specialist |
+| Promote production learnings | `video-skillforge` |
 
 The installed `general-video` skill is a HyperFrames fallback, not the universal router.
 

@@ -19,6 +19,8 @@ Treat the edit as a timed visual and audio system. Make every boundary intention
    - Adjacent B-roll shots must share one exact boundary or have a deliberate host run between them.
    - Never leave a one- or two-frame host flash.
    - Keep generated footage at native speed; solve timing with trims, re-ordering, stronger coverage, or regeneration.
+   - For landscape interview masters, keep speaker crop changes on the same frame timeline. Load
+     `interview-shotcraft` and use `reframe_interview.py` for fixed vertical punch-ins.
 
 3. **Trim speech by words**
    - Use Scribe word timestamps to cut leading/trailing improvisation.

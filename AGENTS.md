@@ -8,6 +8,8 @@ Read `/Users/harry/aicreative/CLAUDE.md` before working in this repository.
 - Add `ai-video-generation` for generated media and `video-post-production` for editing or QA.
 - Add `admachin-video-ads` for AdSwipe, paid-social, legal/tort copy, staging, or launches.
 - Load caption, format, HyperFrames, podcast, and disclaimer skills only when needed.
+- After every generated video, record a `video-skillforge` verdict; promote durable lessons after
+  corrections, approvals, batches, and finals.
 
 Reusable craft belongs in skills. Campaign scripts, people, assets, IDs, rejects, and compliance
 belong in campaign memory or `inventory/`.

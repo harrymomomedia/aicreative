@@ -14,7 +14,9 @@ Start with the broadest relevant skill, then load specialists:
 | Domain | `admachin-video-ads` | Performance-ad strategy, regulated copy, AdMachin staging and launch |
 | Copy | `ad-copy-formats` | Primary-text and headline structure diversity |
 | Format | `podcast-video` | Podcast/interview register, host, script, reaction, and edit decisions |
+| Format | `interview-shotcraft` | PodSolo, DuoLock, WideSplit, StreetPunch, and SoloRelay interview architectures |
 | Format | `pip-composite`, `hf-pip-composite`, `stacked-format`, `feed-4x5` | Reusable edit and layout formats |
+| Learning | `video-skillforge` | Promote validated production evidence into rules, recipes, scripts, or campaign state |
 | Provider adapter | `podcast-omni` | Legacy Omni execution rules only when explicitly requested |
 | Captions | `redwood-subtitle`, `hormozi3`, `nick-subtitle`, `yellow-text-sub`, `embedded-captions` | Named caption treatments |
 | Caption authoring | `caption-engine-builder` | Clone a genuinely new caption style |

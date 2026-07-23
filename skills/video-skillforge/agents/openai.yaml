@@ -1,0 +1,4 @@
+interface:
+  display_name: "Video SkillForge"
+  short_description: "Promote production lessons into reusable skills"
+  default_prompt: "Run the Video SkillForge pass on this production and save each durable lesson in the correct reusable or campaign-specific home."

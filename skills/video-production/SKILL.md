@@ -36,6 +36,7 @@ Use this as the primary router for video work. Keep the whole production coheren
    - Show each generated video immediately, then perform deeper QA.
    - Preserve every accepted asset and reroll only the failing unit.
    - Keep resumable task IDs and skip-if-exists behavior for provider jobs.
+   - Capture each output's acceptance, rejection, defect, fix, and evidence for `video-skillforge`.
 
 6. **Finish deliberately**
    - Edit at native playback speed.
@@ -47,7 +48,7 @@ Use this as the primary router for video work. Keep the whole production coheren
 7. **Verify and hand off**
    - Run transcript, identity, audio, transition, caption, and every-frame checks appropriate to the job.
    - Present the final path, duration, resolution, and QA result.
-   - Save reusable lessons in skills; save campaign facts and asset IDs in campaign memory.
+   - Run `video-skillforge`: promote reusable lessons and keep campaign facts in campaign memory.
 
 ## Skill Routing
 
@@ -61,10 +62,12 @@ Use this as the primary router for video work. Keep the whole production coheren
 | PIP or stacked proof formats | `pip-composite`, `hf-pip-composite`, or `stacked-format` |
 | Existing talking-head footage recut | `talking-head-recut` |
 | Podcast or interview-style creative | `podcast-video` |
+| Two-person interviews, landscape-master punch-ins, matching solo angles | `interview-shotcraft` |
 | Motion graphics or custom compositions | `hyperframes`, then its routed specialist |
 | Product, website, PR, music, slideshow, or faceless formats | the matching specialist skill |
 | Aspect conversion for feed | `feed-4x5` |
 | Regulated Pulaski/Jones disclaimer | `pulaski-jones-disclaimer` |
+| Promote validated production learnings into the repo | `video-skillforge` |
 
 The installed `general-video` skill is a HyperFrames fallback, not the universal production router. Use this skill first, then route to `general-video` only for a freeform HyperFrames composition.
 
