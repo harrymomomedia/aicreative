@@ -2,43 +2,31 @@
 
 Read `/Users/harry/aicreative/CLAUDE.md` before working in this repository.
 
-## Skill Loading
+## Skill Routing
 
-- Any video task: start with `/Users/harry/.codex/skills/video-production/SKILL.md`.
-- Generated people, scenes, or B-roll: also load `ai-video-generation`.
-- Editing, audio, captions, assembly, or delivery QA: also load `video-post-production`.
-- Paid-social, AdSwipe, legal/tort copy, AdMachin staging, or launch: also load `admachin-video-ads`.
-- Load caption, format, HyperFrames, and disclaimer skills only when their specialty is used.
+- Start video work with `/Users/harry/.codex/skills/video-production/SKILL.md`.
+- Add `ai-video-generation` for generated media and `video-post-production` for editing or QA.
+- Add `admachin-video-ads` for AdSwipe, paid-social, legal/tort copy, staging, or launches.
+- Load caption, format, HyperFrames, podcast, and disclaimer skills only when needed.
 
-The general video skills own reusable craft. Domain skills add constraints; campaign memory owns scripts, people, assets, IDs, rejects, and launch state.
+Reusable craft belongs in skills. Campaign scripts, people, assets, IDs, rejects, and compliance
+belong in campaign memory or `inventory/`.
 
 ## Durable Learning
 
-- Project-wide operating behavior: `/Users/harry/aicreative/CLAUDE.md`
-- Reusable behavior: live skill under `/Users/harry/.codex/skills/`
-- Repo mirror: `/Users/harry/aicreative/skills/<skill>/`
-- Campaign-specific notes: `/Users/harry/.claude/projects/-Users-harry-aicreative/memory/*.md` or `inventory/`
-- Historical incident detail: `/Users/harry/aicreative/docs/video-production-learnings-archive.md`
+- Always-on project defaults: `CLAUDE.md`
+- Reusable behavior: live skill in `/Users/harry/.codex/skills/`, mirrored under `skills/`
+- Campaign facts: Claude project memory or `inventory/`
+- Historical detail: `docs/video-production-learnings-archive.md`
 
-When a reusable skill changes, update the live copy and repo mirror together.
-
-## Locked Defaults
-
-- STT: ElevenLabs Scribe, never Whisper.
-- GPT image: KIE `generate_gpt_image` at 2K.
-- Veo 3.1: useapi Google Flow unlimited with `veo-3.1-lite-low-priority`; no paid-provider fallback without explicit approval.
-- Keep all video at native playback speed; no slowdown, speedup, time-stretch, duplicated frames, freezes, or holds.
-- Treat image-to-video anchors as the sole visual truth and reroll material person/scene drift.
-- Use named caption skills and run every-frame transition QA before delivery.
-- AdMachin launch actions spend real money and require explicit confirmation.
+Before adding a rule, search for its existing home and update it there. Do not duplicate detailed
+skill instructions in `AGENTS.md` or `CLAUDE.md`, and do not create one memory file per correction.
 
 ## Repository Safety
 
-- Put new campaign orchestration in `jobs/<campaign>/<concept>/`; keep reusable utilities in
+- New campaign orchestration goes in `jobs/<campaign>/<concept>/`; reusable utilities go in
   `scripts/`.
-- Preserve stable legacy script paths unless deliberately migrating them with a compatibility
-  wrapper.
-- Multiple sessions may share the worktree and index.
-- Recheck status immediately before staging, pulling, committing, and pushing.
+- Preserve stable legacy paths with compatibility wrappers when migrating.
+- Multiple sessions may share the worktree and index. Recheck branch and status before Git writes.
 - Never revert another session's changes.
-- Scan staged content for secrets before every push.
+- Secret-scan staged content before every push.

@@ -402,6 +402,20 @@
     "lines": 145
   },
   {
+    "path": "scripts/audit_instruction_bloat.py",
+    "role": "reusable-tool",
+    "status": "canonical",
+    "campaign": null,
+    "summary": "Verify that always-loaded instructions and Claude project memory stay lean.",
+    "syntax_error": null,
+    "techniques": [],
+    "providers": [
+      "Poyo",
+      "Veo"
+    ],
+    "lines": 127
+  },
+  {
     "path": "scripts/build_ugc_copy_xlsx.py",
     "role": "campaign-job",
     "status": "active-or-historical",
@@ -646,7 +660,7 @@
     "syntax_error": null,
     "techniques": [],
     "providers": [],
-    "lines": 394
+    "lines": 395
   },
   {
     "path": "scripts/cawp_card_highlights.py",

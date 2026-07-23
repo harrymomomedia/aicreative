@@ -30,7 +30,11 @@ This is the performance-ad and publishing adapter. Load `video-production` for t
 - Use `may qualify`, `could be eligible`, `potential compensation`, or `significant potential compensation`.
 - Never guarantee money, payouts, settlements, damages, or outcomes.
 - Keep compensation close to the qualifying harm so the action is not buried.
+- Address people who already have the qualifying diagnosis or injury; do not turn a tort campaign
+  into future-risk or symptom-anxiety targeting.
 - Prefer `private form`, `private page`, `free case review`, or `private questions`; avoid ambiguous `private check`.
+- Describe contact as confidential when appropriate; never promise that nobody will call when
+  follow-up contact is part of intake.
 - Keep the Pulaski/Jones disclaimer verbatim by loading `pulaski-jones-disclaimer`.
 - Present final headline and primary text verbatim for approval before creating AdMachin copy rows.
 

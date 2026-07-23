@@ -7,6 +7,29 @@ description: Extract and save durable learnings after a completed work session s
 
 Use this skill at the end of a meaningful work session. The goal is not to save everything; it is to preserve the lessons most likely to prevent repeated mistakes.
 
+## Anti-Bloat Gate
+
+Before writing anything:
+
+1. Search `AGENTS.md`, `CLAUDE.md`, the routed skills, `inventory/`, and active campaign memory.
+2. Update or replace the existing rule instead of appending a near-duplicate.
+3. Save a reusable correction in one skill, not in Claude project memory.
+4. Add campaign facts to an existing campaign file. Do not create one `feedback_*.md` file per
+   correction.
+5. Move superseded narrative outside auto-loaded memory instead of retaining it in the active
+   index.
+
+Soft budgets:
+
+- Repo `AGENTS.md`: at most 60 lines and 4 KB.
+- Repo `CLAUDE.md`: at most 120 lines and 8 KB.
+- Claude project `MEMORY.md`: at most 40 lines and 4 KB.
+- An active campaign memory file: normally at most 60 lines and 6 KB.
+
+Exceed a budget only when exact compliance text cannot safely be referenced from versioned campaign
+configuration. Line count alone is not enough; check bytes because long single lines still consume
+context.
+
 ## What To Extract
 
 Use judgment. Look for:
@@ -25,12 +48,19 @@ Choose the smallest durable home that will make the lesson useful later:
 
 - Campaign-specific notes: `inventory/<campaign>_learnings.md` or a learnings file in the relevant `outputs/<campaign>/` folder.
 - Project-wide behavior: `CLAUDE.md`.
-- Codex project/default behavior: repo `AGENTS.md` and, when needed, `~/.codex/AGENTS.md`.
+- Codex repository behavior: repo `AGENTS.md`.
+- Global `~/.codex/AGENTS.md`: concise project routing only; never copy detailed project defaults
+  into it.
 - Reusable workflow: a skill under `~/.codex/skills/<skill-name>/SKILL.md`, mirrored into repo `skills/<skill-name>/SKILL.md`.
 - Tool/style inventory: the relevant inventory file, README, script docstring, or style registry.
 
+Claude project memory should contain only a short index plus concise campaign state that is not
+already versioned elsewhere. Prefer links to `inventory/` and campaign configuration over copied
+research, scripts, or workflow instructions.
+
 If a live skill is updated, mirror the same change into the repo `skills/` copy before committing.
-If Codex's live `~/.codex/AGENTS.md` is updated for a project-specific rule, mirror the project version into repo `AGENTS.md` too so the rulebook is versioned.
+Keep project-specific Codex behavior in the repository `AGENTS.md`. The global file should point to
+the repository manuals instead of repeating them.
 
 ## Memory Quality
 

@@ -30,6 +30,14 @@ The catalog scans every Python workflow in `scripts/` plus the root provider/cli
 records campaign, lifecycle status, provider signals, and reusable techniques, and flags
 unassigned files for review.
 
+## Instruction And Memory Audit
+
+Check root-manual budgets, active Claude memory, stale rules, and live skill mirrors:
+
+```bash
+.venv/bin/python scripts/audit_instruction_bloat.py
+```
+
 ## Canonical Video Utilities
 
 - `pick_clean_anchors.py`: eyes-open clip-1 anchor selection and manifest

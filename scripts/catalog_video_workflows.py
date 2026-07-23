@@ -63,6 +63,7 @@ GENERAL_STEMS = {
     "admachin_mcp_stdio",
     "admachin_push",
     "analyze_submagic_emojis",
+    "audit_instruction_bloat",
     "audio_match",
     "caption",
     "caption_hormozi3",
