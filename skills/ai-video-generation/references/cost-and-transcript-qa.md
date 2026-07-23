@@ -30,4 +30,8 @@ Then inspect the kept word span for:
 - trailing improvisation
 - wrong names or diagnoses
 
-Leading/trailing extras can be trimmed by word timestamps at native speed. Mid-claim insertions should usually be rerolled; remove them only when meaning remains exact and an approved visual covers the native-speed cut.
+Leading/trailing extras can be trimmed by word timestamps at native speed. This includes a single
+transition word appended after the completed intended sentence: end on an exact frame after the
+intended final word only when that word is fully spoken and the cut does not clip its final
+phoneme. Mid-claim insertions should usually be rerolled; remove them only when meaning remains
+exact and an approved visual covers the native-speed cut.

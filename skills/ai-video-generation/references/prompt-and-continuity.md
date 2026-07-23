@@ -46,6 +46,21 @@ expression while keeping the anchor pool auditable in `anchor_manifest.json`.
 - The approved still remains the identity source of truth even when clip-1 frames are used for
   motion continuity.
 
+### Controlled Same-Vicinity Progression
+
+When later clips should imply that a walking presenter has moved slightly within the same area:
+
+- Select every source frame independently from accepted clip 1.
+- Create each alternate anchor as a strict single-source, background-only image edit. Preserve the
+  presenter, pose, wardrobe, foreground, and camera geometry; vary only nearby surroundings,
+  pedestrians, or traffic.
+- Never feed one generated anchor into the next. Never use multi-reference synthesis for an
+  identity-critical anchor; source competition can replace the face, age, race, or body.
+- Show the complete anchor set for approval before generating later video clips.
+
+Any identity change is an automatic rejection. Use an untouched clip-1 frame when a background
+edit cannot preserve the approved person exactly.
+
 ## Identity Gate
 
 Compare anchor versus start/mid/end, plus quarter-points for 8-second clips. Reject material changes in:

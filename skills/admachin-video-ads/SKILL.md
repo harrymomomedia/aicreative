@@ -45,6 +45,8 @@ Campaign-specific qualification rules belong in campaign memory or `inventory/`,
 - Map each source proof insert to its narrative function and emotional intensity.
 - In medical/tort ads, do not replace patient, recovery, scar, diagnosis, or scan proof with calendars, folders, generic paperwork, or a weak laptop article.
 - Treat article/study screens as secondary corroboration when stronger human diagnosis footage exists.
+- If `list_clip_trims` returns no matches, query `list_brolls` in the source library before
+  concluding that no reusable footage exists or generating a replacement.
 - Reject blank or unreadable phone/computer screens.
 - For Reels eligibility flows, use true 9:16 mobile states with feed-readable text. Do not reveal taps, selected answers, pressed controls, or private data unless the product demonstration explicitly requires it.
 - Show every proposed host and B-roll asset individually before final assembly.
