@@ -14,21 +14,27 @@ belongs in skills; campaign facts belong in campaign memory or `inventory/`.
 
 ## Skill Router
 
-| Work | Skill |
-|---|---|
-| End-to-end video planning and delivery | `video-production` |
-| Generated people, scenes, B-roll, providers, continuity | `ai-video-generation` |
-| Editing, audio, captions, aspect variants, final QA | `video-post-production` |
-| AdSwipe, performance ads, legal/tort copy, AdMachin | `admachin-video-ads` |
-| Primary text and headline structures | `ad-copy-formats` |
-| Podcast or interview creative | `podcast-video` |
-| Two-shot, street-interview, and wide-master reframing | `interview-shotcraft` |
-| PIP or stacked layouts | `pip-composite`, `hf-pip-composite`, `stacked-format` |
-| Caption treatment | the matching named caption skill |
-| Motion graphics | `hyperframes` and its routed specialist |
-| Promote production learnings | `video-skillforge` |
+| Work | Call name | Stable skill ID |
+|---|---|---|
+| End-to-end video planning and delivery | `VideoPilot` | `video-production` |
+| Generated people, scenes, B-roll, providers, continuity | `GenLock` | `ai-video-generation` |
+| Editing, audio, captions, aspect variants, final QA | `CutSmith` | `video-post-production` |
+| AdSwipe, performance ads, legal/tort copy, AdMachin | `AdLaunch` | `admachin-video-ads` |
+| Primary text and headline structures | `CopyDeck` | `ad-copy-formats` |
+| Podcast creative | `PodFlow` | `podcast-video` |
+| Two-shot, street-interview, and master reframing | `ShotCraft` | `interview-shotcraft` |
+| PIP or stacked layouts | `ProofPIP`, `MotionPIP`, `ProofStack` | matching format skill |
+| Caption treatment | `Redwood`, `Hormozi`, `Nick`, `YellowPop`, or `CaptionFX` | matching caption skill |
+| Motion graphics | `HyperFrames` | `hyperframes` and its routed specialist |
+| Classify and promote production learnings | `SkillForge` | `video-skillforge` |
+| Promote, validate, commit, and push learnings | `ForgeSync` | `video-forgesync` |
+| Recall or register any call name | `SkillDeck` | `video-skill-deck` |
 
 The installed `general-video` skill is a HyperFrames fallback, not the universal router.
+Resolve the full catalog and named recipes through `SkillDeck`; never rename stable skill folders
+for recall. In the first working update, state the selected call names and their purpose once. When
+a reusable workflow genuinely needs a new skill or recipe, assign a unique call name, register it,
+and tell the user what to call it.
 
 ## Locked Defaults
 

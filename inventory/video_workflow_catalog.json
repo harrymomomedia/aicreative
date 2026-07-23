@@ -660,7 +660,7 @@
     "syntax_error": null,
     "techniques": [],
     "providers": [],
-    "lines": 396
+    "lines": 397
   },
   {
     "path": "scripts/cawp_card_highlights.py",
@@ -5179,6 +5179,19 @@
     ],
     "providers": [],
     "lines": 48
+  },
+  {
+    "path": "scripts/sync_video_skill_deck.py",
+    "role": "reusable-tool",
+    "status": "canonical",
+    "campaign": null,
+    "summary": "Validate the canonical SkillDeck registry and generate its readable index.",
+    "syntax_error": null,
+    "techniques": [
+      "matte-PIP"
+    ],
+    "providers": [],
+    "lines": 255
   },
   {
     "path": "scripts/track_emojis.py",

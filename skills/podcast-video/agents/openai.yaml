@@ -1,4 +1,4 @@
 interface:
-  display_name: "Podcast Video"
+  display_name: "PodFlow"
   short_description: "Produce natural podcast-style talking-head videos"
-  default_prompt: "Use $podcast-video to build this podcast-style video naturally."
+  default_prompt: "Use PodFlow to build this podcast-style video naturally."

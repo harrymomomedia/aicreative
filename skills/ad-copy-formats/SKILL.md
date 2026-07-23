@@ -1,6 +1,6 @@
 ---
 name: ad-copy-formats
-description: Create structurally varied paid-social primary text and headlines across a batch without repeating one direct-response skeleton. Use when writing ad copy, planning copy-format diversity, adapting one offer into distinct narrative shapes, or auditing whether a batch feels templated. Pair with the relevant domain or campaign skill for claims, eligibility, legal wording, and disclaimers.
+description: Create structurally varied paid-social primary text and headlines across a batch without repeating one direct-response skeleton. Call name CopyDeck. Use when writing ad copy, planning copy-format diversity, adapting one offer into distinct narrative shapes, or auditing whether a batch feels templated. Pair with the relevant domain or campaign skill for claims, eligibility, legal wording, and disclaimers.
 ---
 
 # Ad Copy Formats

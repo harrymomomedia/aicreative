@@ -1,11 +1,12 @@
 ---
 name: video-production
-description: Orchestrate any video project from brief through delivery, including reference analysis, scripting, storyboarding, asset selection, AI generation, editing, captions, audio, quality assurance, and handoff. Use for ads, UGC, talking heads, explainers, social videos, product videos, documentary edits, B-roll assemblies, motion graphics, recuts, and any request to create, improve, inspect, or finish a video. Load the specialist skills named here when their part of the workflow becomes relevant.
+description: Orchestrate any video project from brief through delivery, including reference analysis, scripting, storyboarding, asset selection, AI generation, editing, captions, audio, quality assurance, and handoff. Call name VideoPilot. Use for ads, UGC, talking heads, explainers, social videos, product videos, documentary edits, B-roll assemblies, motion graphics, recuts, and any request to create, improve, inspect, or finish a video. Load the specialist skills named here when their part of the workflow becomes relevant.
 ---
 
 # Video Production
 
-Use this as the primary router for video work. Keep the whole production coherent while specialist skills handle generation, post-production, captions, formats, and domain rules.
+Use this as the primary router for video work. Resolve and announce memorable aliases through
+`SkillDeck`; keep the whole production coherent while specialists handle their parts.
 
 ## Core Workflow
 
@@ -49,6 +50,7 @@ Use this as the primary router for video work. Keep the whole production coheren
    - Run transcript, identity, audio, transition, caption, and every-frame checks appropriate to the job.
    - Present the final path, duration, resolution, and QA result.
    - Run `video-skillforge`: promote reusable lessons and keep campaign facts in campaign memory.
+   - When repository publication was requested, finish with `ForgeSync`.
 
 ## Skill Routing
 
@@ -68,6 +70,8 @@ Use this as the primary router for video work. Keep the whole production coheren
 | Aspect conversion for feed | `feed-4x5` |
 | Regulated Pulaski/Jones disclaimer | `pulaski-jones-disclaimer` |
 | Promote validated production learnings into the repo | `video-skillforge` |
+| Save, validate, commit, and push production learnings | `video-forgesync` |
+| Recall or register memorable workflow names | `video-skill-deck` |
 
 The installed `general-video` skill is a HyperFrames fallback, not the universal production router. Use this skill first, then route to `general-video` only for a freeform HyperFrames composition.
 

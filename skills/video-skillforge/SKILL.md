@@ -1,6 +1,6 @@
 ---
 name: video-skillforge
-description: Promote evidence from generated videos, edits, user corrections, rejected assets, and successful fixes into a durable video-production knowledge system. Use after each meaningful video output, reroll, approval, rejection, completed batch, or final delivery when the user asks to save learnings, update the repo, prevent repeated mistakes, generalize a campaign technique, create a memorable format recipe, or improve future video agents.
+description: Promote evidence from generated videos, edits, user corrections, rejected assets, and successful fixes into a durable video-production knowledge system. Call name SkillForge. Use after each meaningful video output, reroll, approval, rejection, completed batch, or final delivery when the user asks to save learnings, prevent repeated mistakes, generalize a campaign technique, create a memorable format recipe, or improve future video agents. Use ForgeSync when the request also includes repository commit and push.
 ---
 
 # Video SkillForge
@@ -54,6 +54,8 @@ promote proven lessons at meaningful checkpoints.
    - Prefer names such as `DuoLock: true two-person generated shot` over opaque codes such as `v4b`.
    - Create a new skill only when the workflow has an independent trigger and enough substance to
      load separately. Otherwise add a recipe or reference to the nearest existing skill.
+   - Register every new skill or recipe call name through `SkillDeck`; do not rename stable skill
+     folders for conversational recall.
 
 6. **Operationalize**
    - Add or improve a script when the same deterministic code would otherwise be rewritten.
@@ -65,7 +67,8 @@ promote proven lessons at meaningful checkpoints.
    - Mirror repo-owned skills to their live Codex copies.
    - Regenerate the workflow and skill catalogs.
    - Run `scripts/audit_instruction_bloat.py`, syntax checks, relevant media QA, and a secret scan.
-   - Commit only the intended learning-system changes unless the user requested a full sync.
+   - Run `ForgeSync` when the user requested commit, push, GitHub persistence, or a complete
+     learning-system sync.
 
 ## Promotion Gate
 

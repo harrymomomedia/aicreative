@@ -1,6 +1,6 @@
 ---
 name: podcast-video
-description: Produce natural podcast-style talking-head videos and ads, including host selection, off-camera or direct-address register, script chunking, mic and set continuity, conversational reactions, generated or existing footage, proof-media cuts, jump-cut pacing, captions, and final QA. Use when the user asks for a podcast clip, interview-style monologue, studio conversation, regular-podcast feel, video podcast ad, or a newscaster concept rewritten as a podcaster.
+description: Produce natural podcast-style talking-head videos and ads, including host selection, off-camera or direct-address register, script chunking, mic and set continuity, conversational reactions, generated or existing footage, proof-media cuts, jump-cut pacing, captions, and final QA. Call name PodFlow. Use when the user asks for a podcast clip, interview-style monologue, studio conversation, regular-podcast feel, video podcast ad, or a newscaster concept rewritten as a podcaster.
 ---
 
 # Podcast Video

@@ -1,6 +1,6 @@
 ---
 name: ai-video-generation
-description: Generate AI video clips, talking heads, personas, and B-roll with cost-aware provider routing, approved anchors, prompt discipline, identity and scene continuity, dialogue accuracy, voice consistency, and incremental QA. Use whenever a video project needs text-to-video, image-to-video, character animation, generated medical or documentary footage, provider/model selection, rerolls, or generated-asset review.
+description: Generate AI video clips, talking heads, personas, and B-roll with cost-aware provider routing, approved anchors, prompt discipline, identity and scene continuity, dialogue accuracy, voice consistency, and incremental QA. Call name GenLock. Use whenever a video project needs text-to-video, image-to-video, character animation, generated medical or documentary footage, provider/model selection, rerolls, or generated-asset review.
 ---
 
 # AI Video Generation

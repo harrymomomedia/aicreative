@@ -1,6 +1,6 @@
 ---
 name: video-post-production
-description: Edit and finish videos with native-speed trimming, frame-accurate B-roll assembly, audio cleanup and loudness control, caption routing, mobile-safe layout, aspect conversion, transition inspection, and every-frame QA. Use for stitching clips, recutting footage, adding or replacing B-roll, removing filler, mixing voices, burning subtitles, creating clean/captioned variants, or diagnosing flashes, freezes, drift, clipping, and layout problems.
+description: Edit and finish videos with native-speed trimming, frame-accurate B-roll assembly, audio cleanup and loudness control, caption routing, mobile-safe layout, aspect conversion, transition inspection, and every-frame QA. Call name CutSmith. Use for stitching clips, recutting footage, adding or replacing B-roll, removing filler, mixing voices, burning subtitles, creating clean/captioned variants, or diagnosing flashes, freezes, drift, clipping, and layout problems.
 ---
 
 # Video Post Production

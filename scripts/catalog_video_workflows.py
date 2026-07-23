@@ -105,6 +105,7 @@ GENERAL_STEMS = {
     "style_test_seedance",
     "submagic_client",
     "subtitle_style_registry",
+    "sync_video_skill_deck",
     "track_emojis",
     "trim_silence",
     "useapi_client",

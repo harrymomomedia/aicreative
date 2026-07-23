@@ -1,4 +1,4 @@
 interface:
-  display_name: "AI Video Generation"
+  display_name: "GenLock"
   short_description: "Generate consistent AI video clips and personas"
-  default_prompt: "Use $ai-video-generation to generate these clips with continuity and QA."
+  default_prompt: "Use GenLock to generate these clips with continuity and QA."

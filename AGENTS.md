@@ -5,11 +5,15 @@ Read `/Users/harry/aicreative/CLAUDE.md` before working in this repository.
 ## Skill Routing
 
 - Start video work with `/Users/harry/.codex/skills/video-production/SKILL.md`.
+- Resolve memorable calls through `SkillDeck`; announce the chosen call names once in the first
+  working update so the user learns the reusable vocabulary.
 - Add `ai-video-generation` for generated media and `video-post-production` for editing or QA.
 - Add `admachin-video-ads` for AdSwipe, paid-social, legal/tort copy, staging, or launches.
 - Load caption, format, HyperFrames, podcast, and disclaimer skills only when needed.
 - After every generated video, record a `video-skillforge` verdict; promote durable lessons after
   corrections, approvals, batches, and finals.
+- `ForgeSync` means promote the current video learnings, update SkillDeck when needed, validate,
+  mirror, commit, push, and verify the repository update end to end.
 
 Reusable craft belongs in skills. Campaign scripts, people, assets, IDs, rejects, and compliance
 belong in campaign memory or `inventory/`.

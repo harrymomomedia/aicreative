@@ -7,8 +7,9 @@ description: Extract and save durable learnings after a completed work session s
 
 Use this skill at the end of a meaningful work session. The goal is not to save everything; it is to preserve the lessons most likely to prevent repeated mistakes.
 
-For video-production evidence, run `video-skillforge` first. It decides whether the result is a
-general rule, named format recipe, reusable script, provider note, or campaign fact.
+For video-production evidence, run `SkillForge` first. It decides whether the result is a general
+rule, named format recipe, reusable script, provider note, or campaign fact. If the user also asks
+to update the repo, commit, push, or save to GitHub, use `ForgeSync` for the complete pass.
 
 ## Anti-Bloat Gate
 

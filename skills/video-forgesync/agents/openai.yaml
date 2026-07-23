@@ -1,0 +1,4 @@
+interface:
+  display_name: "ForgeSync"
+  short_description: "Save video learnings and publish them to GitHub"
+  default_prompt: "Run ForgeSync on this production: promote durable learnings, update the correct skills and campaign records, validate everything, commit, and push the intended changes."

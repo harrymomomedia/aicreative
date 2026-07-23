@@ -1,6 +1,6 @@
 ---
 name: interview-shotcraft
-description: Design and produce podcast, field-interview, street-interview, reporter-and-subject, and two-person conversation videos using memorable alternative shot recipes. Use for true two-shot generation, one-speaker-at-a-time interview clips, a shared horizontal master cropped into matching vertical singles, active-speaker punch-ins from landscape footage, interviewer/reaction cutaways, eyeline continuity, microphone continuity, or choosing the safest interview architecture before generation.
+description: Design and produce podcast, field-interview, street-interview, reporter-and-subject, and two-person conversation videos using memorable alternative shot recipes. Call name ShotCraft. Use for true two-shot generation, one-speaker-at-a-time interview clips, a shared horizontal master cropped into matching vertical singles, active-speaker punch-ins from landscape footage, interviewer/reaction cutaways, eyeline continuity, microphone continuity, or choosing the safest interview architecture before generation.
 ---
 
 # Interview Shotcraft

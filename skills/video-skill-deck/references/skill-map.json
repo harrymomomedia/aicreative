@@ -1,0 +1,301 @@
+{
+  "schema_version": 1,
+  "policy": {
+    "call_names": "Short, unique PascalCase aliases used in conversation.",
+    "skill_ids": "Stable lowercase kebab-case directory names used by tools and files.",
+    "new_capability": "Prefer a named recipe in an existing skill unless the capability has an independent trigger and substantial reusable procedure."
+  },
+  "skills": [
+    {
+      "call_name": "VideoPilot",
+      "skill_id": "video-production",
+      "group": "Core and Learning",
+      "purpose": "Route an entire video from brief through delivery."
+    },
+    {
+      "call_name": "SkillDeck",
+      "skill_id": "video-skill-deck",
+      "group": "Core and Learning",
+      "purpose": "Recall, select, and register memorable workflow names."
+    },
+    {
+      "call_name": "SkillForge",
+      "skill_id": "video-skillforge",
+      "group": "Core and Learning",
+      "purpose": "Classify production evidence into durable rules, recipes, tools, or campaign state."
+    },
+    {
+      "call_name": "ForgeSync",
+      "skill_id": "video-forgesync",
+      "group": "Core and Learning",
+      "purpose": "Promote learnings, validate them, commit, and push the update."
+    },
+    {
+      "call_name": "MemoryPass",
+      "skill_id": "session-memory-pass",
+      "group": "Core and Learning",
+      "purpose": "Consolidate durable lessons from a general work session."
+    },
+    {
+      "call_name": "GenLock",
+      "skill_id": "ai-video-generation",
+      "group": "Generation",
+      "purpose": "Generate people, scenes, and B-roll with provider, identity, voice, and cost controls."
+    },
+    {
+      "call_name": "FormatSpark",
+      "skill_id": "ad-format-ideation",
+      "group": "Ads and Copy",
+      "purpose": "Invent structurally different performance-ad concepts."
+    },
+    {
+      "call_name": "CopyDeck",
+      "skill_id": "ad-copy-formats",
+      "group": "Ads and Copy",
+      "purpose": "Write varied primary-text and headline structures."
+    },
+    {
+      "call_name": "ImageDeck",
+      "skill_id": "image-ad-formats",
+      "group": "Ads and Copy",
+      "purpose": "Recall distinct static image-ad formats."
+    },
+    {
+      "call_name": "AdLaunch",
+      "skill_id": "admachin-video-ads",
+      "group": "Ads and Copy",
+      "purpose": "Analyze AdSwipe, build regulated ads, and stage or launch them in AdMachin."
+    },
+    {
+      "call_name": "PJLegal",
+      "skill_id": "pulaski-jones-disclaimer",
+      "group": "Ads and Copy",
+      "purpose": "Apply the exact Pulaski and Jones campaign disclaimer."
+    },
+    {
+      "call_name": "CutSmith",
+      "skill_id": "video-post-production",
+      "group": "Formats and Post",
+      "purpose": "Edit, mix, caption, resize, and run frame-accurate delivery QA."
+    },
+    {
+      "call_name": "PodFlow",
+      "skill_id": "podcast-video",
+      "group": "Formats and Post",
+      "purpose": "Produce natural podcast-style hosts, performances, and edits."
+    },
+    {
+      "call_name": "ShotCraft",
+      "skill_id": "interview-shotcraft",
+      "group": "Formats and Post",
+      "purpose": "Choose and execute podcast, interview, two-shot, and reframing architectures."
+    },
+    {
+      "call_name": "OmniPod",
+      "skill_id": "podcast-omni",
+      "group": "Formats and Post",
+      "purpose": "Run the legacy Omni podcast provider adapter when explicitly requested."
+    },
+    {
+      "call_name": "ProofPIP",
+      "skill_id": "pip-composite",
+      "group": "Formats and Post",
+      "purpose": "Build documentary presenter-over-proof picture-in-picture edits."
+    },
+    {
+      "call_name": "MotionPIP",
+      "skill_id": "hf-pip-composite",
+      "group": "Formats and Post",
+      "purpose": "Build deterministic HyperFrames picture-in-picture compositions."
+    },
+    {
+      "call_name": "ProofStack",
+      "skill_id": "stacked-format",
+      "group": "Formats and Post",
+      "purpose": "Build vertical proof-over-presenter split-screen edits."
+    },
+    {
+      "call_name": "FeedFit",
+      "skill_id": "feed-4x5",
+      "group": "Formats and Post",
+      "purpose": "Convert portrait creative into a mobile-safe 4:5 feed version."
+    },
+    {
+      "call_name": "TalkPolish",
+      "skill_id": "talking-head-recut",
+      "group": "Formats and Post",
+      "purpose": "Package existing talking-head footage with designed overlays and recuts."
+    },
+    {
+      "call_name": "SceneScribe",
+      "skill_id": "faceless-explainer",
+      "group": "Formats and Post",
+      "purpose": "Turn text into a fully visual faceless explainer."
+    },
+    {
+      "call_name": "SlideMotion",
+      "skill_id": "slideshow",
+      "group": "Formats and Post",
+      "purpose": "Build a designed motion slideshow from images or a brief."
+    },
+    {
+      "call_name": "SiteTour",
+      "skill_id": "website-to-video",
+      "group": "Formats and Post",
+      "purpose": "Capture a website and turn it into a branded tour video."
+    },
+    {
+      "call_name": "LaunchFilm",
+      "skill_id": "product-launch-video",
+      "group": "Formats and Post",
+      "purpose": "Create a product or feature launch video."
+    },
+    {
+      "call_name": "PRCut",
+      "skill_id": "pr-to-video",
+      "group": "Formats and Post",
+      "purpose": "Turn a GitHub pull request into a code-change video."
+    },
+    {
+      "call_name": "BeatCut",
+      "skill_id": "music-to-video",
+      "group": "Formats and Post",
+      "purpose": "Build a beat-synchronized video around a music track."
+    },
+    {
+      "call_name": "Redwood",
+      "skill_id": "redwood-subtitle",
+      "group": "Captions",
+      "purpose": "Burn tracked all-caps captions with a hot-pink active-word box."
+    },
+    {
+      "call_name": "Hormozi",
+      "skill_id": "hormozi3",
+      "group": "Captions",
+      "purpose": "Burn the in-house Hormozi 3 caption treatment."
+    },
+    {
+      "call_name": "Nick",
+      "skill_id": "nick-subtitle",
+      "group": "Captions",
+      "purpose": "Burn compact sentence-case captions on a dark rounded box."
+    },
+    {
+      "call_name": "YellowPop",
+      "skill_id": "yellow-text-sub",
+      "group": "Captions",
+      "purpose": "Burn compact creator captions with per-word yellow emphasis."
+    },
+    {
+      "call_name": "CaptionFX",
+      "skill_id": "embedded-captions",
+      "group": "Captions",
+      "purpose": "Use the cinematic embedded-caption catalog and scene-aware effects."
+    },
+    {
+      "call_name": "CaptionLab",
+      "skill_id": "caption-engine-builder",
+      "group": "Captions",
+      "purpose": "Reverse-engineer and build a genuinely new caption engine."
+    },
+    {
+      "call_name": "HyperFrames",
+      "skill_id": "hyperframes",
+      "group": "Motion and Specialist",
+      "purpose": "Route a custom HyperFrames motion composition."
+    },
+    {
+      "call_name": "MotionKit",
+      "skill_id": "hyperframes-animation",
+      "group": "Motion and Specialist",
+      "purpose": "Design animation timing, transitions, and runtime motion."
+    },
+    {
+      "call_name": "FrameCLI",
+      "skill_id": "hyperframes-cli",
+      "group": "Motion and Specialist",
+      "purpose": "Run the HyperFrames command-line development and render loop."
+    },
+    {
+      "call_name": "FrameCore",
+      "skill_id": "hyperframes-core",
+      "group": "Motion and Specialist",
+      "purpose": "Build against the core HyperFrames composition contract."
+    },
+    {
+      "call_name": "ArtDirection",
+      "skill_id": "hyperframes-creative",
+      "group": "Motion and Specialist",
+      "purpose": "Set visual direction, palettes, typography, narration, and beat plans."
+    },
+    {
+      "call_name": "KeyframeLab",
+      "skill_id": "hyperframes-keyframes",
+      "group": "Motion and Specialist",
+      "purpose": "Author and debug HyperFrames keyframe motion."
+    },
+    {
+      "call_name": "FrameBlocks",
+      "skill_id": "hyperframes-registry",
+      "group": "Motion and Specialist",
+      "purpose": "Install and wire reusable HyperFrames blocks and components."
+    },
+    {
+      "call_name": "MediaVault",
+      "skill_id": "media-use",
+      "group": "Motion and Specialist",
+      "purpose": "Resolve and freeze media assets with ledger records."
+    },
+    {
+      "call_name": "MotionCanvas",
+      "skill_id": "motion-graphics",
+      "group": "Motion and Specialist",
+      "purpose": "Create designed motion-graphics compositions."
+    },
+    {
+      "call_name": "RemotionBridge",
+      "skill_id": "remotion-to-hyperframes",
+      "group": "Motion and Specialist",
+      "purpose": "Port an existing Remotion composition into HyperFrames."
+    },
+    {
+      "call_name": "FigmaFlow",
+      "skill_id": "figma",
+      "group": "Motion and Specialist",
+      "purpose": "Bring Figma assets and design states into HyperFrames."
+    },
+    {
+      "call_name": "HFCanvas",
+      "skill_id": "general-video",
+      "group": "Motion and Specialist",
+      "purpose": "Use the freeform HyperFrames fallback for custom compositions."
+    }
+  ],
+  "recipes": [
+    {
+      "call_name": "PodSolo",
+      "parent_skill": "interview-shotcraft",
+      "purpose": "One podcast host or guest in an intimate single-person shot."
+    },
+    {
+      "call_name": "DuoLock",
+      "parent_skill": "interview-shotcraft",
+      "purpose": "A true generated two-person shot with shared interaction."
+    },
+    {
+      "call_name": "WideSplit",
+      "parent_skill": "interview-shotcraft",
+      "purpose": "One approved landscape composition cropped into matched solo anchors."
+    },
+    {
+      "call_name": "StreetPunch",
+      "parent_skill": "interview-shotcraft",
+      "purpose": "An accepted landscape interview cut into vertical active-speaker punch-ins."
+    },
+    {
+      "call_name": "SoloRelay",
+      "parent_skill": "interview-shotcraft",
+      "purpose": "Separately generated single-person angles sharing one scene grammar."
+    }
+  ]
+}

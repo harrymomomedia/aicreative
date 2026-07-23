@@ -1,4 +1,4 @@
 interface:
-  display_name: "Ad Copy Formats"
+  display_name: "CopyDeck"
   short_description: "Create structurally varied paid-social copy"
-  default_prompt: "Use $ad-copy-formats to make this ad-copy batch structurally distinct."
+  default_prompt: "Use CopyDeck to make this ad-copy batch structurally distinct."

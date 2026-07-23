@@ -17,6 +17,8 @@ Start with the broadest relevant skill, then load specialists:
 | Format | `interview-shotcraft` | PodSolo, DuoLock, WideSplit, StreetPunch, and SoloRelay interview architectures |
 | Format | `pip-composite`, `hf-pip-composite`, `stacked-format`, `feed-4x5` | Reusable edit and layout formats |
 | Learning | `video-skillforge` | Promote validated production evidence into rules, recipes, scripts, or campaign state |
+| Learning publish | `video-forgesync` | Validate, mirror, commit, push, and verify promoted learnings |
+| Naming | `video-skill-deck` | Map memorable call names to stable skills and recipes |
 | Provider adapter | `podcast-omni` | Legacy Omni execution rules only when explicitly requested |
 | Captions | `redwood-subtitle`, `hormozi3`, `nick-subtitle`, `yellow-text-sub`, `embedded-captions` | Named caption treatments |
 | Caption authoring | `caption-engine-builder` | Clone a genuinely new caption style |
@@ -24,6 +26,9 @@ Start with the broadest relevant skill, then load specialists:
 | Motion | `hyperframes` and its specialists | Motion graphics and custom compositions |
 
 `general-video` is the HyperFrames fallback for freeform compositions. It is not the universal production router.
+
+Use `SkillDeck` for the complete call-name list. Call names are conversational aliases; stable
+directory IDs do not change.
 
 ## Knowledge Placement
 

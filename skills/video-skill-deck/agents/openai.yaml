@@ -1,0 +1,4 @@
+interface:
+  display_name: "SkillDeck"
+  short_description: "Recall every video workflow by a memorable call name"
+  default_prompt: "Open SkillDeck, choose the best named video skills or recipes for this task, and explain the route using their memorable call names."

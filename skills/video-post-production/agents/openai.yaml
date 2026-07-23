@@ -1,4 +1,4 @@
 interface:
-  display_name: "Video Post Production"
+  display_name: "CutSmith"
   short_description: "Edit, caption, mix, and frame-QA videos"
-  default_prompt: "Use $video-post-production to assemble and finish this video cleanly."
+  default_prompt: "Use CutSmith to assemble and finish this video cleanly."
